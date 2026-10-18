@@ -35,3 +35,7 @@ Status: early. These were measured on compressed ORFs from several bodies. Each 
 - Also seen: High Res Shot-sized payloads (8172-10400 wide) in the same container with the same tag values.
 - Evidence: `tools/orf_signature.py` on raw.pixls.us CC0 files from E-P7, E-M1MarkII, E-M5, E-1, OM-1, OM-3 and OM-5 Mark II (17 files).
 - Reproduce: `python tools/orf_signature.py <those files>`.
+
+## F3 (2026-10-18, @radialmonster): entry format update (process note, not a finding)
+
+- From now on, an entry may include `Builds on: F<n> (@handle)` when it uses someone else's result, and `Submitted by: @handle` when the person adding it isn't the author. See RULES.md, "Credit".

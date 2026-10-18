@@ -25,5 +25,14 @@ If you have read the ORF decompression code in any of those projects, you're wel
 - To correct or retract an entry, append a new entry that says which one it corrects and why.
 - A CI check rejects pull requests that change or remove existing lines in FINDINGS.md.
 
+## Credit
+Everyone who finds something keeps the credit for it.
+- Each FINDINGS entry names its author (`@handle`) in its heading. Because the file is append-only, that credit can't be edited away, and a later correction is a new entry that leaves the original and its author in place.
+- If your work builds on someone else's entry, say so with a `Builds on: F<n> (@handle)` line.
+- Add only your own work under your own handle. If you're adding someone else's result, for example from a Discussion, credit them as the author and add `Submitted by: @you`.
+- In `samples/manifest.csv`, `measured_by` is never overwritten. When you fill more columns of an existing row, add your handle and script after the existing ones, separated by `; `.
+- Pull requests are squash-merged with the contributor kept as the commit author. Add `Co-authored-by:` lines for anyone else who did the work.
+- When a decoder built from this work is contributed to LightCraft or elsewhere, it credits every FINDINGS author it relies on, by name and entry number.
+
 ## Sign-off
 By opening a pull request you confirm that your contribution follows these rules and is released under CC0 1.0 (see LICENSE). Please say so in the PR description ("I confirm this follows RULES.md").

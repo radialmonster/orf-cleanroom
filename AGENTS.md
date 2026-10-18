@@ -13,3 +13,4 @@ Read [RULES.md](RULES.md) first and follow it. It applies to everything you writ
 - State in your PR description that the work follows RULES.md.
 - Credit work to the person you're working for, or leave `measured_by` for them to fill in. Never credit someone else's handle.
 - `main` is protected: work on a branch and open a pull request (see README, "Contributing changes").
+- Keep credit intact: never remove or replace anyone's `@handle` in FINDINGS.md or `measured_by`; cite earlier work with `Builds on: F<n> (@handle)` (see RULES.md, "Credit").

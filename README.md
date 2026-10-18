@@ -45,6 +45,10 @@ Record each file you use in `samples/manifest.csv` (see samples/README.md).
 
 To claim a task, comment on its issue first so work isn't duplicated.
 
+## Credit
+
+Findings stay credited to whoever found them: author handles are in each FINDINGS entry and can't be edited away, and anything built from this work credits them. See RULES.md, "Credit".
+
 ## Layout
 - `RULES.md`: the clean-room contract
 - `AGENTS.md`: instructions for AI coding agents
