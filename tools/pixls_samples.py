@@ -82,8 +82,7 @@ def cmd_check(a):
     for p in a.files:
         r = by_hash.get(sha256_file(p))
         if r is None:
-            print("NOT LISTED  %s  (not a known raw.pixls.us file; don't use it here)" % p)
-            bad += 1
+            print("NOT LISTED  %s  (not a raw.pixls.us file; fine if it's your own, see RULES.md 'Data')" % p)
         elif r["licence"] != "CC0":
             print("NOT CC0     %s  (%s; don't use it here)" % (p, r["licence"]))
             bad += 1

@@ -15,8 +15,10 @@
 If you have read the ORF decompression code in any of those projects, you're welcome to help with samples, tooling and testing, but please don't contribute to decoder logic or findings about the bitstream.
 
 ## Data
-- Raw files are referenced by raw.pixls.us name and hash, never committed.
-- Only CC0 / public-domain samples are used for published numbers.
+- Raw files are never committed. Reference them by SHA-256, plus the raw.pixls.us id and name when they come from there.
+- **raw.pixls.us files:** use only CC0 ones (check with `tools/pixls_samples.py check`).
+- **Your own files are welcome.** You can test with raws you shot yourself, or ones whose owner agreed. Publish only aggregate numbers and the file's SHA-256, never the file or images from it. Results that rest only on files others can't get are marked `not yet reproducible` until a CC0 copy exists. Uploading a few to raw.pixls.us as CC0 fixes that.
+- Don't use files whose licence you don't know, or that are under a non-CC0 licence (e.g. the CC BY-NC-SA files on raw.pixls.us).
 - No images of decoded or preview data are committed. Aggregate statistics only.
 
 ## Findings are append-only

@@ -28,12 +28,12 @@ One issue per variant (https://github.com/radialmonster/orf-cleanroom/issues), l
 
 ## V1: calm-parse compressed
 - Signature: compressed; the calm parse from F1 works (q zeros, stop bit, 5-bit suffix, escape at q ≥ 17); per-row stride equals the payload width on at least one body (5240 wide).
-- Models seen: to be filled from the sample manifest.
+- Models seen: none recorded yet. The PR that assigns a manifest row to this variant also adds its model here.
 - Status: `parse understood`. Value assembly and predictor open (OPEN-QUESTIONS 1-2). On some bodies the stride drifts (question 3), which may split this variant.
 
 ## V2: 31-bit-escape compressed
 - Signature: compressed; files from larger sensors share a 31-bit escape; the ordinary code doesn't fit the V1 parse.
-- Models seen: to be filled from the sample manifest.
+- Models seen: none recorded yet. The PR that assigns a manifest row to this variant also adds its model here.
 - Status: `unknown` (question 5).
 
 ## Unassigned

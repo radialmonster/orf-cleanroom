@@ -22,7 +22,9 @@ Issues labelled [`good first issue`](https://github.com/radialmonster/orf-cleanr
 
 ## Getting test files
 
-Use [raw.pixls.us](https://raw.pixls.us), a public collection of raw samples. **Not every file there is CC0.** The `/data/` mirror and the bulk git clones mix CC0 and non-CC0 files (for example CC BY-NC-SA), and the file names don't tell you which is which. Only CC0 files may be used here.
+**Your own ORFs are welcome**: run the tools on them and publish the numbers (never the files). See RULES.md, "Data".
+
+For files everyone can re-test, use [raw.pixls.us](https://raw.pixls.us), a public collection of raw samples. **Not every file there is CC0.** The `/data/` mirror and the bulk git clones mix CC0 and non-CC0 files (for example CC BY-NC-SA), and the file names don't tell you which is which. Only CC0 files may be used here.
 
 Use `tools/pixls_samples.py`. It reads the site's own licence listing:
 
@@ -30,7 +32,7 @@ Use `tools/pixls_samples.py`. It reads the site's own licence listing:
     python tools/pixls_samples.py download ../orf-samples --model OM-5 --max 3
     python tools/pixls_samples.py check ../orf-samples/*.ORF   # licence of files you already have
 
-`download` fetches CC0 files only, verifies each SHA-256, and refuses to save inside the repo. `check` looks files up by SHA-256 and tells you if one is not CC0 or not a raw.pixls.us file. Run it on anything you got another way.
+`download` fetches CC0 files only, verifies each SHA-256, and refuses to save inside the repo. `check` looks files up by SHA-256 and tells you if one is not CC0 or not a raw.pixls.us file. Run it on files you got from elsewhere.
 
 Record each file you use in `samples/manifest.csv` (see samples/README.md).
 
@@ -38,12 +40,7 @@ Record each file you use in `samples/manifest.csv` (see samples/README.md).
 
 ## Contributing changes
 
-`main` is protected, so all changes go through pull requests:
-1. Fork the repo and create a branch.
-2. Make your change. Findings go at the **end** of FINDINGS.md as a new entry (append-only; a CI check enforces it).
-3. Open a pull request and include the line "I confirm this follows RULES.md".
-
-To claim a task, comment on its issue first so work isn't duplicated.
+See [CONTRIBUTING.md](CONTRIBUTING.md). In short: fork, branch, pull request; `main` is protected and FINDINGS.md is append-only.
 
 ## Credit
 

@@ -5,7 +5,7 @@
 3. **Row stride drift:** on some bodies the per-row token count drifts instead of staying equal to the width. Why?
 4. **Horizontal offset ramp:** the alignment offset with the preview grows with row band. Is that an artefact of the alignment method or real?
 5. **Larger sensors:** the ordinary (non-escape) code in files sharing the 31-bit escape.
-6. **Reproduction:** turn each finding into a script in `tools/` that runs on named raw.pixls.us CC0 files.
+6. **Reproduction:** turn each finding into a script in `tools/` that runs on named CC0 files. Good starting files for F1 (5240-wide payloads): raw.pixls.us ids 6343 (OM-5), 8549 (OM-5 Mark II), and the 5240-wide E-M1MarkII files, all CC0.
 
 ## Hypotheses (unverified, not evidence)
 

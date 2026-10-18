@@ -1,1 +1,1 @@
-pixls_id,pixls_name,sha256,licence,make,model,mode,payload_w,payload_h,bpp,compression_tag,escape_bits,calm_parse,row_stride,variant,measured_by
+source,pixls_id,pixls_name,sha256,licence,make,model,mode,payload_w,payload_h,bpp,compression_tag,escape_bits,calm_parse,row_stride,variant,measured_by

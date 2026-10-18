@@ -107,8 +107,9 @@ def signature(path):
 
 
 def main(paths):
-    if not paths:
-        sys.exit(__doc__)
+    if not paths or paths[0] in ("-h", "--help"):
+        print(__doc__)
+        sys.exit(0 if paths else 2)
     out = None
     for p in paths:
         try:
