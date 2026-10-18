@@ -9,7 +9,7 @@ Today LightCraft decodes uncompressed ORF only; compressed ORF (the default on m
 ## Start here
 
 New? These need no knowledge of the bitstream:
-1. **Add manifest rows:** pick a model with no rows in `samples/manifest.csv` yet (at first, every model), comment one line on [issue #3](https://github.com/radialmonster/orf-cleanroom/issues/3) such as "Taking E-P5, E-410" so two people don't do the same one (a courtesy; nothing breaks if you skip it), then add rows with `tools/manifest_rows.py` (see samples/README.md). Most useful first: compressed bodies, especially the 5240-wide ones from OPEN-QUESTIONS 6 (OM-5, OM-5 Mark II, E-M1 Mark II).
+1. **Add manifest rows:** pick a model with no rows in `samples/manifest.csv` yet (at first, every model), comment one line on [issue #3](https://github.com/radialmonster/orf-cleanroom/issues/3) such as "Taking E-P5, E-410" so two people don't do the same one (a courtesy; nothing breaks if you skip it), then add rows with `tools/manifest_rows.py` for every CC0 file of that model, including ORI and High Res Shot files (see samples/README.md). Most useful first: compressed bodies, especially the 5240-wide ones from OPEN-QUESTIONS 6 (OM-5, OM-5 Mark II, E-M1 Mark II).
 2. **Reproduce a finding:** run `python tools/findings_index.py` to see every finding and its status. Pick a `lead` (for example F2: run `tools/orf_signature.py` on more bodies) and add a finding file with `Reproduces:` if you get matching results, or `Corrects:` if you don't. Reproducing someone's lead is a contribution in itself.
 3. **Write a reproduction script for part of F1** (see OPEN-QUESTIONS 6).
 
