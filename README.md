@@ -30,7 +30,7 @@ Use `tools/pixls_samples.py`. It reads the site's own licence listing:
 
     python tools/pixls_samples.py list                    # CC0 Olympus/OM ORF and ORI files
     python tools/pixls_samples.py download ../orf-samples --model OM-5 --max 3   # exact model name from `list`
-    python tools/pixls_samples.py check ../orf-samples/*.ORF   # licence of files you already have
+    python tools/pixls_samples.py check ../orf-samples/*       # licence of files you already have
 
 `download` fetches CC0 files only, verifies each SHA-256, and refuses to save inside the repo. `check` looks files up by SHA-256 and tells you if one is not CC0 or not a raw.pixls.us file. Run it on files you got from elsewhere.
 

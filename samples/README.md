@@ -2,7 +2,7 @@
 
 **Quick way:** download CC0 files with `tools/pixls_samples.py download`, then
 
-    python tools/manifest_rows.py --by @yourhandle ../orf-samples/*.ORF >> samples/manifest.csv
+    python tools/manifest_rows.py --by @yourhandle ../orf-samples/* >> samples/manifest.csv
 
 That fills every column it can measure and leaves the rest blank. For your own files, add `--own` (you confirm they're yours or the owner agreed). If one of "your" files turns out to be identical to a raw.pixls.us file, the tool records it as that CC0 file, which is better: others can re-test it.
 
@@ -16,7 +16,7 @@ Columns:
 - `pixls_name`: the file name exactly as shown on raw.pixls.us, with `:` (local copies use `_` instead)
 - `licence`: `CC0` for raw.pixls.us files (check with `tools/pixls_samples.py check`); `not-shared` for own files
 - `sha256`: SHA-256 of the file
-- `make`, `model`: from the file's own tags
+- `make`, `model`: from the file's own tags, spelled as the tags spell them (e.g. `E-M5MarkIII`; the raw.pixls.us list may write `E-M5 Mark III`)
 - `mode`: `normal` / `hires`, measured from the payload width (over 6000 = High Res Shot)
 - `payload_w`, `payload_h`, `bpp`: measured payload size and bits per pixel
 - `size_class`: `packed-12`, `packed-12.8` or `packed-16` when the payload size exactly matches that fixed packing; `variable` otherwise (compressed). See FINDINGS F4.

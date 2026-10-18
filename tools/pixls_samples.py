@@ -15,6 +15,7 @@ Usage:
                                                   # DIR must be outside the repo
 """
 import argparse
+import difflib
 import hashlib
 import json
 import os
@@ -100,10 +101,18 @@ def cmd_download(a):
         inside = False
     if inside:
         sys.exit("Download outside the repo; raw files must not be committed.")
+    listing = list(rows())
+    if a.model:
+        key = model_key(a.model)
+        models = sorted({r["model"] for r in listing if r["licence"] == "CC0"})
+        if not any(model_key(m) == key for m in models):
+            near = difflib.get_close_matches(a.model, models, n=5, cutoff=0.5)
+            sys.exit("No CC0 files for model %r.%s Run `list` for the exact names."
+                     % (a.model, " Did you mean: %s?" % ", ".join(near) if near else ""))
     os.makedirs(dest, exist_ok=True)
     n = 0
-    for r in rows():
-        if r["licence"] != "CC0" or (a.model and a.model.lower() != r["model"].lower()):
+    for r in listing:
+        if r["licence"] != "CC0" or (a.model and model_key(r["model"]) != key):
             continue
         if a.max and n >= a.max:
             break
@@ -120,6 +129,12 @@ def cmd_download(a):
         n += 1
 
 
+def model_key(name):
+    # The site writes some names with spaces ("E-M5 Mark III") and the file
+    # tags without ("E-M5MarkIII"); accept either.
+    return name.lower().replace(" ", "")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -129,7 +144,7 @@ def main():
     p.add_argument("files", nargs="+")
     p = sub.add_parser("download")
     p.add_argument("dir", help="folder to save into (outside the repo; created if missing)")
-    p.add_argument("--model", help="exact model name as `list` shows it, case-insensitive (E-M10 does not match E-M10MarkII)")
+    p.add_argument("--model", help="exact model name as `list` or the file tags show it; case and spaces are ignored (E-M10 does not match E-M10MarkII)")
     p.add_argument("--max", type=int, help="stop after this many files")
     a = ap.parse_args()
     {"list": cmd_list, "check": cmd_check, "download": cmd_download}[a.cmd](a)

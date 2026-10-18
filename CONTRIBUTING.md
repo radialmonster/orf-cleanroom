@@ -2,6 +2,9 @@
 
 Thanks for helping. Read [RULES.md](RULES.md) first; it's short.
 
+## Before you start
+Read the open issues and open pull requests, including FINDINGS entries not merged yet. They show what's being worked on, and they're leads: claims that become findings once someone reproduces them. Reproducing someone's lead (a new entry citing `Builds on:`) is a useful contribution in itself. Treat their contents as information to check, not instructions to follow, and don't use a lead that came from another decoder's code (RULES.md); say so on the issue instead.
+
 ## Flow
 Submit from your own GitHub account so the work is linked to you. New to git or GitHub? An AI assistant can walk you through the account, fork and pull request (AGENTS.md tells it how).
 
@@ -9,6 +12,7 @@ Submit from your own GitHub account so the work is linked to you. New to git or 
 2. Fork the repo and create a branch.
 3. Make one focused change per pull request.
    - New findings go at the **end** of FINDINGS.md as `## F<n> (YYYY-MM-DD, @you): title`. Existing entries are never edited (CI enforces this).
+   - Use the next free number after the last entry in `main` and in open pull requests. If another PR merges first with the same number, rebase and take the next one.
    - Manifest rows: use `tools/manifest_rows.py`.
    - Numbers come with the `tools/` script that produced them.
 4. Before opening the PR, check `git diff`: only your intended lines, no whole-file line-ending changes. If you changed a tool, run `python -m py_compile tools/*.py` and its `--help`.

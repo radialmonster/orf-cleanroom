@@ -16,7 +16,7 @@ Each script should:
 
 **`orf_signature.py`** prints one CSV row per file with its measured container and payload facts: SHA-256, magic, make, model, payload size, bits per sample, compression tag, payload offset and bytes, and bits per pixel. It reads the TIFF structure only and decodes nothing.
 
-    python tools/orf_signature.py path/to/*.ORF > rows.csv
+    python tools/orf_signature.py path/to/* > rows.csv
 
 **`bit_runs.py`** gives a histogram of zero-bit runs in the payload (MSB-first), as aggregate numbers. It's a starting point for bitstream work (FINDINGS F1).
 
