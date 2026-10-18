@@ -3,6 +3,8 @@
 Thanks for helping. Read [RULES.md](RULES.md) first; it's short.
 
 ## Flow
+Submit from your own GitHub account so the work is linked to you. New to git or GitHub? An AI assistant can walk you through the account, fork and pull request (AGENTS.md tells it how).
+
 1. Pick a task: "Start here" in the README, or an issue labelled `good first issue`. Comment on the issue to claim it.
 2. Fork the repo and create a branch.
 3. Make one focused change per pull request.
