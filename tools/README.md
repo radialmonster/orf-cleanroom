@@ -3,12 +3,14 @@
 Analysis scripts, all original code (see RULES.md).
 
 Each script should:
-- take raw.pixls.us file paths as arguments and never download anything itself;
+- take raw.pixls.us file paths as arguments and not download anything itself (`pixls_samples.py` is the one exception);
 - print or write aggregate statistics only, with no images or pixel dumps;
 - run on CPU, with GPU acceleration optional;
 - state at the top which FINDINGS entry or OPEN-QUESTIONS item it supports.
 
 ## Example tools
+
+**`pixls_samples.py`** lists, checks and downloads raw.pixls.us Olympus/OM samples using the site's licence listing. It downloads CC0 files only and verifies SHA-256. See the top-level README.
 
 **`orf_signature.py`** prints one CSV row per file with its measured container and payload facts: SHA-256, magic, make, model, payload size, bits per sample, compression tag, payload offset and bytes, and bits per pixel. It reads the TIFF structure only and decodes nothing.
 

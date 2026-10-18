@@ -13,14 +13,28 @@ Today LightCraft decodes uncompressed ORF only; compressed ORF (the default on m
 
 ## Getting test files
 
-Use [raw.pixls.us](https://raw.pixls.us). It's a public collection of raw samples, mostly released under CC0.
-- **Browse:** the repository table on the front page lists every camera by make and model, with a **License** column for each sample. Look under OLYMPUS and OM Digital Solutions.
-- **Download single files:** from the table, or from the HTTPS mirror at https://raw.pixls.us/data/.
-- **Download everything:** `git clone https://raw.pixls.us/data.lfs.git` (needs Git LFS), or `git clone https://raw.pixls.us/data.annex.git && cd data.annex && git annex get .` (needs git-annex). It's large, so you may prefer just the Olympus/OM folders.
-- **Check the licence on each file.** Some samples are not CC0 (the front page links a "non-CC0" view, `https://raw.pixls.us/?noncc0#repo`). Only CC0 files may be used for anything published here.
-- **Record what you use:** add each file to `samples/manifest.csv` with its SHA-256, so others can get exactly the same file.
+Use [raw.pixls.us](https://raw.pixls.us), a public collection of raw samples. **Not every file there is CC0.** The `/data/` mirror and the bulk git clones mix CC0 and non-CC0 files (for example CC BY-NC-SA), and the file names don't tell you which is which. Only CC0 files may be used here.
+
+Use `tools/pixls_samples.py`. It reads the site's own licence listing:
+
+    python tools/pixls_samples.py list                    # CC0 Olympus/OM ORF and ORI files
+    python tools/pixls_samples.py download ../orf-samples --model OM-5 --max 3
+    python tools/pixls_samples.py check ../orf-samples/*.ORF   # licence of files you already have
+
+`download` fetches CC0 files only, verifies each SHA-256, and refuses to save inside the repo. `check` looks files up by SHA-256 and tells you if one is not CC0 or not a raw.pixls.us file. Run it on anything you got another way.
+
+Record each file you use in `samples/manifest.csv` (see samples/README.md).
 
 **Have an Olympus or OM System camera?** Please upload a few varied ORFs (daylight, indoor, high ISO, and High Res Shot if your body has it) to raw.pixls.us as CC0. That's the most useful single contribution, because then everyone can test on them. Don't attach raw files to this repo or its issues.
+
+## Contributing changes
+
+`main` is protected, so all changes go through pull requests:
+1. Fork the repo and create a branch.
+2. Make your change. Findings go at the **end** of FINDINGS.md as a new entry (append-only; a CI check enforces it).
+3. Open a pull request and include the line "I confirm this follows RULES.md".
+
+To claim a task, comment on its issue first so work isn't duplicated.
 
 ## Layout
 - `RULES.md`: the clean-room contract
