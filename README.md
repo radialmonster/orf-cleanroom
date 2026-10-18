@@ -9,7 +9,7 @@ Today LightCraft decodes uncompressed ORF only; compressed ORF (the default on m
 ## Start here
 
 New? These need no knowledge of the bitstream:
-1. **Add manifest rows:** download a few CC0 files for a model that isn't in `samples/manifest.csv` yet and add rows with `tools/manifest_rows.py` (see samples/README.md).
+1. **Add manifest rows:** pick a model with no rows in `samples/manifest.csv` yet (at first, every model), say which one in [issue #3](https://github.com/radialmonster/orf-cleanroom/issues/3) so two people don't do the same one, then add rows with `tools/manifest_rows.py` (see samples/README.md). Most useful first: compressed bodies, especially the 5240-wide ones from OPEN-QUESTIONS 6 (OM-5, OM-5 Mark II, E-M1 Mark II).
 2. **Reproduce F2:** run `tools/orf_signature.py` on more bodies and append an entry to FINDINGS.md confirming or contradicting it.
 3. **Write a reproduction script for part of F1** (see OPEN-QUESTIONS 6).
 
@@ -29,7 +29,7 @@ For files everyone can re-test, use [raw.pixls.us](https://raw.pixls.us), a publ
 Use `tools/pixls_samples.py`. It reads the site's own licence listing:
 
     python tools/pixls_samples.py list                    # CC0 Olympus/OM ORF and ORI files
-    python tools/pixls_samples.py download ../orf-samples --model OM-5 --max 3
+    python tools/pixls_samples.py download ../orf-samples --model OM-5 --max 3   # exact model name from `list`
     python tools/pixls_samples.py check ../orf-samples/*.ORF   # licence of files you already have
 
 `download` fetches CC0 files only, verifies each SHA-256, and refuses to save inside the repo. `check` looks files up by SHA-256 and tells you if one is not CC0 or not a raw.pixls.us file. Run it on files you got from elsewhere.

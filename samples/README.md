@@ -25,7 +25,7 @@ Columns:
 - `calm_parse`: `yes` / `no`
 - `row_stride`: measured per-row token stride, or `drift`
 - `variant`: `V0`, `V1`, `V2`… from VARIANTS.md, or `unassigned`. Only V0 (`size_class` is `packed-…`) can be assigned from the container alone; compressed files stay `unassigned` until a bitstream script places them.
-- `measured_by`: **your own** GitHub handle, plus the tools/ script and the commit that last changed it (for example `@you tools/orf_signature.py 019bf0f`). Never overwrite it; when you add columns to an existing row, append `; @you <script> <commit>`.
+- `measured_by`: **your own** GitHub handle, plus the tools/ script and the last commit that changed that script, not the repo's HEAD; `manifest_rows.py` fills this in for you (for example `@you tools/orf_signature.py 019bf0f`). Never overwrite it; when you add columns to an existing row, append `; @you <script> <commit>`.
 
 Allowed rows: CC0 raw.pixls.us files, and your own files (`source` = `own`). Non-CC0 raw.pixls.us files are not accepted. Rows from own files can't be re-measured by others, so findings resting only on them are marked `not yet reproducible`. Where to get files: see "Getting test files" in the top-level README.
 

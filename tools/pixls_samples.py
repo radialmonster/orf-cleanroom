@@ -103,7 +103,7 @@ def cmd_download(a):
     os.makedirs(dest, exist_ok=True)
     n = 0
     for r in rows():
-        if r["licence"] != "CC0" or (a.model and a.model.lower() not in r["model"].lower()):
+        if r["licence"] != "CC0" or (a.model and a.model.lower() != r["model"].lower()):
             continue
         if a.max and n >= a.max:
             break
@@ -128,9 +128,9 @@ def main():
     p = sub.add_parser("check")
     p.add_argument("files", nargs="+")
     p = sub.add_parser("download")
-    p.add_argument("dir")
-    p.add_argument("--model")
-    p.add_argument("--max", type=int)
+    p.add_argument("dir", help="folder to save into (outside the repo; created if missing)")
+    p.add_argument("--model", help="exact model name as `list` shows it, case-insensitive (E-M10 does not match E-M10MarkII)")
+    p.add_argument("--max", type=int, help="stop after this many files")
     a = ap.parse_args()
     {"list": cmd_list, "check": cmd_check, "download": cmd_download}[a.cmd](a)
 
