@@ -14,8 +14,11 @@ Variants are defined by **what can be measured in the files**, not by camera mod
 ## Merging variants
 Two variants merge only when the same script in `tools/` reproduces both and they pass the same internal checks: row stride, lossless round-trip, agreement with the embedded preview at the Exif crop. Never by comparison with another converter.
 
+## Assigning a variant
+A manifest row gets a variant only from measurements: V0 when bits per pixel is 12 or more; V1 or V2 when a bitstream script in `tools/` shows the matching signature. Otherwise it stays `unassigned`.
+
 ## Tracking
-One issue per variant, labelled `variant:Vn`, with the work split into `decode` (bitstream → sensor values) and `develop` (levels, crop, CFA pattern, white balance, colour).
+One issue per variant (https://github.com/radialmonster/orf-cleanroom/issues), labelled `variant:Vn`, with the work split into `decode` (bitstream → sensor values) and `develop` (levels, crop, CFA pattern, white balance, colour).
 
 ---
 

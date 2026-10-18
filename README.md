@@ -6,6 +6,15 @@ Today LightCraft decodes uncompressed ORF only; compressed ORF (the default on m
 
 **Read [RULES.md](RULES.md) before contributing.** The whole point of this repo is provenance: every fact here must come from public specifications, patents, or measurements of the files themselves.
 
+## Start here
+
+New? These need no knowledge of the bitstream:
+1. **Add manifest rows:** download a few CC0 files for a model that isn't in `samples/manifest.csv` yet and add rows with `tools/manifest_rows.py` (see samples/README.md).
+2. **Reproduce F2:** run `tools/orf_signature.py` on more bodies and append an entry to FINDINGS.md confirming or contradicting it.
+3. **Write a reproduction script for part of F1** (see OPEN-QUESTIONS 6).
+
+Issues labelled [`good first issue`](https://github.com/radialmonster/orf-cleanroom/labels/good%20first%20issue) are the same kind of task. All issues: https://github.com/radialmonster/orf-cleanroom/issues
+
 ## How to help
 - **Samples:** upload varied ORFs (daylight, indoor, high ISO, different bodies) to [raw.pixls.us](https://raw.pixls.us). They are CC0, so anyone here can use them. Please don't attach raw files to this repo.
 - **Analysis:** pick an item from [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) or the issues, comment that you're working on it, and report back with numbers and a way to reproduce them.

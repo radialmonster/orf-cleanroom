@@ -49,6 +49,7 @@ def rows():
         lic = re.search(r"licenses/([a-z-]+)/([0-9.]+)", licence_html)
         file_id = re.search(r"getfile\.php/(\d+)/", url).group(1)
         yield {
+            "id": file_id,
             "make": make,
             "model": model,
             "mode": mode,
@@ -72,7 +73,7 @@ def sha256_file(path):
 def cmd_list(a):
     for r in rows():
         if a.all_licences or r["licence"] == "CC0":
-            print("%-14s  %-14s  %-22s  %s  %s" % (r["licence"], r["model"], r["mode"], r["sha256"][:12], r["name"]))
+            print("%-6s %-16s %-14s %-22s %s  %s" % (r["id"], r["licence"], r["model"], r["mode"], r["sha256"][:12], r["name"]))
 
 
 def cmd_check(a):
