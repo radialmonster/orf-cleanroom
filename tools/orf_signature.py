@@ -16,6 +16,16 @@ import sys
 TYPE_SIZES = {1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 6: 1, 7: 1, 8: 2, 9: 4, 10: 8, 11: 4, 12: 8, 13: 4}
 # Olympus uses its own magic numbers in place of TIFF's 42.
 MAGICS = {42: "TIFF", 0x4F52: "ORF-RO", 0x5352: "ORF-RS"}
+# Payload sizes that exactly match a fixed-size packing (bits per pixel).
+# Anything else has a data-dependent size, i.e. it is compressed (FINDINGS F4).
+PACKINGS = (12, 12.8, 16)
+
+
+def size_class(nbytes, w, h):
+    for bits in PACKINGS:
+        if w and h and nbytes * 10 == round(w * h * bits * 10 / 8):
+            return "packed-%g" % bits
+    return "variable"
 
 
 class Tiff:
@@ -102,7 +112,8 @@ def signature(path):
         "compression_tag": first(best, 0x103) or "",
         "payload_offset": first(best, 0x111) or "",
         "payload_bytes": nbytes,
-        "bpp": "%.2f" % (nbytes * 8 / (w * h)) if w and h else "",
+        "bpp": "%.3f" % (nbytes * 8 / (w * h)) if w and h else "",
+        "size_class": size_class(nbytes, w, h),
     }
 
 

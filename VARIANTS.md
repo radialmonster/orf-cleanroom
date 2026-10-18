@@ -15,16 +15,17 @@ Variants are defined by **what can be measured in the files**, not by camera mod
 Two variants merge only when the same script in `tools/` reproduces both and they pass the same internal checks: row stride, lossless round-trip, agreement with the embedded preview at the Exif crop. Never by comparison with another converter.
 
 ## Assigning a variant
-A manifest row gets a variant only from measurements: V0 when bits per pixel is 12 or more; V1 or V2 when a bitstream script in `tools/` shows the matching signature. Otherwise it stays `unassigned`.
+A manifest row gets a variant only from measurements: V0 when `size_class` is `packed-…` (an exact fixed-size payload; a bits-per-pixel threshold is not enough); V1 or V2 when a bitstream script in `tools/` shows the matching signature. Otherwise it stays `unassigned`.
 
 ## Tracking
 One issue per variant (https://github.com/radialmonster/orf-cleanroom/issues), labelled `variant:Vn`, with the work split into `decode` (bitstream → sensor values) and `develop` (levels, crop, CFA pattern, white balance, colour).
 
 ---
 
-## V0: uncompressed ORF
-- Signature: payload bits per pixel at the container bit depth or above.
-- Status: `decodes` in LightCraft already. Listed for completeness and classification.
+## V0: fixed-size packing (uncompressed)
+- Signature: `size_class` is `packed-12`, `packed-12.8` or `packed-16`: the payload size exactly equals width x height x that many bits (F4).
+- Models seen (F4): C5060WZ, C7070WZ, SH-2, SP-510UZ/550UZ/565UZ/570UZ, XZ-2, XZ-10 (12); E-300, E-330, E-500, and High Res Shot files from PEN-F and E-M5 Mark II (12.8); E-1, E-10, E-400 (16).
+- Status: LightCraft decodes uncompressed ORF; whether it covers every packing listed here hasn't been checked in this repo.
 
 ## V1: calm-parse compressed
 - Signature: compressed; the calm parse from F1 works (q zeros, stop bit, 5-bit suffix, escape at q ≥ 17); per-row stride equals the payload width on at least one body (5240 wide).

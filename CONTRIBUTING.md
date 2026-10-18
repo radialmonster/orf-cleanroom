@@ -9,7 +9,7 @@ Thanks for helping. Read [RULES.md](RULES.md) first; it's short.
    - New findings go at the **end** of FINDINGS.md as `## F<n> (YYYY-MM-DD, @you): title`. Existing entries are never edited (CI enforces this).
    - Manifest rows: use `tools/manifest_rows.py`.
    - Numbers come with the `tools/` script that produced them.
-4. Open a pull request and fill in the template checklist.
+4. Open a pull request. The PR template's checklist includes the RULES.md sign-off and, for bitstream work, the clean-room declaration; tick them yourself, as they're your statements.
 
 ## Clean-room declaration
 For work on the bitstream or decoder logic (FINDINGS entries, OPEN-QUESTIONS, decoding tools), you must not have read the ORF decompression code of LibRaw, rawspeed, dcraw or projects derived from them. If you have, you can still help with samples, the manifest, tooling and testing; just say so in your PR.

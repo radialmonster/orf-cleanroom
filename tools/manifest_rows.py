@@ -22,7 +22,7 @@ from orf_signature import signature  # noqa: E402
 from pixls_samples import rows  # noqa: E402
 
 COLUMNS = ["source", "pixls_id", "pixls_name", "sha256", "licence", "make", "model", "mode",
-           "payload_w", "payload_h", "bpp", "compression_tag", "escape_bits",
+           "payload_w", "payload_h", "bpp", "size_class", "compression_tag", "escape_bits",
            "calm_parse", "row_stride", "variant", "measured_by"]
 
 
@@ -35,10 +35,10 @@ def commit(path="orf_signature.py"):
         return ""
 
 
-def variant(bpp):
-    # VARIANTS.md: V0 (uncompressed) is the only variant assignable from the
-    # container alone; compressed files stay unassigned until a bitstream test.
-    return "V0" if bpp and float(bpp) >= 12 else "unassigned"
+def variant(size_class):
+    # VARIANTS.md: V0 (fixed-size packing) is the only variant assignable from
+    # the container alone; compressed files stay unassigned until a bitstream test.
+    return "V0" if size_class.startswith("packed-") else "unassigned"
 
 
 def mode(width):
@@ -76,8 +76,9 @@ def main():
             "sha256": s["sha256"], "licence": "not-shared" if own else "CC0",
             "make": s["make"], "model": s["model"], "mode": mode(s["payload_w"]),
             "payload_w": s["payload_w"], "payload_h": s["payload_h"], "bpp": s["bpp"],
+            "size_class": s["size_class"],
             "compression_tag": s["compression_tag"], "escape_bits": "", "calm_parse": "",
-            "row_stride": "", "variant": variant(s["bpp"]), "measured_by": by,
+            "row_stride": "", "variant": variant(s["size_class"]), "measured_by": by,
         })
 
 
