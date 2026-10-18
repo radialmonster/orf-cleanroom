@@ -54,7 +54,9 @@ def check_frozen(changed):
     if NOTE.encode() in old:
         return error("FINDINGS.md", "FINDINGS.md is frozen. Add a file under findings/ instead "
                                     "(see findings/README.md).")
-    if not new.startswith(old) or not new[len(old):].lstrip(b"\n").startswith(NOTE.encode()):
+    tail = new[len(old):].lstrip(b"\n")
+    if (not new.startswith(old) or not tail.startswith(NOTE.encode())
+            or len(tail) > 1000 or b"\n## " in tail):
         error("FINDINGS.md", "FINDINGS.md may only get the one closing note appended. "
                              "Add findings under findings/ instead.")
 
