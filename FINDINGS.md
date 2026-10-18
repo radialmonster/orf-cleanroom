@@ -8,7 +8,7 @@ Entry format: `## F<number> (<YYYY-MM-DD>, @<author>): <title>`, followed by the
 
 ## F1 (2026-10-18, @radialmonster): initial results
 
-Status: early. These were measured on compressed ORFs from several bodies. Each still needs a reproducible script in `tools/` running on named raw.pixls.us files before it counts as established for this repo.
+Status: early (edited). These were measured on compressed ORFs from several bodies. Each still needs a reproducible script in `tools/` running on named raw.pixls.us files before it counts as established for this repo.
 
 ### Token structure (well supported)
 - Reading MSB-first, the stream in the studied files parses as tokens: `q` zero bits, a stop bit, then a 5-bit suffix `b4..b0`. An escape occurs at `q >= 17`.
