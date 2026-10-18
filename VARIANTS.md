@@ -3,7 +3,7 @@
 Variants are defined by **what can be measured in the files**, not by camera model. Model names are listed as observations only. A variant is never inferred from another decoder's behaviour (see RULES.md).
 
 ## Signature fields
-- **Container:** compression tag, maker-note version, raw data offset and length.
+- **Container:** compression tag (note F2: it reads 1 even on compressed files, so use bits per pixel instead), maker-note version, raw data offset and length.
 - **Payload:** width x height, bits per pixel (payload bytes x 8 / pixels).
 - **Bitstream:** escape length, whether the calm parse (F1) works, per-row token stride.
 - **Mode:** normal, High Res Shot / pixel-shift, other.
