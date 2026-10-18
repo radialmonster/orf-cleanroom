@@ -1,0 +1,81 @@
+name: automerge
+# Runs with a write token. It never checks out or runs PR code: it only calls
+# the GitHub API and parses text.
+on:
+  workflow_run:
+    workflows: [checks]
+    types: [completed]
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+jobs:
+  merge:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+    steps:
+      - name: Merge findings and manifest PRs, flag the rest
+        run: |
+          set -euo pipefail
+
+          # workflow_run.pull_requests is empty for forks, so match on the head SHA.
+          pr_line=$(gh pr list --repo "$REPO" --state open --limit 200 --json number,headRefOid,author \
+            | jq -r --arg sha "$HEAD_SHA" 'map(select(.headRefOid == $sha)) | first // empty | "\(.number) \(.author.login)"')
+          if [ -z "$pr_line" ]; then echo "No open PR with head $HEAD_SHA"; exit 0; fi
+          pr=${pr_line%% *}
+          author=${pr_line#* }
+
+          files=$(gh api "repos/$REPO/pulls/$pr/files" --paginate --jq '.[]')   # one JSON object per line
+          reason=""
+
+          # Rule 1: only new findings files, and rows appended to the manifest.
+          other=$(jq -r 'select((
+              (.status == "added" and (.filename | test("^findings/[^/]+/[^/]+[.]md$")) and (.filename | endswith("/README.md") | not))
+              or (.status == "modified" and .filename == "samples/manifest.csv")) | not) | .filename' <<< "$files")
+          if [ -z "$files" ] || [ -n "$other" ]; then
+            reason="it changes more than new files under findings/ and rows added to samples/manifest.csv"
+          fi
+
+          # Rule 2: every new findings file is named for the PR author.
+          if [ -z "$reason" ]; then
+            while IFS= read -r name; do
+              handle=$(basename "$name" | awk -F'--' '{print $2}')
+              if [ "${handle,,}" != "${author,,}" ]; then
+                reason="a new findings file is named for a different GitHub handle than the PR author (@$author)"
+              fi
+            done < <(jq -r 'select(.filename | startswith("findings/")) | .filename' <<< "$files")
+          fi
+
+          # Rule 3: every new manifest row has measured_by starting with "@author ".
+          if [ -z "$reason" ] && jq -e 'select(.filename == "samples/manifest.csv")' <<< "$files" > /dev/null; then
+            patch=$(jq -r 'select(.filename == "samples/manifest.csv") | .patch // ""' <<< "$files")
+            if [ -z "$patch" ] || grep -q '^-' <<< "$patch"; then
+              reason="the manifest change is empty or removes lines"
+            else
+              while IFS= read -r line; do
+                last=${line##*,}
+                last=${last#\"}
+                if [[ "${last,,}" != "@${author,,} "* ]]; then
+                  reason="a new manifest row has a measured_by that does not start with @$author"
+                fi
+              done < <(grep '^+' <<< "$patch" | sed 's/^+//')
+            fi
+          fi
+
+          if [ -z "$reason" ]; then
+            gh pr merge "$pr" --repo "$REPO" --squash --match-head-commit "$HEAD_SHA"
+            gh pr comment "$pr" --repo "$REPO" --body "Merged automatically: findings/manifest only, checks passed. Thanks!"
+            exit 0
+          fi
+
+          if gh pr view "$pr" --repo "$REPO" --json labels --jq '.labels[].name' | grep -qx 'needs-maintainer'; then
+            echo "Already flagged: $reason"; exit 0
+          fi
+          gh label create needs-maintainer --repo "$REPO" --force --color d93f0b \
+            --description "Not auto-mergeable; waits for an occasional maintainer look"
+          gh pr edit "$pr" --repo "$REPO" --add-label needs-maintainer
+          gh pr comment "$pr" --repo "$REPO" --body "Checks passed, but this PR is not merged automatically because $reason. Only new files under findings/ and appended manifest rows from the PR author merge on their own (see CONTRIBUTING.md). A maintainer will look occasionally; this can take weeks. Nothing is wrong with your work."

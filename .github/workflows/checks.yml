@@ -1,0 +1,26 @@
+name: checks
+on: pull_request
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Findings, FINDINGS.md and manifest rules
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          set -euo pipefail
+          # Run the checks as they are on the base branch, so a PR cannot
+          # weaken its own checks. Falls back to this PR's copy if the base has none.
+          mkdir "$RUNNER_TEMP/base-checks"
+          git show "$BASE:.github/scripts/pr_checks.py" > "$RUNNER_TEMP/base-checks/pr_checks.py" 2>/dev/null \
+            || cp .github/scripts/pr_checks.py "$RUNNER_TEMP/base-checks/pr_checks.py"
+          git show "$BASE:tools/findings_index.py" > "$RUNNER_TEMP/base-checks/findings_index.py" 2>/dev/null \
+            || cp tools/findings_index.py "$RUNNER_TEMP/base-checks/findings_index.py"
+          FINDINGS_INDEX="$RUNNER_TEMP/base-checks/findings_index.py" \
+            python3 "$RUNNER_TEMP/base-checks/pr_checks.py"

@@ -10,7 +10,7 @@ Today LightCraft decodes uncompressed ORF only; compressed ORF (the default on m
 
 New? These need no knowledge of the bitstream:
 1. **Add manifest rows:** pick a model with no rows in `samples/manifest.csv` yet (at first, every model), say which one in [issue #3](https://github.com/radialmonster/orf-cleanroom/issues/3) so two people don't do the same one, then add rows with `tools/manifest_rows.py` (see samples/README.md). Most useful first: compressed bodies, especially the 5240-wide ones from OPEN-QUESTIONS 6 (OM-5, OM-5 Mark II, E-M1 Mark II).
-2. **Reproduce F2:** run `tools/orf_signature.py` on more bodies and append an entry to FINDINGS.md confirming or contradicting it.
+2. **Reproduce a finding:** run `python tools/findings_index.py` to see every finding and its status. Pick a `lead` (for example F2: run `tools/orf_signature.py` on more bodies) and add a finding file with `Reproduces:` if you get matching results, or `Corrects:` if you don't. Reproducing someone's lead is a contribution in itself.
 3. **Write a reproduction script for part of F1** (see OPEN-QUESTIONS 6).
 
 Issues labelled [`good first issue`](https://github.com/radialmonster/orf-cleanroom/labels/good%20first%20issue) are the same kind of task. All issues: https://github.com/radialmonster/orf-cleanroom/issues
@@ -18,7 +18,7 @@ Issues labelled [`good first issue`](https://github.com/radialmonster/orf-cleanr
 ## How to help
 - **Samples:** upload varied ORFs (daylight, indoor, high ISO, different bodies) to [raw.pixls.us](https://raw.pixls.us). They are CC0, so anyone here can use them. Please don't attach raw files to this repo.
 - **Analysis:** pick an item from [OPEN-QUESTIONS.md](OPEN-QUESTIONS.md) or the issues, comment that you're working on it, and report back with numbers and a way to reproduce them.
-- **Findings:** established results go in [FINDINGS.md](FINDINGS.md) with their evidence.
+- **Findings:** one file per finding, in the folder for its variant under [findings/](findings/README.md), with its evidence. Other people check each other's findings: a finding is a *lead* until someone else reproduces it. FINDINGS.md holds the first four (F1-F4) and is frozen.
 
 ## Getting test files
 
@@ -40,20 +40,23 @@ Record each file you use in `samples/manifest.csv` (see samples/README.md).
 
 ## Contributing changes
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). In short: fork, branch, pull request; `main` is protected and FINDINGS.md is append-only.
+See [CONTRIBUTING.md](CONTRIBUTING.md). In short: fork, branch, pull request; `main` is protected.
+
+**Data pull requests merge automatically.** A PR that only adds new files under `findings/` and rows to `samples/manifest.csv`, under your own handle, merges by itself once the checks pass. Anything else (tools, docs, rules, edits to the shared files) waits for a maintainer, who looks only occasionally, so it can take weeks. That's normal; nothing is wrong with your PR.
 
 ## Credit
 
-Findings stay credited to whoever found them: author handles are in each FINDINGS entry and can't be edited away, and anything built from this work credits them. See RULES.md, "Credit".
+Findings stay credited to whoever found them: the author handle is in each finding's file name and `Author:` line, and existing findings can't be edited, renamed or deleted, and anything built from this work credits them. See RULES.md, "Credit".
 
 ## Layout
 - `RULES.md`: the clean-room contract
 - `AGENTS.md`: instructions for AI coding agents
-- `FINDINGS.md`: what has been established, with evidence (append-only)
+- `findings/`: what has been established, one file per finding, by variant, with evidence and peer-validation status
+- `FINDINGS.md`: the first four findings (F1-F4), frozen
 - `OPEN-QUESTIONS.md`: what is still unknown, plus unverified hypotheses
 - `VARIANTS.md`: the variant registry, keyed by measured file signatures
 - `samples/manifest.csv`: raw.pixls.us files used, with their measured signature and variant
-- `tools/`: analysis scripts (our own code only)
+- `tools/`: analysis scripts (our own code only), including `findings_index.py` (lists findings and their status)
 - `stats/`: aggregate tables only, no images or raw payloads
 
 ## Licence

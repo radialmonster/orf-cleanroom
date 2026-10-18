@@ -21,20 +21,22 @@ If you have read the ORF decompression code in any of those projects, you're wel
 - Don't use files whose licence you don't know, or that are under a non-CC0 licence (e.g. the CC BY-NC-SA files on raw.pixls.us).
 - No images of decoded or preview data are committed. Aggregate statistics only.
 
-## Findings are append-only
-- New findings are added at the end of FINDINGS.md as a new numbered, dated entry with an author.
-- Existing entries are never edited, reordered or deleted, so nobody's work can be erased.
-- To correct or retract an entry, append a new entry that says which one it corrects and why.
-- A CI check rejects pull requests that change or remove existing lines in FINDINGS.md.
+## Findings are files, and never edited
+- Each finding is its own file `findings/<folder>/YYYY-MM-DD--handle--short-slug.md`, in the folder for its variant (`container`, `V0`, `V1`, `V2`, `unassigned`). Format and rules: findings/README.md.
+- An existing finding file is never edited, renamed or deleted, by anyone, so nobody's work can be erased.
+- To correct or retract a finding, add a new file with `Corrects: <ID>` that says which one and why.
+- Status is peer validation, not maintainer sign-off: a finding is a *lead* until a finding by a different author lists it in `Reproduces:`, and is *disputed* if a different author lists it in `Corrects:`. `tools/findings_index.py` shows the status.
+- FINDINGS.md holds the first four findings (F1-F4) and is frozen. CI rejects any change to it.
+- CI rejects pull requests that modify or remove existing finding files, or that add a finding file that doesn't validate.
 
 ## Credit
 Everyone who finds something keeps the credit for it.
-- Each FINDINGS entry names its author (`@handle`) in its heading. Because the file is append-only, that credit can't be edited away, and a later correction is a new entry that leaves the original and its author in place.
-- If your work builds on someone else's entry, say so with a `Builds on: F<n> (@handle)` line.
-- Add only your own work under your own handle. If you're adding someone else's result, for example from a Discussion, credit them as the author and add `Submitted by: @you`.
-- In `samples/manifest.csv`, `measured_by` is never overwritten. When you fill more columns of an existing row, add your handle and script after the existing ones, separated by `; `.
+- Each finding names its author (`@handle`) in its file name and its `Author:` line. Because existing files are never edited, that credit can't be edited away, and a later correction is a new file that leaves the original and its author in place.
+- If your work builds on someone else's finding, say so with a `Builds on: <ID>` line (`F1`..`F4` for the legacy ones). If you reproduce one, list it in `Reproduces:`; the reproducer is credited in the index.
+- Add only your own work under your own handle. If you're adding someone else's result, for example from a Discussion, credit them as the author (file name and `Author:`) and add `Submitted by: @you`. Such a PR needs a maintainer, because the file name handle differs from the PR author.
+- In `samples/manifest.csv`, rows are append-only and `measured_by` is never overwritten. When you measure more columns of a file already listed, add a new row for the same `sha256` under your own handle.
 - Pull requests are squash-merged with the contributor kept as the commit author. Add `Co-authored-by:` lines for anyone else who did the work.
-- When a decoder built from this work is contributed to LightCraft or elsewhere, it credits every FINDINGS author it relies on, by name and entry number.
+- When a decoder built from this work is contributed to LightCraft or elsewhere, it credits every finding author it relies on, by name and finding ID.
 
 ## Sign-off
 By opening a pull request you confirm that your contribution follows these rules and is released under CC0 1.0 (see LICENSE). Please say so in the PR description ("I confirm this follows RULES.md").

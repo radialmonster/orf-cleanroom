@@ -50,3 +50,7 @@ Status: early. These were measured on compressed ORFs from several bodies. Each 
   - variable (48): E-3, E-410, E-420, E-450, E-5, E-510, E-620, E-M1, E-M10, E-M10 Mark II/III/IIIs/IV, E-M1 Mark II/III, E-M1X, E-M5, E-M5 Mark II/III, E-P1, E-P2, E-P3, E-P5, E-P7, E-PL1, E-PL2, E-PL3, E-PL5, E-PL6, E-PL7, E-PL8, E-PL9, E-PL10, E-PM1, E-PM2, OM-1, OM-1 Mark II, OM-3, OM-5, OM-5 Mark II, PEN-F, STYLUS1, STYLUS1s, TG-4, TG-5, TG-6, TG-7, XZ-1, including High Res Shot sizes (8172-10400 wide) on E-M1 Mark II and later.
 - Builds on: F2 (@radialmonster).
 - Evidence: `tools/orf_signature.py` (`size_class` column) on raw.pixls.us CC0 files from the bodies above. Reproduce: `tools/pixls_samples.py download DIR` (all CC0 Olympus/OM files), then `tools/orf_signature.py DIR/*` and count `size_class` per model.
+
+## Frozen: new findings go in findings/
+
+This file is now frozen history. New findings go one per file in [findings/](findings/README.md), organised by variant, and CI rejects any further change to this file. Cite the entries above as `F1`..`F4`. By variant: F2, F3 and F4 belong to `container`; F1 belongs to `V1`. They stay here and are not moved.

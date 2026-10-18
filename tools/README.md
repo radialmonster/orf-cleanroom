@@ -6,7 +6,7 @@ Each script should:
 - take raw.pixls.us file paths as arguments and not download anything itself (`pixls_samples.py` is the one exception);
 - print or write aggregate statistics only, with no images or pixel dumps;
 - run on CPU, with GPU acceleration optional;
-- state at the top which FINDINGS entry or OPEN-QUESTIONS item it supports.
+- state at the top which finding (an ID from `findings/`, or F1-F4) or OPEN-QUESTIONS item it supports.
 
 ## Example tools
 
@@ -29,4 +29,9 @@ Example output on raw.pixls.us `8549_OM System - OM-5 Mark II - 16bit (4_3).ORF`
     q= 2  share=0.13019
     q= 3  share=0.06272
 
-Both use the standard library only (Python 3.8+). Contributions of new tools are welcome. Follow the rules above and RULES.md.
+**`findings_index.py`** lists every finding under `findings/` (plus the legacy F1-F4) by variant, with author, title, peer-validation status (lead, reproduced, disputed) and who reproduced it. `--check` validates the files (file name, `Author:` matches the handle, `Variant:` matches the folder, referenced IDs exist) and exits 1 on errors; CI runs it on pull requests.
+
+    python tools/findings_index.py
+    python tools/findings_index.py --check
+
+All of them use the standard library only (Python 3.8+). Contributions of new tools are welcome. Follow the rules above and RULES.md.
