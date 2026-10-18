@@ -15,4 +15,4 @@ Columns:
 - `variant`: V-id from VARIANTS.md, or `unassigned`
 - `measured_by`: GitHub handle, plus the tools/ script and commit used
 
-Only CC0 / public-domain files belong here.
+Only CC0 / public-domain files belong here. Where to get them: see "Getting test files" in the top-level README.
