@@ -42,6 +42,7 @@ A new variant gets a new folder `V<n>` with a README, added together with its se
 - `Author:` is required and must match the handle in the file name. Add only your own work under your own handle.
 - `Submitted by:` only when you add someone else's result (for example from a Discussion). The author stays the one who found it.
 - `Variant:` is required and must match the folder: `container`, `V0`, `V1`, `V2`, `unassigned`, ...
+- Don't put the RULES.md sign-off or the clean-room declaration in the file; they go in the pull request description (the PR template has them).
 - `Builds on:`, `Reproduces:` and `Corrects:` are optional. Each is a comma-separated list of finding IDs (`F1`..`F4` for legacy ones). Delete the lines you don't use.
 - Evidence: numbers come with the `tools/` script that produced them. Results that rest only on `own` files are marked `not yet reproducible` (RULES.md, "Data").
 

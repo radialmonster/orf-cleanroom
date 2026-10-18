@@ -53,10 +53,14 @@ def main():
     ap.add_argument("--own", action="store_true",
                     help="include files not on raw.pixls.us: you confirm they are yours or the owner agreed")
     ap.add_argument("--header", action="store_true", help="also print the header line")
+    ap.add_argument("--append", metavar="CSV",
+                    help="append the rows to this file (e.g. samples/manifest.csv) with LF endings, instead of printing them")
     ap.add_argument("files", nargs="+")
     a = ap.parse_args()
     listing = {r["sha256"]: r for r in rows()}
-    out = csv.DictWriter(sys.stdout, fieldnames=COLUMNS, lineterminator="\n")
+    # Write LF endings ourselves; shell redirection on Windows can turn them into CRLF.
+    dest = open(a.append, "a", encoding="utf-8", newline="") if a.append else sys.stdout
+    out = csv.DictWriter(dest, fieldnames=COLUMNS, lineterminator="\n")
     if a.header:
         out.writeheader()
     by = "%s tools/orf_signature.py %s" % (a.by, commit())

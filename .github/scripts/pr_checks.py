@@ -13,7 +13,8 @@ import re
 import subprocess
 import sys
 
-BASE = os.environ["BASE"]
+# Locally: python .github/scripts/pr_checks.py after committing (BASE defaults to origin/main).
+BASE = os.environ.get("BASE", "origin/main")
 AUTHOR = os.environ.get("PR_AUTHOR", "")
 INDEX = os.environ.get("FINDINGS_INDEX", "tools/findings_index.py")
 NOTE = "## Frozen: new findings go in findings/"
@@ -34,9 +35,9 @@ def git(*args):
     return subprocess.run(["git"] + list(args), stdout=subprocess.PIPE, check=True).stdout
 
 
-def base_file(path):
+def base_file(path, rev=None):
     try:
-        return subprocess.run(["git", "show", "%s:%s" % (BASE, path)], stdout=subprocess.PIPE,
+        return subprocess.run(["git", "show", "%s:%s" % (rev or BASE, path)], stdout=subprocess.PIPE,
                               stderr=subprocess.DEVNULL, check=True).stdout
     except subprocess.CalledProcessError:
         return None
@@ -94,10 +95,9 @@ def check_manifest(changes):
     old = base_file(path)
     if old is None:
         return error(path, "samples/manifest.csv is missing on the base branch.")
-    try:
-        with open(path, "rb") as f:
-            new = f.read()
-    except OSError:
+    # Check what is committed, not the working copy (which may have CRLF on Windows).
+    new = base_file(path, "HEAD")
+    if new is None:
         return error(path, "samples/manifest.csv was deleted.")
     if not new.startswith(old):
         return error(path, "Existing manifest rows were changed or removed. Rows are append-only: "

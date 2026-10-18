@@ -2,11 +2,11 @@
 
 **Quick way:** download CC0 files with `tools/pixls_samples.py download`, then
 
-    python tools/manifest_rows.py --by @yourhandle ../orf-samples/* >> samples/manifest.csv
+    python tools/manifest_rows.py --by @yourhandle --append samples/manifest.csv ../orf-samples/*
 
 That fills every column it can measure and leaves the rest blank. For your own files, add `--own` (you confirm they're yours or the owner agreed). If one of "your" files turns out to be identical to a raw.pixls.us file, the tool records it as that CC0 file, which is better: others can re-test it.
 
-On Windows, `>>` may write CRLF line endings; `.gitattributes` converts them to LF when you commit, so the warning git prints is harmless.
+Use `--append` rather than shell `>>`: on Windows, `>>` can write CRLF line endings.
 
 `manifest.csv` lists the files used here, one row per file: raw.pixls.us CC0 files and contributors' own files. Raw files themselves are never committed.
 
