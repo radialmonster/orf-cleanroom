@@ -5,6 +5,7 @@ Verified by: @radialmonster
 Lead: #30
 Variant: unassigned
 Builds on: #11
+Partial: row period and row-start profile only; the other ruled-out claims of #30 are not re-run
 
 ## Claim
 Part of lead #30 (the row-layout claims only; the other negatives in that lead were not re-run):

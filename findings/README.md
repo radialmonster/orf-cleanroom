@@ -7,10 +7,12 @@ Open leads: `gh issue list -R radialmonster/orf-cleanroom --label lead`, or http
 ## How a lead becomes a finding
 1. The finder publishes a lead issue (template: "Lead"). It stays an issue.
 2. Someone reproduces it in a new run, done after the lead was posted. A different person is preferred; the finder may do it themselves. Use at least one file or body the lead did not use. If that is impossible (the lead already used every CC0 file of the model), say so in the Verification section; a wider run on the same files (for example the whole frame instead of a prefix) still counts as a new run if you describe it.
-3. The verifier opens a PR that adds the finding file here, with `Author:` the finder, `Verified by:` themselves (the PR author) and `Lead:` the issue number. When it merges, the lead issue is labelled and closed.
+3. The verifier opens a PR that adds the finding file here, with `Author:` the finder, `Verified by:` themselves (the PR author) and `Lead:` the issue number. When it merges, the lead issue is labelled and closed. If the finding covers only part of a lead with several claims, add `Partial: <which part>`; the lead is then labelled `partly-verified` and stays open for the rest.
 4. If the numbers do not match, nothing goes in this folder. The reproducer comments their numbers on the lead issue.
 
 CI cannot check that the second run is really new or on other files; the Verification section is where you show it.
+
+If the lead gives no method or file list, define your own measure before looking at all the results, describe it in the Verification section, and say that the lead's exact figures could not be reproduced. Its claim is what you verify.
 
 ## Upgrading a self-verified finding
 A finding verified by its own finder is `self-verified`. A different person can upgrade it to `verified`: reproduce it, then add a new file named for the original finder, with `Author:` the finder, `Verified by:` you, the same `Lead:`, and `Reproduces: <finding ID>`. The lead stays closed; its label changes from `self-verified` to `verified`. Look for candidates: https://github.com/radialmonster/orf-cleanroom/issues?q=label%3Aself-verified
@@ -55,6 +57,7 @@ A new variant gets a new folder `V<n>` with a README, added together with its se
     Builds on: 2026-10-18--alice--some-finding, #45
     Corrects: <ID>
     Reproduces: <ID>
+    Partial: <which part of the lead this verifies>
 
     ## Claim
     What was found, in plain sentences.
@@ -73,6 +76,7 @@ A new variant gets a new folder `V<n>` with a README, added together with its se
 - `Variant:` is required and must match the folder.
 - `Builds on:` and `Corrects:` are optional lists of finding IDs (or `#n` issues). Delete the lines you don't use.
 - `Reproduces:` is optional and used only for the upgrade above: one finding ID with the same `Author:` and `Lead:`, and a `Verified by:` who is not the finder and not already a verifier of it. `findings_index.py --check` verifies that the ID exists.
+- `Partial:` is optional: use it when the finding verifies only part of the lead's claims, and name that part. The lead stays open, labelled `partly-verified`. Without it, the lead is closed.
 - Don't put the RULES.md sign-off or the clean-room declaration in the file; they go in the PR description.
 - Numbers come with the `tools/` script that produced them. Results that rest only on `own` files are marked `not yet reproducible` (RULES.md, "Data").
 

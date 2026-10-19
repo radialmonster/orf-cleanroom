@@ -57,7 +57,7 @@ jobs:
 
 
           def decide(files, author, read_text, read_issue):
-              """-> (reason, leads). reason "" means auto-mergeable; leads = [(issue number, finding path, kind)],
+              """-> (reason, leads). reason "" means auto-mergeable; leads = [(issue number, finding path, kind, partial)],
               kind "self" (verifier is the finder), "independent" (a different person) or "upgrade"
               (a `Reproduces:` file by a different person, for a self-verified finding; the lead may be closed).
 
@@ -93,7 +93,8 @@ jobs:
                           or "lead" not in issue["labels"]):
                       return ("the lead issue #%s is missing, is not labelled lead, or was not opened by @%s"
                               % (m.group(1), fauthor)), []
-                  leads.append((int(m.group(1)), path, kind))
+                  # `Partial: <which part>` verifies only part of a multi-claim lead; the lead stays open.
+                  leads.append((int(m.group(1)), path, kind, header(text, "Partial")))
               for f in files:
                   if f["filename"] != "samples/manifest.csv":
                       continue
@@ -171,18 +172,29 @@ jobs:
                   if not quiet:
                       gh("pr", "comment", num, "--repo", repo, "--body",
                          "Merged automatically: verified findings/manifest only, checks passed. Thanks!")
-                  for n, path, kind in leads:
+                  for n, path, kind, partial in leads:
                       link = "https://github.com/%s/blob/main/%s" % (repo, path)
                       label = "self-verified" if kind == "self" else "verified"
                       gh("label", "create", "verified", "--repo", repo, "--force", "--color", "0e8a16",
                          "--description", "Reproduced by a different person; the finding is in findings/")
                       gh("label", "create", "self-verified", "--repo", repo, "--force", "--color", "fbca04",
                          "--description", "Reproduced by the finder; a different person can upgrade it (Reproduces:)")
+                      if partial:
+                          gh("label", "create", "partly-verified", "--repo", repo, "--force", "--color", "c2e0c6",
+                             "--description", "Part of this lead is verified (see the finding); the rest is open")
+                          label = "partly-verified"
                       gh("issue", "edit", str(n), "--repo", repo, "--add-label", label, check=False)
                       gh("issue", "edit", str(n), "--repo", repo, "--remove-label", "claimed", check=False)
                       for who in gh("issue", "view", str(n), "--repo", repo, "--json", "assignees",
                                     "--jq", ".assignees[].login", check=False).split():
                           gh("issue", "edit", str(n), "--repo", repo, "--remove-assignee", who, check=False)
+                      if partial:
+                          gh("issue", "comment", str(n), "--repo", repo, "--body",
+                             "Partly verified by @%s%s in %s (part: %s). The rest of this lead stays open; "
+                             "anyone can claim it." % (author, " (self-verified)" if kind == "self" else "", link,
+                                                      partial), check=False)
+                          continue
+                      gh("issue", "edit", str(n), "--repo", repo, "--remove-label", "partly-verified", check=False)
                       if kind == "upgrade":
                           gh("issue", "edit", str(n), "--repo", repo, "--remove-label", "self-verified", check=False)
                       gh("issue", "comment", str(n), "--repo", repo, "--body",
