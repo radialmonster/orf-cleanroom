@@ -6,7 +6,7 @@ Open leads: `gh issue list -R radialmonster/orf-cleanroom --label lead`, or http
 
 ## How a lead becomes a finding
 1. The finder publishes a lead issue (template: "Lead"). It stays an issue.
-2. Someone reproduces it in a new run, done after the lead was posted. A different person is preferred; the finder may do it themselves. Use at least one file or body the lead did not use. If that is impossible (only one CC0 file exists for the model), say so in the Verification section.
+2. Someone reproduces it in a new run, done after the lead was posted. A different person is preferred; the finder may do it themselves. Use at least one file or body the lead did not use. If that is impossible (the lead already used every CC0 file of the model), say so in the Verification section; a wider run on the same files (for example the whole frame instead of a prefix) still counts as a new run if you describe it.
 3. The verifier opens a PR that adds the finding file here, with `Author:` the finder, `Verified by:` themselves (the PR author) and `Lead:` the issue number. When it merges, the lead issue is labelled and closed.
 4. If the numbers do not match, nothing goes in this folder. The reproducer comments their numbers on the lead issue.
 
@@ -39,7 +39,7 @@ A new variant gets a new folder `V<n>` with a README, added together with its se
 ## File name and ID
 `YYYY-MM-DD--finder--short-slug.md`, for example `2026-10-18--alice--tag-is-1-on-compressed-orf.md`.
 
-- The date is the day of the verification PR. The handle is the **finder** (the lead's author), not the verifier (they are the same person in a self-verification).
+- The date is the day of the verification PR, in UTC. The handle is the **finder** (the lead's author), not the verifier (they are the same person in a self-verification).
 - Double hyphens separate the three fields. GitHub handles can't contain `--`.
 - The slug is lowercase letters, digits and single hyphens.
 - The finding's ID is the file name without `.md`.
@@ -72,7 +72,6 @@ A new variant gets a new folder `V<n>` with a README, added together with its se
 - `Lead:` is the lead issue (`#n`) by the finder. It must exist and carry the `lead` label.
 - `Variant:` is required and must match the folder.
 - `Builds on:` and `Corrects:` are optional lists of finding IDs (or `#n` issues). Delete the lines you don't use.
-- `Reproduces:` is optional and used only for the upgrade above: one finding ID with the same `Author:` and `Lead:`, and a `Verified by:` who is not the finder and not already a verifier of it. `findings_index.py --check` verifies that the ID exists.
 - `Reproduces:` is optional and used only for the upgrade above: one finding ID with the same `Author:` and `Lead:`, and a `Verified by:` who is not the finder and not already a verifier of it. `findings_index.py --check` verifies that the ID exists.
 - Don't put the RULES.md sign-off or the clean-room declaration in the file; they go in the PR description.
 - Numbers come with the `tools/` script that produced them. Results that rest only on `own` files are marked `not yet reproducible` (RULES.md, "Data").

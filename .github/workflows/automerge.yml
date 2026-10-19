@@ -140,6 +140,7 @@ jobs:
                       gh("label", "create", "self-verified", "--repo", repo, "--force", "--color", "fbca04",
                          "--description", "Reproduced by the finder; a different person can upgrade it (Reproduces:)")
                       gh("issue", "edit", str(n), "--repo", repo, "--add-label", label, check=False)
+                      gh("issue", "edit", str(n), "--repo", repo, "--remove-label", "claimed", check=False)
                       if kind == "upgrade":
                           gh("issue", "edit", str(n), "--repo", repo, "--remove-label", "self-verified", check=False)
                       gh("issue", "comment", str(n), "--repo", repo, "--body",
