@@ -78,5 +78,51 @@ class RoundTrip(unittest.TestCase):
             d.row_bytes("nope", 10)
 
 
+class _FakePayload:
+    """Stands in for Payload: read(f, pos, n) slices an in-memory byte string."""
+    def __init__(self, data):
+        self.data = data
+
+    def read(self, f, pos, n):
+        return self.data[pos:pos + n]
+
+
+class RowLayout(unittest.TestCase):
+    W = 120
+
+    def image(self, h):
+        # two CFA row colours (levels 400 and 2400), smooth gradient along rows and down the frame
+        return [[(400 if y % 2 == 0 else 2400) + (x * 3 + y) % 50 for x in range(self.W)] for y in range(h)]
+
+    def stored(self, img, layout):
+        h = len(img)
+        order = sorted(range(h), key=lambda y: (y % 2, y)) if layout == "two-field" else range(h)
+        return b"".join(pack12(img[y]) for y in order)
+
+    def test_stored_row_is_a_permutation_and_two_field_rule(self):
+        for h in (64, 65, 100):
+            n1 = (h + 1) // 2
+            m = [d.stored_row(y, h, "two-field") for y in range(h)]
+            self.assertEqual(sorted(m), list(range(h)))
+            for y in range(h):
+                self.assertEqual(m[y], y // 2 if y % 2 == 0 else n1 + y // 2)
+            self.assertEqual([d.stored_row(y, h, "natural") for y in range(h)], list(range(h)))
+
+    def test_detect_and_rebuild(self):
+        for h in (200, 201):
+            img = self.image(h)
+            rb = d.row_bytes("packed-12", self.W)
+            for layout in d.LAYOUTS:
+                data = self.stored(img, layout)
+                got, margin = d.detect_layout(None, _FakePayload(data), "packed-12", "plain", self.W, h, rb)
+                self.assertEqual(got, layout)
+                self.assertGreater(margin, 1.5)
+                rows = []
+                for y in range(h):
+                    k = d.stored_row(y, h, got)
+                    rows.append(list(d.unpack_row("packed-12", "plain", data[k * rb:(k + 1) * rb], self.W)[0]))
+                self.assertEqual(rows, img)
+
+
 if __name__ == "__main__":
     unittest.main()

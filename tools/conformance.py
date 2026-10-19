@@ -27,7 +27,7 @@ import orf_decode  # noqa: E402
 
 COLS = ["input_sha256", "variant", "packing", "order", "width", "height",
         "payload_bytes", "consumed_bytes", "exact_end", "min", "max",
-        "out_of_range", "smooth", "output_sha256"]
+        "out_of_range", "smooth", "output_sha256", "row_layout"]
 
 
 def row(r):

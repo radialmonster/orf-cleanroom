@@ -52,6 +52,9 @@ ORDERS = {
 }
 
 
+LAYOUTS = ("natural", "two-field")      # row layout: stored row order (lead #77)
+
+
 class NotSpecified(Exception):
     """The payload is not one of the specified layouts (or breaks a precondition)."""
 
@@ -186,11 +189,42 @@ def detect_order(f, p, packing, w, h, rb):
     return best, (min(rest) / scores[best] if scores[best] else float("inf"))
 
 
-def decode_file(path, order=None):
+def stored_row(y, h, layout):
+    """Stored row holding image row y. natural: y. two-field (lead #77): stored rows 0..n1-1 are the
+    even image rows, n1..h-1 the odd ones, n1 = ceil(h/2)."""
+    if layout == "natural":
+        return y
+    return y // 2 if y % 2 == 0 else (h + 1) // 2 + y // 2
+
+
+def detect_layout(f, p, packing, order, w, h, rb):
+    """Row layout from the stored rows themselves (lead #77): the mean absolute difference of
+    stored rows 1 apart against 2 apart, on 3 bands x 8 rows x up to 400 centre columns. Rows of
+    one CFA colour are 2 apart in the image, so natural order has the 2-apart rows closer;
+    two-field order has the 1-apart stored rows closer. Returns (layout, margin), margin =
+    larger / smaller of the two sums. Ties go to natural."""
+    if h < 64:
+        return "natural", 1.0
+    c0 = max(0, (w - 400) // 2)
+    c1 = min(w, c0 + 400)
+    d1 = d2 = 0
+    for k in range(3):
+        s0 = (h * (2 * k + 1) // 6) // 2 * 2 - 4
+        rows = [unpack_row(packing, order, p.read(f, (s0 + i) * rb, rb), w)[0][c0:c1] for i in range(10)]
+        for i in range(8):
+            d1 += sum(map(abs, map(operator.sub, rows[i], rows[i + 1])))
+            d2 += sum(map(abs, map(operator.sub, rows[i], rows[i + 2])))
+    if d1 < d2:
+        return "two-field", d2 / (d1 or 1)
+    return "natural", d1 / (d2 or 1)
+
+
+def decode_file(path, order=None, layout=None):
     """Decode one file (streaming). Returns a dict of aggregates; no pixel data is kept.
 
     Always present: file, sha256, model, header, status, variant, packing, width, height,
     payload_offset, payload_bytes, strips, strip_gaps, notes. When a layout applies also: order, order_margin,
+    row_layout, layout_margin,
     consumed_bytes, consumed_bits, exact_end, min, max, out_of_range, smooth, output_sha256,
     pad_nonzero (packed-12.8)."""
     p = Payload(path)
@@ -212,6 +246,8 @@ def decode_file(path, order=None):
         raise NotSpecified("a strip lies outside the file")
     if order is not None and order not in ORDERS[packing]:
         raise NotSpecified("order %r is not defined for %s (choose from %s)" % (order, packing, ", ".join(ORDERS[packing])))
+    if layout is not None and layout not in LAYOUTS:
+        raise NotSpecified("row layout %r is not defined (choose from %s)" % (layout, ", ".join(LAYOUTS)))
     digest = hashlib.sha256()
     lo, hi, bad, smooth_n, pad = 1 << 30, -1, 0, 0, 0
     # out of range: a value above 4095 for packed-12 and packed-12.8 (12-bit data); for packed-16
@@ -220,8 +256,11 @@ def decode_file(path, order=None):
         margin = None
         if order is None:
             order, margin = detect_order(f, p, packing, w, h, rb)
+        layout_margin = None
+        if layout is None:
+            layout, layout_margin = detect_layout(f, p, packing, order, w, h, rb)
         for y in range(h):
-            row, pd = unpack_row(packing, order, p.read(f, y * rb, rb), w)
+            row, pd = unpack_row(packing, order, p.read(f, stored_row(y, h, layout) * rb, rb), w)
             pad += pd
             lo, hi = min(lo, min(row)), max(hi, max(row))
             if packing == "packed-16":
@@ -233,7 +272,7 @@ def decode_file(path, order=None):
                 row.byteswap()
             digest.update(row.tobytes())           # little-endian uint16, row-major
     consumed = rb * h
-    r.update(order=order, order_margin=margin, consumed_bytes=consumed, consumed_bits=consumed * 8,
+    r.update(order=order, order_margin=margin, row_layout=layout, layout_margin=layout_margin, consumed_bytes=consumed, consumed_bits=consumed * 8,
              exact_end=(consumed == p.nbytes), min=lo, max=hi, out_of_range=bad,
              smooth=smooth_n / (h * (w - 2)), output_sha256=digest.hexdigest(),
              pad_nonzero=pad if packing == "packed-12.8" else "")
@@ -243,6 +282,8 @@ def decode_file(path, order=None):
         r["notes"].append("layout is UNVERIFIED (%s); pixel order inside a unit is undecided" % STATUS[packing].split("(")[1].rstrip(")"))
     else:
         r["notes"].append("pixel order inside a two-pixel unit is undecided by the evidence")
+    if layout == "two-field":
+        r["notes"].append("rows are stored as two fields (even image rows, then odd rows; lead #77); layout is UNVERIFIED")
     if packing == "packed-16":
         r["notes"].append("values are the stored 16-bit words (not shifted); out_of_range counts words with a low-4-bit set")
     return r
@@ -254,17 +295,18 @@ def main(argv=None):
     ap.add_argument("files", nargs="+")
     ap.add_argument("--order", help="force the order instead of detecting it: packed-12 plain|word4-reversed, "
                                     "packed-16 le|be (packed-12.8 has one)")
+    ap.add_argument("--layout", choices=LAYOUTS, help="force the row layout instead of detecting it")
     a = ap.parse_args(argv)
     code = 0
     for path in a.files:
         try:
-            r = decode_file(path, a.order)
+            r = decode_file(path, a.order, a.layout)
         except (NotSpecified, ValueError, struct.error, OSError) as exc:
             print("== %s\nerror: %s" % (os.path.basename(path), exc))
             code = 1
             continue
         print("== %s" % r["file"])
-        for k in ("sha256", "model", "header", "variant", "packing", "status", "order", "order_margin",
+        for k in ("sha256", "model", "header", "variant", "packing", "status", "order", "order_margin", "row_layout", "layout_margin",
                   "width", "height", "payload_offset", "payload_bytes", "strips", "strip_gaps", "consumed_bytes", "exact_end",
                   "min", "max", "out_of_range", "smooth", "pad_nonzero", "output_sha256"):
             v = r.get(k, "")
