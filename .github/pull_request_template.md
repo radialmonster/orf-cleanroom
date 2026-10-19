@@ -1,6 +1,6 @@
 ## What this adds
 
-<!-- One focused change. Link the issue it addresses: "Fixes #n" if this finishes it, "Part of #n" if not (#1 and #2 are only indexes). -->
+<!-- One focused change. Link the issue it addresses: "Fixes #n" if this finishes it, "Part of #n" if not. -->
 
 ## Checklist
 - [ ] I confirm this follows RULES.md.

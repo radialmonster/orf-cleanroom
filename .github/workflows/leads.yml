@@ -71,7 +71,7 @@ jobs:
           PY
 
   claim:
-    # "Taking this" on an unassigned open lead/idea assigns the commenter and labels it
+    # "Taking this" on an unassigned open lead assigns the commenter and labels it
     # `claimed`; "Releasing this" from the assignee undoes that.
     if: github.event_name == 'issue_comment'
     runs-on: ubuntu-latest
@@ -102,7 +102,7 @@ jobs:
               if "pull_request" in issue or issue.get("state") != "open":
                   return None
               labels = set(l["name"] for l in issue.get("labels", []))
-              if not labels & set(["lead", "idea"]):
+              if not labels & set(["lead"]):
                   return None
               user = comment["user"]["login"]
               if comment["user"].get("type") == "Bot":

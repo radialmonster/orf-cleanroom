@@ -18,7 +18,7 @@ Two variants merge only when the same script in `tools/` reproduces both and the
 A manifest row gets a variant only from measurements: V0 when `size_class` is `packed-…` (an exact fixed-size payload; a bits-per-pixel threshold is not enough); V1 or V2 when a bitstream script in `tools/` shows the matching signature. Otherwise it stays `unassigned`.
 
 ## Tracking
-One issue per variant (https://github.com/radialmonster/orf-cleanroom/issues), labelled `variant:Vn`, with the work split into `decode` (bitstream → sensor values) and `develop` (levels, crop, CFA pattern, white balance, colour).
+Leads are labelled `variant:Vn` ([V1](https://github.com/radialmonster/orf-cleanroom/issues?q=is%3Aopen+label%3Alead+label%3Avariant%3AV1), [V2](https://github.com/radialmonster/orf-cleanroom/issues?q=is%3Aopen+label%3Alead+label%3Avariant%3AV2)), with the work split into `decode` (bitstream → sensor values) and `develop` (levels, crop, CFA pattern, white balance, colour).
 
 ---
 

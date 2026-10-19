@@ -1,5 +1,5 @@
 name: stale-claims
-# Frees a lead or idea whose assignee has been quiet for 14 days, so claims do not
+# Frees a lead whose assignee has been quiet for 14 days, so claims do not
 # block the work. It uses the issue's updated_at (any comment or linked PR activity
 # moves it). No code is checked out.
 on:
@@ -43,7 +43,7 @@ jobs:
           def main():
               repo = os.environ["REPO"]
               seen = {}
-              for label in ("lead", "idea"):
+              for label in ("lead",):
                   data = json.loads(gh("issue", "list", "--repo", repo, "--label", label, "--state", "open",
                                        "--limit", "500", "--json", "number,assignees,updatedAt,labels"))
                   for i in data:
