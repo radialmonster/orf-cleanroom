@@ -8,13 +8,16 @@ file's licence and SHA-256. The /data/ mirror and the bulk clones mix CC0 and
 non-CC0 files, so use this instead of guessing.
 
 Usage:
-  python pixls_samples.py list [--all-licences]   # CC0 ORF/ORI files by default
+  python pixls_samples.py list [--all-licences] [--missing MANIFEST]
+                                                  # CC0 ORF/ORI files by default;
+                                                  # --missing: only those not in MANIFEST
   python pixls_samples.py check FILE [FILE ...]   # licence of local files, by SHA-256
   python pixls_samples.py download DIR [--model M] [--max N]
                                                   # CC0 only, SHA-256 verified;
                                                   # DIR must be outside the repo
 """
 import argparse
+import csv
 import difflib
 import hashlib
 import json
@@ -72,7 +75,13 @@ def sha256_file(path):
 
 
 def cmd_list(a):
+    listed = set()
+    if a.missing:
+        with open(a.missing, newline="", encoding="utf-8") as f:
+            listed = set(row["sha256"] for row in csv.DictReader(f))
     for r in rows():
+        if r["sha256"] in listed:
+            continue
         if a.all_licences or r["licence"] == "CC0":
             print("%-6s %-16s %-14s %-22s %s  %s" % (r["id"], r["licence"], r["model"], r["mode"], r["sha256"][:12], r["name"]))
 
@@ -140,6 +149,7 @@ def main():
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("list")
     p.add_argument("--all-licences", action="store_true")
+    p.add_argument("--missing", metavar="MANIFEST", help="only files whose sha256 is not yet in this manifest CSV (e.g. samples/manifest.csv)")
     p = sub.add_parser("check")
     p.add_argument("files", nargs="+")
     p = sub.add_parser("download")
