@@ -19,7 +19,7 @@ Nothing enters a later stage without the earlier one: no decoder step without a 
 - V0 packed-16: lead #71 only, unverified. Decoder: exact end on 3 of 3; E-400 has 793 words with a non-zero low nibble, interpolated pixels per lead #79 (unverified).
 - V1, V2 and other compressed variants: stub specs `specs/V1.md` and `specs/V2.md` (verified facts, lead-only items and Gaps; no bitstream decoded). The decoder detects them and stops. Open leads are under the `variant:V1` and `variant:V2` labels. This is where most of the work remains: no compressed payload can be decoded yet.
 
-Exact numbers: run `python -I tools/conformance.py <files>`; the committed result is `samples/conformance-V0.csv`; matching it independently verifies lead #75.
+Exact numbers: run `python -I tools/conformance.py <files>`; the committed result is `samples/conformance-V0.csv`. A blind second implementation written from `specs/V0.md` alone (`tools/v0_spec_check.py`, #93) matches all 17 hashes with exact payload ends: finding `2026-10-19--radialmonster--independent-v0-hash-agreement` (findings/V0, partial verification of lead #75). So V0 decoding is reproducible from the spec on these files. Still open: pixel order inside a unit (G4) and the layout selectors in general (G6).
 
 ## How to move things forward
 

@@ -5,7 +5,7 @@ Runs the decoder on the given files and prints one line per file, then a
 summary line.  Aggregates to stdout only; no file is written.
 
 Per file: input sha256, variant/packing, WxH, bytes consumed vs payload
-size (exact end?), min/max, values out of 12-bit range, CFA smoothness
+size (exact end?), min/max, "out-of-range" values (above 4095 for packed-12/12.8; for packed-16, words with a non-zero low nibble, not words above 4095), CFA smoothness
 (mean |x - x two columns left|), and the OUTPUT HASH: SHA-256 of the
 decoded values as little-endian uint16, row-major, unshifted.
 
