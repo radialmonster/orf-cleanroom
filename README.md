@@ -6,6 +6,14 @@ Today LightCraft decodes uncompressed ORF only; compressed ORF (the default on m
 
 **Read [RULES.md](RULES.md) before contributing.** The whole point of this repo is provenance: every fact here must come from public specifications, patents, or measurements of the files themselves.
 
+## How to contribute
+
+This repo is designed so you can hand it to an AI coding agent of your choice. Open the agent, give it this repo's URL, https://github.com/radialmonster/orf-cleanroom , and tell it:
+
+> I'd like to contribute to this. Please read the repo and proceed.
+
+The agent reads [AGENTS.md](AGENTS.md) and [RULES.md](RULES.md), picks an unclaimed lead at random, does the work, and walks you through submitting it from your own GitHub account, so the credit is yours. You confirm the RULES.md sign-off yourself. You can also do everything by hand; the rest of this page explains how.
+
 ## Start here
 
 Results here are **leads** (GitHub issues) until they are reproduced in a second, separate run; then they become **findings** (files in `findings/`). A different person verifying is preferred; the finder may verify their own lead (status `self-verified`), and a different person can upgrade it later. Two main ways to help:
