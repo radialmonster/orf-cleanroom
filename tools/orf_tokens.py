@@ -10,7 +10,8 @@ a 1 stop bit, then a 5-bit suffix b4..b0. q >= 17 is an escape. What follows an
 escape is not understood (lead #11), so by default an escape is parsed like any other
 token (zeros, stop bit, 5 bits) and then left out of every H/L statistic;
 --escape-extra N skips N more bits after an escape to try other layouts.
-Suffix: H = b4b3, L = b2b1b0 read as 3-bit two's complement (-4..3).
+Suffix: H = b4b3 and L = b2b1b0 are only labels for the two bit groups; both are
+read as plain unsigned numbers (no signed or other meaning is assumed).
 
 Rows cannot be delimited from the stream alone: no row marker is known. So the
 tool reports (a) total tokens against width x height, and (b) the bit position,
@@ -24,8 +25,15 @@ the estimator bias; read a value as real only if well above its baseline):
   b4(t-1) and b2(t-2); and, using the payload width as the row stride,
   vertical lag-2 L-L and H-H.
 
+Also printed: tokens per pixel against a Bernoulli null (every bit independent,
+with the ones-density of the parsed bits; the null token costs 6 + (1-p)/p bits),
+and the correlation of min(q,8) at lags 1, 2, 3, 6 and W. With --escape-landing,
+for every escape it finds the distance from the start of its zero run to the
+start of the next token that makes the following 24 tokens most q=0 (only
+meaningful on bodies where q=0 is the large majority), tabulated by escape q.
+
 Usage: python orf_tokens.py FILE [FILE ...] [--max-tokens N | --all] [--rows N]
-                            [--stride W] [--escape-extra N]
+                            [--stride W] [--escape-extra N] [--escape-landing]
 Default is the first 2,000,000 tokens; --all parses the whole payload (slow in
 pure Python, roughly a million tokens per second or less; speed is reported).
 --rows N is shorthand for --max-tokens N x width.
@@ -53,7 +61,7 @@ def locate(path):
     return best[0x100][0], best[0x101][0], data[off:off + n]
 
 
-def parse(buf, max_tokens, w, esc_extra=0):
+def parse(buf, max_tokens, w, esc_extra=0, esc_pos=None):
     """Return (q list, suffix list, bit position at every w-th token, bits used)."""
     nbits = len(buf) * 8
     pad = buf + bytes(WIN)
@@ -85,6 +93,8 @@ def parse(buf, max_tokens, w, esc_extra=0):
             s = (v >> (avail - q - 6)) & 31
             pos += q + 6
         if q >= ESC_Q:
+            if esc_pos is not None:
+                esc_pos.append((pos - q - 6, q))  # bit position of the zero run's first bit
             pos += esc_extra
         qs.append(q)
         ss.append(s)
@@ -129,6 +139,64 @@ def mi_base(a, b, lag=0):
     return v, base, n
 
 
+def pearson(x, y):
+    n = len(x)
+    mx, my = sum(x) / n, sum(y) / n
+    sxx = sum((u - mx) ** 2 for u in x)
+    syy = sum((v - my) ** 2 for v in y)
+    sxy = sum((u - mx) * (v - my) for u, v in zip(x, y))
+    return sxy / math.sqrt(sxx * syy) if sxx > 0 and syy > 0 else float("nan")
+
+
+def landing(buf, esc_extra, look=24, span=48, needed=20):
+    """Table of escape q against where the next token lattice starts. After an escape the
+    stream is a 6-bit-period lattice again, so only the landing distance modulo 6 is
+    identifiable: for every escape, the distance L (bits from the zero run's first bit to
+    the next token's first bit) is tried over `span` values, scored by how many of the next
+    `look` tokens have q=0, and the best residue of L mod 6 is kept if it scores >= needed
+    and is unique. A plain parse lands at q + 6 + escape-extra; a fixed 31-bit word at 31.
+    Only meaningful on bodies where q=0 is the large majority."""
+    escs = []
+    parse(buf, 1 << 62, 0, esc_extra, escs)
+    tab = collections.defaultdict(collections.Counter)
+    unsure = 0
+    for start, q in escs:
+        best = {}
+        for land in range(q + 1, q + 1 + span):
+            sc = sum(1 for x in parse_at(buf, start + land, look) if x == 0)
+            r = land % 6
+            if sc > best.get(r, -1):
+                best[r] = sc
+        top = max(best.values())
+        winners = [r for r, sc in best.items() if sc == top]
+        if top >= needed and len(winners) == 1:
+            tab[q][winners[0]] += 1
+        else:
+            unsure += 1
+    print("escape landing, best L mod 6 (unique, >= %d of %d q=0 tokens): %d escapes, %d unresolved" % (
+        needed, look, len(escs), unsure))
+    for q in sorted(tab):
+        tot = sum(tab[q].values())
+        print("  q=%d: n=%d  L mod 6 -> %s  | plain parse (q+6+extra) = %d, 31-bit word = %d" % (
+            q, tot, " ".join("%d:%d" % kv for kv in sorted(tab[q].items())), (q + 6 + esc_extra) % 6, 31 % 6))
+
+
+def parse_at(buf, pos, count):
+    """q values of `count` tokens starting at bit position pos."""
+    nbits = len(buf) * 8
+    out = []
+    for _ in range(count):
+        q = 0
+        while pos < nbits and not (buf[pos >> 3] >> (7 - (pos & 7))) & 1:
+            q += 1
+            pos += 1
+        if pos + 6 > nbits:
+            break
+        out.append(q)
+        pos += 6
+    return out
+
+
 def report(path, a):
     t0 = time.time()
     w, h, buf = locate(path)
@@ -170,20 +238,32 @@ def report(path, a):
         print("escape q values: " + " ".join("%d:%d" % kv for kv in sorted(esc_q.items())))
     if not n:
         return
+    ones = sum(bin(b).count("1") for b in buf[:endpos // 8]) / (8.0 * (endpos // 8)) if endpos >= 8 else 0.5
+    if 0 < ones < 1:
+        null_bits = 6 + (1 - ones) / ones
+        print("ones-density %.4f; tokens per pixel (estimated from bits per token): real %.4f, Bernoulli null %.4f" % (
+            ones, nbits / (endpos / n) / (w * h), nbits / null_bits / (w * h)))
+    qc = [float(min(q, 8)) for q in qs]
+    cs = []
+    for lag in (1, 2, 3, 6, stride):
+        if 0 < lag < n - 100:
+            cs.append("lag %d: %+.4f" % (lag, pearson(qc[:-lag], qc[lag:])))
+    print("correlation of min(q,8): " + "  ".join(cs))
+    if a.escape_landing:
+        landing(buf, a.escape_extra)
 
-    # symbol streams; MISSING at escape tokens. L is stored offset by +4 (0..7).
+    # symbol streams; MISSING at escape tokens. L is the unsigned value 0..7.
     isesc = [q >= ESC_Q for q in qs]
     H = array.array("b", [MISSING if e else s >> 3 for e, s in zip(isesc, ss)])
-    L = array.array("b", [MISSING if e else ((s & 7) ^ 4) for e, s in zip(isesc, ss)])  # two's complement -> offset
+    L = array.array("b", [MISSING if e else s & 7 for e, s in zip(isesc, ss)])
     B2 = array.array("b", [MISSING if e else (s >> 2) & 1 for e, s in zip(isesc, ss)])
     B4 = array.array("b", [MISSING if e else s >> 4 for e, s in zip(isesc, ss)])
-    SG = array.array("b", [MISSING if e else (1 if (s & 4) else 0) for e, s in zip(isesc, ss)])
     good = [s for e, s in zip(isesc, ss) if not e]
     m = len(good)
     print("suffix bit balance P(bit=1): " + " ".join(
         "b%d=%.4f" % (k, sum((s >> k) & 1 for s in good) / m) for k in (4, 3, 2, 1, 0)))
     hc = collections.Counter(s >> 3 for s in good)
-    lc = collections.Counter(((s & 7) - 8 if s & 4 else s & 7) for s in good)
+    lc = collections.Counter(s & 7 for s in good)
     print("H share: " + " ".join("%d:%.4f" % (k, hc[k] / m) for k in sorted(hc)))
     print("L share: " + " ".join("%d:%.4f" % (k, lc[k] / m) for k in sorted(lc)))
     v, bs, _ = mi_base(H, L)
@@ -195,10 +275,10 @@ def report(path, a):
             v, base, np_ = mi_base(xs, ys, lag)
             parts.append("%s %.4f(%.4f)" % (name, v, base))
         print("  lag %d: %s  n=%d" % (lag, "  ".join(parts), np_))
-    v4, base4, _ = mi_base(B4, SG, 1)
+    v4, base4, _ = mi_base(B4, B2, 1)
     vh, baseh, _ = mi_base(H, L, 1)
-    print("b4(t-1)->sign L(t): %.4f (%.4f); H(t-1)->L(t) total %.4f (%.4f); "
-          "share carried by b4->sign after baseline: %.2f" % (
+    print("b4(t-1)->b2(t): %.4f (%.4f); H(t-1)->L(t) total %.4f (%.4f); "
+          "share carried by b4->b2 after baseline: %.2f" % (
               v4, base4, vh, baseh, (v4 - base4) / (vh - baseh) if vh > baseh else float("nan")))
     # b2(t) context: (b4(t-1), b2(t-2))
     ctx = array.array("b", [MISSING] * len(B2))
@@ -232,6 +312,8 @@ def main():
     g.add_argument("--all", action="store_true", help="parse the whole payload")
     ap.add_argument("--stride", type=int, default=0, help="tokens per row (default: payload width)")
     ap.add_argument("--escape-extra", type=int, default=0, help="extra bits skipped after an escape")
+    ap.add_argument("--escape-landing", action="store_true",
+                    help="tabulate, per escape q, where the next token starts (calm bodies only)")
     a = ap.parse_args()
     for p in a.files:
         try:

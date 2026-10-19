@@ -23,3 +23,5 @@ jobs:
         run: python tools/test_orf_decode.py
       - name: value_map_probe tests
         run: python tools/test_value_map_probe.py
+      - name: orf_tokens tests
+        run: python tools/test_orf_tokens.py
