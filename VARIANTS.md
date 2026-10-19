@@ -28,7 +28,7 @@ Leads are labelled `variant:Vn` ([V1](https://github.com/radialmonster/orf-clean
 - Signature: `size_class` is `packed-12`, `packed-12.8` or `packed-16`: the payload size exactly equals width x height x that many bits (lead #28).
 - Models seen (lead #28): C5060WZ, C7070WZ, SH-2, SP-510UZ/550UZ/565UZ/570UZ, XZ-2, XZ-10 (12); E-300, E-330, E-500, and High Res Shot files from PEN-F and E-M5 Mark II (12.8); E-1, E-10, E-400 (16).
 - Findings: [findings/V0/](findings/V0/).
-- Status: LightCraft decodes uncompressed ORF; whether it covers every packing listed here hasn't been checked in this repo.
+- Status: uncompressed, so not the main target here; listed for classification. Whether a given decoder covers every packing listed here hasn't been checked in this repo.
 
 ## V1: calm-parse compressed
 - Signature: compressed; the calm parse from the F1 lead (#11) works (q zeros, stop bit, 5-bit suffix, escape at q ≥ 17); per-row stride equals the payload width on at least one body (5240 wide).

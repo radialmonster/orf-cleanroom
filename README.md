@@ -1,8 +1,8 @@
 # orf-cleanroom
 
-An open, clean-room effort to document and decode **compressed Olympus / OM System ORF** raw files, so that a decoder can be written from independently established facts and contributed to [LightCraft](https://github.com/storytold/lightcraft).
+An open, clean-room effort to document and decode **compressed Olympus / OM System ORF** raw files (the default on most Olympus and OM System interchangeable-lens bodies), so that a decoder can be written from independently established facts.
 
-Today LightCraft decodes uncompressed ORF only; compressed ORF (the default on most Olympus and OM System interchangeable-lens bodies) opens the embedded JPEG preview.
+Everything here is released under CC0: the findings, the sample data and, we hope, an eventual decoder are free for any project to use, open or closed, with no strings attached. [LightCraft](https://github.com/storytold/lightcraft), which today decodes only uncompressed ORF, is one project that plans to use it; others are welcome to as well.
 
 **Read [RULES.md](RULES.md) before contributing.** The whole point of this repo is provenance: every fact here must come from public specifications, patents, or measurements of the files themselves.
 
