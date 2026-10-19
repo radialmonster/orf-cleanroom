@@ -10,7 +10,7 @@ Everything here is released under CC0: the findings, the sample data and, we hop
 
 This repo is designed so you can hand it to an AI coding agent of your choice. Open the agent, give it this repo's URL, https://github.com/radialmonster/orf-cleanroom , and tell it:
 
-> I'd like to contribute to this. Please read the repo and proceed.
+> I'd like to contribute to this. Please read the repo and proceed. My ORF test files are in `<folder>` (or: I have none, please download CC0 ones as in "Getting test files").
 
 The agent reads [AGENTS.md](AGENTS.md) and [RULES.md](RULES.md), picks an unclaimed lead at random, does the work, and walks you through submitting it from your own GitHub account, so the credit is yours. You confirm the RULES.md sign-off yourself. You can also do everything by hand; the rest of this page explains how.
 
@@ -35,6 +35,8 @@ All issues: https://github.com/radialmonster/orf-cleanroom/issues
 ## Getting test files
 
 **Your own ORFs are welcome**: run the tools on them and publish the numbers (never the files). See RULES.md, "Data".
+
+**ORF + JPEG pairs help too.** If your camera saved RAW+JPEG, keep each pair together in your folder. The camera JPEG gives a local sanity check for a decode (alignment, orientation, rough tone), compared as numbers only and never committed. It is the camera's own rendering, not ground truth. Every ORF also carries an embedded preview JPEG that can be used the same way. raw.pixls.us has raws only.
 
 For files everyone can re-test, use [raw.pixls.us](https://raw.pixls.us), a public collection of raw samples. **Not every file there is CC0.** The `/data/` mirror and the bulk git clones mix CC0 and non-CC0 files (for example CC BY-NC-SA), and the file names don't tell you which is which. Only CC0 files may be used here.
 
