@@ -15,7 +15,7 @@ Results here are **leads** (GitHub issues) until they are reproduced in a second
 
 Other help, no bitstream knowledge needed:
 - **Add manifest rows:** no claim or announcement needed. Run `python tools/pixls_samples.py list --missing samples/manifest.csv` to see the CC0 files not yet listed, pick some at random (not the first ones) so people spread out, and add rows with `tools/manifest_rows.py`, including ORI and High Res Shot files (see samples/README.md). Files are roughly 10-70 MB each; `download --model M` fetches one model. A second row for an already listed file, measured by a different person, is welcome as an independent measurement. Most useful: compressed bodies, especially the 5240-wide ones from OPEN-QUESTIONS 6 (OM-5, OM-5 Mark II, E-M1 Mark II).
-- **V1 and V2:** open leads per variant: [V1](https://github.com/radialmonster/orf-cleanroom/issues?q=is%3Aopen+label%3Alead+label%3Avariant%3AV1), [V2](https://github.com/radialmonster/orf-cleanroom/issues?q=is%3Aopen+label%3Alead+label%3Avariant%3AV2). Publish what you measure as a lead.
+- **Variants:** numbered as found (V0, V1, V2 so far, there may be many more; propose a new V<n> or a split as a lead, see VARIANTS.md). Open leads for V1 and V2: [V1](https://github.com/radialmonster/orf-cleanroom/issues?q=is%3Aopen+label%3Alead+label%3Avariant%3AV1), [V2](https://github.com/radialmonster/orf-cleanroom/issues?q=is%3Aopen+label%3Alead+label%3Avariant%3AV2). Publish what you measure as a lead.
 
 All issues: https://github.com/radialmonster/orf-cleanroom/issues
 

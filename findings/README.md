@@ -33,10 +33,10 @@ Files are independent, so there are no numbers to pick and no merge conflicts.
 
 ## Folders
 - [`container/`](container/): facts about the file container, or that span variants
-- [`V0/`](V0/), [`V1/`](V1/), [`V2/`](V2/): bitstream findings for that variant (see [VARIANTS.md](../VARIANTS.md))
+- [`V0/`](V0/), [`V1/`](V1/), [`V2/`](V2/), and any other `V<n>/`: bitstream findings for that variant (see [VARIANTS.md](../VARIANTS.md))
 - [`unassigned/`](unassigned/): bitstream findings whose variant isn't known yet
 
-A new variant gets a new folder `V<n>` with a README, added together with its section in VARIANTS.md.
+Variants are open-ended. A new variant gets a new folder `V<n>` (next free number) with a short README, added in the same PR as its section in VARIANTS.md. The checks accept any `V<n>` folder, so a finding can be added there as soon as the folder exists.
 
 ## File name and ID
 `YYYY-MM-DD--finder--short-slug.md`, for example `2026-10-18--alice--tag-is-1-on-compressed-orf.md`.

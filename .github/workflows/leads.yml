@@ -24,7 +24,7 @@ jobs:
           python3 - <<'PY'
           import json, os, re, subprocess
 
-          VARIANTS = ["container", "V0", "V1", "V2", "unassigned"]
+          VARIANT_RE = re.compile(r"^(container|unassigned|V[0-9]{1,4})$", re.I)
 
 
           def plan(body, labels):
@@ -32,9 +32,10 @@ jobs:
               body = re.sub(r"<!--.*?-->", "", (body or "").replace("\r\n", "\n"), flags=re.S)
               add, remove = [], []
               m = re.search(r"^[ \t]*Variant:[ \t]*(\S+)[ \t]*$", body, re.M | re.I)
-              known = dict((v.lower(), v) for v in VARIANTS)
-              if m and m.group(1).lower() in known:
-                  want = "variant:" + known[m.group(1).lower()]
+              if m and VARIANT_RE.match(m.group(1)):
+                  name = m.group(1)
+                  name = name.upper() if name[0] in "Vv" else name.lower()
+                  want = "variant:" + name
                   if want not in labels:
                       add.append(want)
                   remove += [l for l in labels if l.startswith("variant:") and l != want]
