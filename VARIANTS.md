@@ -20,7 +20,7 @@ Two variants merge only when the same script in `tools/` reproduces both and the
 A manifest row gets a variant only from measurements: V0 when `size_class` is `packed-…` (an exact fixed-size payload; a bits-per-pixel threshold is not enough); V1, V2 or another V<n> when a bitstream script in `tools/` shows the matching signature. Otherwise it stays `unassigned`.
 
 ## Tracking
-Leads are labelled `variant:Vn` ([V1](https://github.com/radialmonster/orf-cleanroom/issues?q=is%3Aopen+label%3Alead+label%3Avariant%3AV1), [V2](https://github.com/radialmonster/orf-cleanroom/issues?q=is%3Aopen+label%3Alead+label%3Avariant%3AV2)), with the work split into `decode` (bitstream → sensor values) and `develop` (levels, crop, CFA pattern, white balance, colour).
+Leads are labelled `variant:Vn` ([V0](https://github.com/radialmonster/orf-cleanroom/issues?q=is%3Aopen+label%3Alead+label%3Avariant%3AV0), [V1](https://github.com/radialmonster/orf-cleanroom/issues?q=is%3Aopen+label%3Alead+label%3Avariant%3AV1), [V2](https://github.com/radialmonster/orf-cleanroom/issues?q=is%3Aopen+label%3Alead+label%3Avariant%3AV2)), with the work split into `decode` (bitstream → sensor values) and `develop` (levels, crop, CFA pattern, white balance, colour).
 
 ---
 
@@ -28,7 +28,7 @@ Leads are labelled `variant:Vn` ([V1](https://github.com/radialmonster/orf-clean
 - Signature: `size_class` is `packed-12`, `packed-12.8` or `packed-16`: the payload size exactly equals width x height x that many bits (lead #28).
 - Models seen (lead #28): C5060WZ, C7070WZ, SH-2, SP-510UZ/550UZ/565UZ/570UZ, XZ-2, XZ-10 (12); E-300, E-330, E-500, and High Res Shot files from PEN-F and E-M5 Mark II (12.8); E-1, E-10, E-400 (16).
 - Findings: [findings/V0/](findings/V0/).
-- Status: uncompressed, so not the main target here; listed for classification. Whether a given decoder covers every packing listed here hasn't been checked in this repo.
+- Status: uncompressed, so not the main target here; listed for classification. Whether a given decoder covers every packing listed here is tracked in [specs/V0.md](specs/V0.md) and `samples/conformance-V0.csv` (reference decoder: exact payload end on all 17 CC0 files; packed-12.8 and packed-16 rest on leads #70, #71).
 
 ## V1: calm-parse compressed
 - Signature: compressed; the calm parse from the F1 lead (#11) works (q zeros, stop bit, 5-bit suffix, escape at q ≥ 17); per-row stride equals the payload width on at least one body (5240 wide).
@@ -44,5 +44,5 @@ Leads are labelled `variant:Vn` ([V1](https://github.com/radialmonster/orf-clean
 
 ## Unassigned
 - Findings whose variant isn't known yet: [findings/unassigned/](findings/unassigned/). Container facts that span variants: [findings/container/](findings/container/).
-- High Res Shot / pixel-shift files: not yet classified, so they get their own variants once measured.
+- High Res Shot / pixel-shift files: two of the 21 in the manifest (PEN-F, E-M5 Mark II) are packed-12.8, so V0 by signature; the other 19 are compressed and still `unassigned`. Whether the mode needs its own variants is open (hypothesis H2, [specs/V0.md](specs/V0.md) G5, which applies to both).
 - ORI files: not yet classified.

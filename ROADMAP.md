@@ -13,7 +13,7 @@ Nothing enters a later stage without the earlier one: no decoder step without a 
 
 ## Status per variant (honest)
 
-- Container: verified. Compression tag is 1 on every file (so it cannot tell variants apart); a fixed-size payload is told by exact size. The strip layout (gaps between strips on 6 files) is an observation, not yet a finding.
+- Container: verified. Compression tag is 1 on every file (so it cannot tell variants apart); a fixed-size payload is told by exact size. The strip layout (gaps between strips on 6 files) is an observation, not yet a finding; lead #77 (unverified) explains it as a two-field row layout, which the decoder applies (spec S1.4).
 - V0 packed-12: verified (self-verified, so a second person's run would upgrade it). Decoder: exact payload end on 9 of 9 CC0 files. Pixel order inside a unit is undecided.
 - V0 packed-12.8: lead #70 only, unverified. Decoder: exact payload end on 5 of 5. Pad byte not yet explained.
 - V0 packed-16: lead #71 only, unverified. Decoder: exact end on 3 of 3; E-400 has 793 words with a non-zero low nibble, unexplained.
@@ -36,7 +36,7 @@ The lightest fit is a normal lead and finding, so automerge keeps working with n
 - Someone else runs the tool (their own copy or their own implementation) on the same CC0 files and opens a PR adding a finding whose `Lead:` is that lead and `Verified by:` is themselves, with the matching or differing hashes in its Verification section.
 - A different implementation's hashes, if they match, are the strongest form; say so in the finding.
 
-No automerge change is needed. If per-decoder badges are wanted later, that would need an automerge change, which this PR does not make.
+No automerge change is needed. If per-decoder badges are wanted later, that would need an automerge change, which is not planned.
 
 ## Where to start
 
