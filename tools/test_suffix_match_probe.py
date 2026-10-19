@@ -19,6 +19,16 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import suffix_match_probe as probe
 
 
+def named_temp(mode="w+b", **kwargs):
+    """A named temporary file that can be reopened by name while open, also on Windows."""
+    @contextlib.contextmanager
+    def manager():
+        with tempfile.TemporaryDirectory() as folder:
+            with open(os.path.join(folder, "sample"), mode, **kwargs) as stream:
+                yield stream
+    return manager()
+
+
 def permutation_oracle(symbols, width, lag):
     """Independent direct enumeration: None is a fixed unavailable slot.
 
@@ -205,14 +215,14 @@ class ParseTests(unittest.TestCase):
                                ({"length": 0}, "invalid_payload_bounds"),
                                ({"width": 0}, "invalid_dimensions")):
             data = synthetic_tiff(**kwargs)
-            with tempfile.NamedTemporaryFile() as stream:
+            with named_temp() as stream:
                 stream.write(data)
                 stream.flush()
                 sig = probe.orf_signature.signature(stream.name)
                 with self.assertRaisesRegex(probe.InputError, reason):
                     probe.check_layout(data, sig)
         data = synthetic_tiff()
-        with tempfile.NamedTemporaryFile() as stream:
+        with named_temp() as stream:
             stream.write(data)
             stream.flush()
             sig = probe.orf_signature.signature(stream.name)
@@ -235,7 +245,7 @@ class CohortAndRunnerTests(unittest.TestCase):
         self.assertIs(probe.validate_cohort(c), c)
         self.assertEqual([s["id"] for s in c["samples"]], [101, 202])
         self.assertNotEqual(c["samples"][0]["sha256"], c["samples"][1]["sha256"])
-        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8") as stream:
+        with named_temp(mode="w", encoding="utf-8") as stream:
             json.dump(c, stream)
             stream.flush()
             with mock.patch.object(probe, "measure_sample", side_effect=[
@@ -316,7 +326,7 @@ class CohortAndRunnerTests(unittest.TestCase):
         self.assertEqual(result["reason"], "input_io_error")
         self.assertEqual(len(result["lags"]), 10)
         self.assertNotIn("private", json.dumps(result))
-        with tempfile.NamedTemporaryFile() as stream:
+        with named_temp() as stream:
             stream.write(synthetic_tiff())
             stream.flush()
             result = probe.measure_sample(cohort()["samples"][0], stream.name)
@@ -329,7 +339,7 @@ class CohortAndRunnerTests(unittest.TestCase):
             2, lambda lag: (0, 0, Fraction(0))))
         failure = dict(c["samples"][1], status="failed", reason="payload_overrun",
                        lags=probe.lag_rows(2, failure="payload_overrun"))
-        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8") as stream:
+        with named_temp(mode="w", encoding="utf-8") as stream:
             json.dump(c, stream)
             stream.flush()
             with mock.patch.object(probe, "measure_sample", side_effect=[success, failure]) as measure:
@@ -350,7 +360,7 @@ class CohortAndRunnerTests(unittest.TestCase):
     def test_synthetic_sample_success_and_locate_crosscheck(self):
         data = synthetic_tiff()
         sample = dict(cohort()["samples"][0], sha256=hashlib.sha256(data).hexdigest())
-        with tempfile.NamedTemporaryFile() as stream:
+        with named_temp() as stream:
             stream.write(data)
             stream.flush()
             with mock.patch.object(probe, "checked_parse", return_value=([0], [0], 6)):
@@ -366,7 +376,7 @@ class CohortAndRunnerTests(unittest.TestCase):
         # 100000 repeated: q=0, suffix=0. No real file/token/pixel input.
         data = synthetic_tiff(b"\x82\x08\x20" * 65536, width=4096, height=1)
         sample = dict(cohort()["samples"][0], sha256=hashlib.sha256(data).hexdigest())
-        with tempfile.NamedTemporaryFile() as stream:
+        with named_temp() as stream:
             stream.write(data)
             stream.flush()
             result = probe.measure_sample(sample, stream.name)
@@ -382,7 +392,7 @@ class CohortAndRunnerTests(unittest.TestCase):
         self.assertEqual(result["signature"]["file"], sample["name"])
 
     def test_invalid_cohort_cli_is_sanitized_json(self):
-        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8") as stream:
+        with named_temp(mode="w", encoding="utf-8") as stream:
             stream.write("invalid JSON /private/fictional")
             stream.flush()
             with contextlib.redirect_stdout(io.StringIO()) as output:
