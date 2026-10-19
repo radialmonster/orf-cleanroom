@@ -5,29 +5,41 @@ on:
   workflow_run:
     workflows: [checks]
     types: [completed]
+  # Safety net: an hourly sweep picks up PRs whose run failed on a transient GitHub error.
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
 permissions:
   contents: write
   pull-requests: write
   issues: write
 jobs:
   merge:
-    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request'
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request')
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
-      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}  # empty on schedule/dispatch: sweep all open PRs
     steps:
       - name: Merge verification and manifest PRs, flag the rest
         run: |
           python3 - <<'PY'
-          import base64, csv, json, os, re, subprocess, sys
+          import base64, csv, json, os, re, subprocess, sys, time
 
           FINDING_RE = re.compile(r"^findings/[^/]+/[^/]+[.]md$")
 
 
           def gh(*args, **kw):
-              r = subprocess.run(["gh"] + list(args), stdout=subprocess.PIPE, universal_newlines=True)
+              # GitHub's API fails transiently now and then; retry before giving up.
+              for wait in (5, 20, 60, 0):
+                  r = subprocess.run(["gh"] + list(args), stdout=subprocess.PIPE, universal_newlines=True)
+                  if r.returncode == 0 or not kw.get("retry", True):
+                      break
+                  if wait:
+                      time.sleep(wait)
               if r.returncode != 0 and kw.get("check", True):
                   raise RuntimeError("gh %s failed" % " ".join(args[:3]))
               return r.stdout
@@ -98,15 +110,34 @@ jobs:
 
 
           def main():
-              repo, sha = os.environ["REPO"], os.environ["HEAD_SHA"]
+              repo, sha = os.environ["REPO"], os.environ.get("HEAD_SHA", "").strip()
               prs = json.loads(gh("pr", "list", "--repo", repo, "--state", "open", "--limit", "200",
-                                  "--json", "number,headRefOid,author"))
-              # workflow_run.pull_requests is empty for forks, so match on the head SHA.
-              pr = next((p for p in prs if p["headRefOid"] == sha), None)
-              if not pr:
-                  print("No open PR with head " + sha)
-                  return
-              num, author = str(pr["number"]), pr["author"]["login"]
+                                  "--json", "number,headRefOid,author,labels"))
+              if sha:
+                  # workflow_run.pull_requests is empty for forks, so match on the head SHA.
+                  pr = next((p for p in prs if p["headRefOid"] == sha), None)
+                  if not pr:
+                      print("No open PR with head " + sha)
+                      return
+                  return handle(repo, pr)
+              # Sweep: open PRs not yet flagged whose required `check` passed on the current head.
+              for pr in prs:
+                  if "needs-maintainer" in [l["name"] for l in pr["labels"]]:
+                      continue
+                  runs = json.loads(gh("api", "repos/%s/commits/%s/check-runs?check_name=check" % (repo, pr["headRefOid"])))
+                  if any(c["conclusion"] == "success" for c in runs.get("check_runs", [])):
+                      try:
+                          handle(repo, pr)
+                      except Exception as e:
+                          print("PR #%s: %s" % (pr["number"], e))
+
+
+          def merged(repo, num):
+              return gh("pr", "view", num, "--repo", repo, "--json", "state", "--jq", ".state").strip() == "MERGED"
+
+
+          def handle(repo, pr):
+              num, author, sha = str(pr["number"]), pr["author"]["login"], pr["headRefOid"]
               # No bot comments on the owner's own PRs (they email the owner). Lead issues still get theirs.
               quiet = author.lower() == repo.split("/")[0].lower()
               files = [json.loads(l) for l in gh("api", "repos/%s/pulls/%s/files" % (repo, num), "--paginate",
@@ -128,7 +159,15 @@ jobs:
 
               reason, leads = decide(files, author, read_text, read_issue)
               if not reason:
-                  gh("pr", "merge", num, "--repo", repo, "--squash", "--match-head-commit", sha)
+                  # A merge can fail transiently, or succeed and still report an error; confirm by state.
+                  for wait in (5, 20, 60, 0):
+                      gh("pr", "merge", num, "--repo", repo, "--squash", "--match-head-commit", sha,
+                         check=False, retry=False)
+                      if merged(repo, num):
+                          break
+                      time.sleep(wait)
+                  if not merged(repo, num):
+                      raise RuntimeError("merge of #%s failed; the hourly sweep will retry" % num)
                   if not quiet:
                       gh("pr", "comment", num, "--repo", repo, "--body",
                          "Merged automatically: verified findings/manifest only, checks passed. Thanks!")
