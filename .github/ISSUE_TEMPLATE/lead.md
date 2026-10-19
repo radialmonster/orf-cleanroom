@@ -5,7 +5,7 @@ title: "<short statement of the result>"
 labels: lead
 ---
 Variant: unassigned
-<!-- container, V0, V1, V2 or unassigned (see VARIANTS.md). A labeler reads this line. Keep it as the first line. -->
+<!-- container, unassigned, or a variant V<n> (V0, V1, V2, ... any number; see VARIANTS.md). To propose a new variant, write the next free V<n>. A labeler reads this line. Keep it as the first line. -->
 
 ## Claim
 <!-- What you found, in plain sentences. One result per lead; split separate results into separate issues. -->

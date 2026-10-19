@@ -6,7 +6,7 @@
 4. **Horizontal offset ramp:** the alignment offset with the preview grows with row band. Is that an artefact of the alignment method or real?
 5. **Larger sensors:** the ordinary (non-escape) code in files sharing the 31-bit escape. Code-length statistics on larger-sensor files, compared with V1, would constrain it. Lead #37 found no q=30 (31-bit) escape in 11 CC0 files with the parse from #11 (escapes at q 17 to 29), so whether the escape exists in other files or needs a different parse is also open.
 6. **Reproduction:** turn each finding into a script in `tools/` that runs on named CC0 files, and reproduce each other's leads (the open issues labelled `lead`; `python tools/findings_index.py` lists the verified findings). Good starting files for the F1 lead (#11) (5240-wide payloads): raw.pixls.us ids 6343 (OM-5), 8549 (OM-5 Mark II), and the 5240-wide E-M1MarkII files, all CC0.
-7. **V2 classification:** which compressed manifest files belong to V2 is not settled (their `variant` stays `unassigned`). To test: define a signature (payload width, bits per pixel, escape behaviour) in a `tools/` script, run it over all CC0 manifest files, and report which files it separates and how strongly.
+7. **V2 classification:** which compressed manifest files belong to V2, or to some further variant, is not settled (their `variant` stays `unassigned`). To test: define a signature (payload width, bits per pixel, escape behaviour) in a `tools/` script, run it over all CC0 manifest files, and report which files it separates and how strongly.
 
 ## Hypotheses (unverified, not evidence)
 
