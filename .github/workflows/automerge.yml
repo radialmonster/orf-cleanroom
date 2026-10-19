@@ -141,6 +141,9 @@ jobs:
                          "--description", "Reproduced by the finder; a different person can upgrade it (Reproduces:)")
                       gh("issue", "edit", str(n), "--repo", repo, "--add-label", label, check=False)
                       gh("issue", "edit", str(n), "--repo", repo, "--remove-label", "claimed", check=False)
+                      for who in gh("issue", "view", str(n), "--repo", repo, "--json", "assignees",
+                                    "--jq", ".assignees[].login", check=False).split():
+                          gh("issue", "edit", str(n), "--repo", repo, "--remove-assignee", who, check=False)
                       if kind == "upgrade":
                           gh("issue", "edit", str(n), "--repo", repo, "--remove-label", "self-verified", check=False)
                       gh("issue", "comment", str(n), "--repo", repo, "--body",
