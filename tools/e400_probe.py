@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""E-400 low-nibble probe: words with a nonzero low nibble vs the mean of same-colour neighbours.
+"""
+import sys as _s
+if any(a in ('-h','--help') for a in _s.argv[1:]):
+    print(__doc__); _s.exit(0)E-400 low-nibble probe: words with a nonzero low nibble vs the mean of same-colour neighbours.
 Usage: python -I tools/e400_probe.py E400_FILE   (numbers to stdout only)"""
 import sys,os,collections
 HERE=os.path.dirname(os.path.abspath(__file__))

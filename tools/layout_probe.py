@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Row-layout probe for V0 files (strip gaps, stored-row order). Usage: python -I tools/layout_probe.py FILE...
+"""
+import sys as _s
+if any(a in ('-h','--help') for a in _s.argv[1:]):
+    print(__doc__); _s.exit(0)Row-layout probe for V0 files (strip gaps, stored-row order). Usage: python -I tools/layout_probe.py FILE...
 Prints numbers only; no file is written. Clean room: uses only decoder/orf_decode.py and the files."""
 # Measure fixed before looking: D(i,j) = sum|s_i-s_j| / mean-level, 400 centre columns, same column index.
 # (1) stored-lag-1 D series: where are the discontinuities, vs strip gaps and h/2

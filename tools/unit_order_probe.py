@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Pixel order inside a packed-12 / 12.8 unit. Usage: python -I tools/unit_order_probe.py THRESHOLD SAMPLE_DIR"""
+"""
+import sys as _s
+if any(a in ('-h','--help') for a in _s.argv[1:]):
+    print(__doc__); _s.exit(0)Pixel order inside a packed-12 / 12.8 unit. Usage: python -I tools/unit_order_probe.py THRESHOLD SAMPLE_DIR"""
 # Measure fixed in advance: within-unit lag-1 roughness W = mean|x[2k]-x[2k+1]| and cross-unit A = mean|x[2k+1]-x[2k+2]|
 # for the decoder's order and for the order with each pair swapped; ratio A/W. If the stored order is spatial,
 # A/W ~ 1 (both are distance-1 neighbours); if wrong, A spans distance 3 so A/W > 1.
