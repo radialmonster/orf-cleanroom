@@ -181,12 +181,13 @@ def analyse(path, nrows, nbands, ncols):
         best = order[0]
         close = [k for k in order[1:] if res[k]["score"] <= top * 1.02]
         other = min((res[k]["score"] for k in order if res[k]["score"] > top * 1.02), default=float("nan"))
-        print("chosen: %s  margin (best layout family vs next, by score) %.2f  h2/h1 %.3f" % (
-            best, other / res[best]["score"], res[best]["h2"] / res[best]["h1"]))
+        gap = min(res[k]["h1"] for k in close) / res[best]["h1"] - 1 if close else None
+        print("chosen: %s%s  margin (best layout family vs next, by score) %.2f  h2/h1 %.3f" % (
+            best, " (pair order undecided: tie with %s)" % ", ".join(close) if gap is not None and gap < 0.01 else "",
+            other / res[best]["score"], res[best]["h2"] / res[best]["h1"]))
         if close:
             print("pair-order alternatives within 2%% of the best score: %s; h1 %s vs %.3f (chosen)" % (
                 ", ".join(close), ", ".join("%.3f" % res[k]["h1"] for k in close), res[best]["h1"]))
-            gap = min(res[k]["h1"] for k in close) / res[best]["h1"] - 1
             print("pair order %s (h1 gap to the alternative %.1f%%)" % (
                 "undecided" if gap < 0.01 else "weakly favoured" if gap < 0.05 else "favoured", 100 * gap))
         fn = cand[best]
