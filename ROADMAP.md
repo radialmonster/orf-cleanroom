@@ -17,7 +17,7 @@ Nothing enters a later stage without the earlier one: no decoder step without a 
 - V0 packed-12: verified (self-verified, so a second person's run would upgrade it). Decoder: exact payload end on 9 of 9 CC0 files. Pixel order inside a unit is undecided.
 - V0 packed-12.8: lead #70 only, unverified. Decoder: exact payload end on 5 of 5. Pad byte not yet explained.
 - V0 packed-16: lead #71 only, unverified. Decoder: exact end on 3 of 3; E-400 has 793 words with a non-zero low nibble, unexplained.
-- V1, V2 and other compressed variants: not specified. The decoder detects them and stops. Open leads are under the `variant:V1` and `variant:V2` labels. This is where most of the work remains: no compressed payload can be decoded yet.
+- V1, V2 and other compressed variants: stub specs `specs/V1.md` and `specs/V2.md` (verified facts, lead-only items and Gaps; no bitstream decoded). The decoder detects them and stops. Open leads are under the `variant:V1` and `variant:V2` labels. This is where most of the work remains: no compressed payload can be decoded yet.
 
 Exact numbers: run `python -I tools/conformance.py <files>`; the committed result is `samples/conformance-V0.csv`.
 
@@ -26,7 +26,7 @@ Exact numbers: run `python -I tools/conformance.py <files>`; the committed resul
 - **Fill a spec gap.** Each gap in `specs/` is a lead. Pick one at random among unclaimed leads (see README "Start here"), measure it, publish it. When it is verified, a PR replaces "lead #n (unverified)" in the spec with the finding ID, and the decoder comment is updated in the same PR.
 - **Change the decoder.** A decoder or decoder change is a code PR. It waits for maintainer review (like any tool). Each step it adds must cite the finding or lead it relies on, in a comment and in the PR description. A step with only a lead is flagged unverified in the decoder output.
 - **Verify a decoder independently.** Write a second implementation without reading the first, or have a different person run the same decoder, then run `tools/conformance.py` on the CC0 files. Matching output hashes on every file is the evidence. Mismatches are leads: say which file and which value differ.
-- **Add compressed variants.** Same path: leads, then findings, then a spec section `specs/V1.md`, then decoder support, then a `conformance-V1.csv`.
+- **Add compressed variants.** Same path: leads, then findings, then a spec section (stubs `specs/V1.md` and `specs/V2.md` exist; fill them in), then decoder support, then a `conformance-V1.csv`.
 
 ## Recording "reproduces conformance" with the existing system
 
@@ -40,4 +40,4 @@ No automerge change is needed. If per-decoder badges are wanted later, that woul
 
 ## Where to start
 
-Lead and gap list: `specs/V0.md` (Gaps section), the open leads, and `OPEN-QUESTIONS.md`. A second-implementation conformance check on V0 needs no bitstream knowledge beyond the spec.
+Lead and gap list: `specs/V0.md` (Gaps section), the Gaps lists in `specs/V1.md` and `specs/V2.md`, and the open leads. A second-implementation conformance check on V0 needs no bitstream knowledge beyond the spec.

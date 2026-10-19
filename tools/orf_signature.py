@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Print a measured signature for ORF/ORI files, one CSV row per file.
 
-Supports: VARIANTS.md (signature fields), samples/manifest.csv, OPEN-QUESTIONS 6.
+Supports: VARIANTS.md (signature fields), samples/manifest.csv, specs/V2.md Gaps.
 Standard library only. Reads the TIFF structure (public TIFF 6.0 spec) and
 reports container and payload facts; it does not decode image data.
 

@@ -34,13 +34,13 @@ Leads are labelled `variant:Vn` ([V1](https://github.com/radialmonster/orf-clean
 - Signature: compressed; the calm parse from the F1 lead (#11) works (q zeros, stop bit, 5-bit suffix, escape at q ≥ 17); per-row stride equals the payload width on at least one body (5240 wide).
 - Models seen: none recorded yet. The PR that assigns a manifest row to this variant also adds its model here.
 - Findings: [findings/V1/](findings/V1/) (the F1 lead, #11, is the first candidate).
-- Status: `parse understood`. Value assembly and predictor open (OPEN-QUESTIONS 1-2). On some bodies the stride drifts (question 3), which may split this variant.
+- Status: `parse understood`. Value assembly and predictor open (see [specs/V1.md](specs/V1.md), Gaps). On some bodies the stride drifts (same list), which may split this variant.
 
 ## V2: 31-bit-escape compressed
 - Signature: compressed; files from larger sensors share a 31-bit escape; the ordinary code doesn't fit the V1 parse.
 - Models seen: none recorded yet. The PR that assigns a manifest row to this variant also adds its model here.
 - Findings: [findings/V2/](findings/V2/).
-- Status: `unknown` (question 5).
+- Status: `unknown` (see [specs/V2.md](specs/V2.md), Gaps).
 
 ## Unassigned
 - Findings whose variant isn't known yet: [findings/unassigned/](findings/unassigned/). Container facts that span variants: [findings/container/](findings/container/).

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Parse the token stream (lead #11) of compressed ORF/ORI files and print aggregate statistics.
 
-Supports: lead #11 (token structure and neighbour dependence), OPEN-QUESTIONS 3 and 6.
+Supports: lead #11 (token structure and neighbour dependence), specs/V1.md Gaps.
 Standard library only (Python 3.8+). Prints numbers only, no images or pixel dumps.
 
 The payload is located as in orf_signature.py (the image IFD with the largest
