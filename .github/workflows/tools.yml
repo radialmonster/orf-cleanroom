@@ -21,3 +21,5 @@ jobs:
           python decoder/orf_decode.py --help > /dev/null
       - name: Decoder round-trip tests (synthetic bytes)
         run: python tools/test_orf_decode.py
+      - name: value_map_probe tests
+        run: python tools/test_value_map_probe.py

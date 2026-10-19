@@ -6,11 +6,13 @@ import itertools
 import json
 import os
 import struct
+import sys
 import tempfile
 import unittest
 from fractions import Fraction
 from unittest import mock
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # also under python -I
 import value_map_probe as probe
 
 

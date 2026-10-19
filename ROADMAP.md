@@ -14,12 +14,12 @@ Nothing enters a later stage without the earlier one: no decoder step without a 
 ## Status per variant (honest)
 
 - Container: verified. Compression tag is 1 on every file (so it cannot tell variants apart); a fixed-size payload is told by exact size. The strip layout (gaps between strips on 6 files) is an observation, not yet a finding; lead #77 (unverified) explains it as a two-field row layout, which the decoder applies (spec S1.4).
-- V0 packed-12: verified (self-verified, so a second person's run would upgrade it). Decoder: exact payload end on 9 of 9 CC0 files. Pixel order inside a unit is undecided.
+- V0 packed-12: verified (self-verified, so a second person's run would upgrade it). Decoder: exact payload end on 9 of 9 CC0 files. Pixel order inside a unit is undecided. Two-field row layout on 6 files: lead #77; header rule: lead #78 (both unverified).
 - V0 packed-12.8: lead #70 only, unverified. Decoder: exact payload end on 5 of 5. Pad byte not yet explained.
-- V0 packed-16: lead #71 only, unverified. Decoder: exact end on 3 of 3; E-400 has 793 words with a non-zero low nibble, unexplained.
+- V0 packed-16: lead #71 only, unverified. Decoder: exact end on 3 of 3; E-400 has 793 words with a non-zero low nibble, interpolated pixels per lead #79 (unverified).
 - V1, V2 and other compressed variants: stub specs `specs/V1.md` and `specs/V2.md` (verified facts, lead-only items and Gaps; no bitstream decoded). The decoder detects them and stops. Open leads are under the `variant:V1` and `variant:V2` labels. This is where most of the work remains: no compressed payload can be decoded yet.
 
-Exact numbers: run `python -I tools/conformance.py <files>`; the committed result is `samples/conformance-V0.csv`.
+Exact numbers: run `python -I tools/conformance.py <files>`; the committed result is `samples/conformance-V0.csv`; matching it independently verifies lead #75.
 
 ## How to move things forward
 

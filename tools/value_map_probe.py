@@ -25,6 +25,7 @@ import struct
 import sys
 from fractions import Fraction
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # sibling tools, also under python -I
 import orf_signature
 import orf_tokens
 
