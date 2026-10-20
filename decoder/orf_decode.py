@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Reference decoder (library + CLI) for the uncompressed V0 ORF packings.
 
-Supports: ROADMAP.md, specs/V0.md; findings/V0/ (packed-12), leads #70
-(packed-12.8) and #71 (packed-16), findings/container/ (payload location and
+Supports: ROADMAP.md, specs/V0.md; findings/V0/ (packed-12 and packed-12.8), lead #71
+(packed-16), findings/container/ (payload location and
 the fixed-size rule). Standard library only (Python 3.8+). Released under CC0 1.0.
 
 Handles the exact fixed-size payloads of VARIANTS.md V0:
   packed-12    verified (findings/V0/2026-10-19--radialmonster--packed-12-msb-two-values-per-three-bytes)
-  packed-12.8  UNVERIFIED (lead #70)
+  packed-12.8  verified (findings/V0/2026-10-20--radialmonster--packed-12-8-groups-of-ten-values)
   packed-16    UNVERIFIED (lead #71)
 Compressed payloads (V1, V2, ...) are detected and reported as "not yet specified".
 
@@ -36,12 +36,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), os.p
 import orf_signature  # noqa: E402
 
 F_PACKED12 = "2026-10-19--radialmonster--packed-12-msb-two-values-per-three-bytes"
+F_PACKED128 = "2026-10-20--radialmonster--packed-12-8-groups-of-ten-values"
 F_FIXED = "2026-10-19--radialmonster--fixed-size-payloads-exact-else-compressed"
 
 # what the evidence is for each layout
 STATUS = {
     "packed-12": "verified (%s, self-verified)" % F_PACKED12,
-    "packed-12.8": "UNVERIFIED (lead #70)",
+    "packed-12.8": "verified (%s, self-verified)" % F_PACKED128,
     "packed-16": "UNVERIFIED (lead #71)",
 }
 # the order choices per packing; the first one wins a tie
@@ -99,14 +100,14 @@ def unpack_row(packing, order, raw, w):
         out[0::2] = array("H", [x << 4 | y >> 4 for x, y in zip(b0, b1)])
         out[1::2] = array("H", [(y & 15) << 8 | z for y, z in zip(b1, b2)])
     elif packing == "packed-12.8":
-        # lead #70 (unverified): rows are runs of 16-byte groups; bytes 0..14 are five
+        # F_PACKED128 (lead #70): rows are runs of 16-byte groups; bytes 0..14 are five
         # 3-byte units, each two 12-bit values least-significant bit first
         # (first = b0 | (b1 & 15) << 8, second = b1 >> 4 | b2 << 4); byte 15 is padding.
         for k in range(5):
             b0, b1, b2 = raw[3 * k::16], raw[3 * k + 1::16], raw[3 * k + 2::16]
             out[2 * k::10] = array("H", [x | (y & 15) << 8 for x, y in zip(b0, b1)])
             out[2 * k + 1::10] = array("H", [y >> 4 | z << 4 for y, z in zip(b1, b2)])
-        pad = sum(1 for p in raw[15::16] if p)   # lead #70 next step: is byte 15 always 0?
+        pad = sum(1 for p in raw[15::16] if p)   # F_PACKED128: byte 15 is 0 on all 5 CC0 files
     elif packing == "packed-16":
         # lead #71 (unverified): one 16-bit word per pixel (12-bit value << 4 in the three
         # CC0 files); byte order per body. Values are the stored words, not shifted back.
@@ -277,7 +278,7 @@ def decode_file(path, order=None, layout=None):
              smooth=smooth_n / (h * (w - 2)), output_sha256=digest.hexdigest(),
              pad_nonzero=pad if packing == "packed-12.8" else "")
     if packing == "packed-12.8" and pad:
-        r["notes"].append("%d group padding bytes are not zero (lead #70 expects zero)" % pad)
+        r["notes"].append("%d group padding bytes are not zero (finding for lead #70 found zero)" % pad)
     if packing != "packed-12":
         r["notes"].append("layout is UNVERIFIED (%s); pixel order inside a unit is undecided" % STATUS[packing].split("(")[1].rstrip(")"))
     else:
