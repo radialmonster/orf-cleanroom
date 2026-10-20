@@ -37,7 +37,7 @@ Leads are labelled `variant:Vn` ([V0](https://github.com/radialmonster/orf-clean
 - Status: `parse understood`. Value assembly and predictor open (see [specs/V1.md](specs/V1.md), Gaps). On some bodies the stride drifts (same list), which may split this variant.
 
 ## V2: large-sensor compressed (not understood)
-- Signature: compressed; files from larger sensors where the ordinary code does not fit the V1 parse (token counts near an independent-bits null, lead #86). The name used to say "31-bit-escape"; that width is not established by measurement (specs/V2.md S2.2), so it is no longer part of the signature.
+- Signature: compressed; files from larger sensors where the ordinary code does not fit the V1 parse (token counts near an independent-bits null, finding 2026-10-20--radialmonster--large-sensor-k5-parse-near-bernoulli-null). The name used to say "31-bit-escape"; that width is not established by measurement (specs/V2.md S2.2), so it is no longer part of the signature.
 - Models seen: none recorded yet. The PR that assigns a manifest row to this variant also adds its model here.
 - Findings: [findings/V2/](findings/V2/).
 - Status: `unknown` (see [specs/V2.md](specs/V2.md), Gaps).
