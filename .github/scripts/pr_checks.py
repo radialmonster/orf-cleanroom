@@ -349,7 +349,9 @@ def _py_scan(text):
         if first in own:  # the list was built earlier: look at its definition
             dm = re.search(r"\b%s\s*=\s*(\[[^\]]*\])" % re.escape(first), text)
             body = dm.group(1) if dm else "?"
-        if (not listed or re.search(r"shell\s*=\s*(?!False)", after[:400].split("\n\n")[0])
+        # The child must be one of this repo's own scripts, not a file the step wrote.
+        repo_tool = re.match(r"""^\[\s*sys\.executable\s*,\s*(?:['"]-I['"]\s*,\s*)?['"](?:tools|decoder)/[\w-]+\.py['"]""", body)
+        if (not listed or not repo_tool or re.search(r"shell\s*=\s*(?!False)", after[:400].split("\n\n")[0])
                 or re.search(r"""['"]-[A-Za-z]*c['"]|['"]pip['"]|['"]-m['"]""", body)):
             hits.append((m.start(), "process execution", "sub" + "process"))
     for m in re.finditer(r"\.(write_text|write_bytes)\s*\(([^)\n]*)\)", text):
