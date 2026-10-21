@@ -33,7 +33,7 @@ jobs:
           FINDING_RE = re.compile(r"^findings/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+[.]md$")
           # `Partial:` text is quoted in a bot comment on the lead: no markup, links or mentions.
           # Quotes and # (issue refs) are fine; no [ ] < > ` @ (links, HTML, code, mentions).
-          PARTIAL_RE = re.compile(r"^[A-Za-z0-9 ,.;:()+/_'\"#=%?!-]{0,1000}$")
+          PARTIAL_RE = re.compile(r"^[A-Za-z0-9 ,.;:()+/_'\"#=%?!-]*$")
 
 
           def gh(*args, **kw):
@@ -198,7 +198,8 @@ jobs:
                           gh("issue", "comment", str(n), "--repo", repo, "--body",
                              "Partly verified by @%s%s in %s (part: %s). The rest of this lead stays open; "
                              "anyone can claim it." % (author, " (self-verified)" if kind == "self" else "", link,
-                                                      partial), check=False)
+                                                      partial if len(partial) <= 300 else partial[:300] + "... (see the finding)"),
+                             check=False)
                           continue
                       gh("issue", "edit", str(n), "--repo", repo, "--remove-label", "partly-verified", check=False)
                       if kind == "upgrade":
