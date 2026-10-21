@@ -207,7 +207,11 @@ SENSITIVE = re.compile(
 SENSITIVE_OK = re.compile(r"^/usr/bin/env\b")
 URL = re.compile(r"(?:[A-Za-z][A-Za-z0-9+.-]*://|git@[\w.-]+:|\bwww\.)[^\s\"'`<>)\]]*|"
                  r"\b[\w-]+(?:\.[\w-]+)*\.(?:com|net|org|xyz|ru|cn)/[^\s\"'`<>)\]]*", re.I)
-URL_OK = re.compile(r"^https?://(?:github\.com/radialmonster/orf-cleanroom(?:[/?#.]|$)|raw\.pixls\.us(?:[:/?#]|$))", re.I)
+URL_OK = re.compile(r"^(?:https?://)?(?:github\.com/radialmonster/orf-cleanroom(?:[/?#.]|$)|raw\.pixls\.us(?:[:/?#]|$))", re.I)
+# gh calls that change or reveal things (anything but reading this repo's issues and PRs).
+GH_RISKY = re.compile(r"\bgh[ \t]+(?:repo[ \t]+(?:delete|archive|rename|edit|fork|clone)|auth\b|secret\b|variable\b|"
+                      r"ssh-key|gpg-key|extension|alias|codespace|gist|release[ \t]+(?:delete|upload)|"
+                      r"workflow[ \t]+(?:run|enable|disable)|api\b[^\n]*(?:-X|--method)[ \t]*(?!GET\b)\w)", re.I)
 
 # --- prose: unmistakable commands and prompt-injection phrases --------------
 PROSE_CMD = [
@@ -317,7 +321,7 @@ def _py_scan(text):
         for m in rx.finditer(text):
             hits.append((m.start(), rule, m.group(0)))
     for m in OS_USE.finditer(text):
-        if m.group(1) not in OS_OK:
+        if m.group(1) not in OS_OK and not re.match(r"O_[A-Z]+$", m.group(1)):  # O_* flags are inert; os.open is caught
             hits.append((m.start(), "os call that executes, deletes or changes files", m.group(0)))
     for m in SYS_USE.finditer(text):
         if m.group(1) not in SYS_OK:
@@ -545,6 +549,16 @@ def scan_text(text, lenient=False, warnings=None, what="findings text"):
             bad = _bad_chars_in_code(line, inline)
             if bad:
                 hits.append((n, "non-ASCII character in code (possible homoglyph)", "U+%04X" % ord(bad[0])))
+    if lenient:
+        # Issues and PR bodies talk about the repo's own workflows and use gh to read issues:
+        # a .github path or a read-only gh call there is a mention, not an action.
+        lines = text.split("\n")
+        hits = [h for h in hits if not (
+            (h[1].startswith("sensitive path") and h[2].lower().startswith(".github/")
+             and not re.search(r"""(?<!-)>>?[ \t]*['"]?\S*\.github/|\b(?:tee|cp|mv|copy|move|Set-Content|Out-File)\b[^\n]*\.github/|"""
+                               r"""write_\w*\(|open\([^\n]*\.github/|\.github/[^\n]*['"][wax+]""", lines[h[0] - 1], re.I))
+            or (h[1] == "network tool" and h[2].strip().lower().endswith("gh")
+                and not GH_RISKY.search(lines[h[0] - 1])))]
     seen, out = set(), []
     for n, rule, m in sorted(hits, key=lambda h: (h[0], h[1])):
         if (n, rule) not in seen:

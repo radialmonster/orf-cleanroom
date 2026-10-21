@@ -254,6 +254,16 @@ PR_TEMPLATE = os.path.join(ROOT, ".github", "pull_request_template.md")
 class LenientAndCli(unittest.TestCase):
     """scan_text(lenient=True) and `--scan-text`, used for issue/comment/PR text."""
 
+    def test_repo_mentions_pass_risky_gh_fails(self):
+        ok = "Changes `.github/scripts/pr_checks.py` and `.github/workflows/tools.yml`.\n\n`gh pr list` and `gh issue view 75`.\n"
+        self.assertEqual(pc.scan_text(ok, lenient=True), [])
+        self.assertEqual(pc.scan_text("```python\nimport os\nfd = os.O_RDONLY\n```\n", lenient=True), [])
+        for bad in ("`echo x > .github/workflows/a.yml`", "`gh repo delete radialmonster/orf-cleanroom`",
+                    "`gh auth token`", "`gh api -X DELETE repos/a/b`"):
+            with self.subTest(bad=bad):
+                self.assertTrue(pc.scan_text(bad + "\n", lenient=True), bad)
+        self.assertTrue(pc.scan_text("Changes `.github/scripts/x.py`.\n"))  # strict findings keep the rule
+
     def test_same_code_rules(self):
         for name, body in list(BAD_PY.items()) + list(BAD_SH.items()):
             with self.subTest(name=name):
