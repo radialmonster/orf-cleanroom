@@ -1,14 +1,19 @@
 name: checks
-on: pull_request
+# `pull_request` (not `pull_request_target`): fork PRs get a read-only token and no secrets.
+# `edited` re-runs the checks when the title or body changes (they are scanned as text).
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
 permissions:
   contents: read
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Findings and manifest rules
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
@@ -18,10 +23,12 @@ jobs:
           set -euo pipefail
           # Run the checks as they are on the base branch, so a PR cannot
           # weaken its own checks. Falls back to this PR's copy if the base has none.
+          # The PR title and body are read by the script from the event JSON file
+          # (GITHUB_EVENT_PATH), not interpolated into this script.
           mkdir "$RUNNER_TEMP/base-checks"
           git show "$BASE:.github/scripts/pr_checks.py" > "$RUNNER_TEMP/base-checks/pr_checks.py" 2>/dev/null \
             || cp .github/scripts/pr_checks.py "$RUNNER_TEMP/base-checks/pr_checks.py"
           git show "$BASE:tools/findings_index.py" > "$RUNNER_TEMP/base-checks/findings_index.py" 2>/dev/null \
             || cp tools/findings_index.py "$RUNNER_TEMP/base-checks/findings_index.py"
           FINDINGS_INDEX="$RUNNER_TEMP/base-checks/findings_index.py" \
-            python3 "$RUNNER_TEMP/base-checks/pr_checks.py"
+            python3 -I "$RUNNER_TEMP/base-checks/pr_checks.py"

@@ -1,0 +1,38 @@
+name: issue-scan
+# Safety scan of issue and comment text. Other contributors' agents rerun a lead's Reproduce
+# steps and read comments, so text that could make them run code or delete things is labelled
+# `safety-review` and gets a bot comment. The text is only ever scanned, never run.
+#
+# - Triggers on issues/comments, which run with a write token; so only the default branch is
+#   checked out (never PR code), credentials are not persisted, and the scanner is the one on
+#   the default branch.
+# - The text is read by Python from the event JSON file; no `github.event.*` text is put in a
+#   shell command.
+on:
+  issues:
+    types: [opened, edited]
+  issue_comment:
+    types: [created, edited]
+permissions:
+  contents: read
+  issues: write
+jobs:
+  scan:
+    # The bot's own comments are skipped (they carry the scan result, not user text).
+    if: github.event_name == 'issues' || github.event.comment.user.login != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    # One run per issue or comment; a newer edit of the same item replaces a queued older run.
+    concurrency:
+      group: issue-scan-${{ github.event_name }}-${{ github.event.comment.id || github.event.issue.number }}
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          sparse-checkout: .github/scripts
+      - name: Scan the issue or comment text
+        run: python3 -I .github/scripts/issue_scan.py

@@ -29,7 +29,10 @@ jobs:
           python3 - <<'PY'
           import base64, csv, json, os, re, subprocess, sys, time
 
-          FINDING_RE = re.compile(r"^findings/[^/]+/[^/]+[.]md$")
+          # Plain characters only: the path goes into a bot comment on the lead.
+          FINDING_RE = re.compile(r"^findings/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+[.]md$")
+          # `Partial:` text is quoted in a bot comment on the lead: no markup, links or mentions.
+          PARTIAL_RE = re.compile(r"^[A-Za-z0-9 ,.;:()+/_-]{0,200}$")
 
 
           def gh(*args, **kw):
@@ -93,6 +96,8 @@ jobs:
                           or "lead" not in issue["labels"]):
                       return ("the lead issue #%s is missing, is not labelled lead, or was not opened by @%s"
                               % (m.group(1), fauthor)), []
+                  if not PARTIAL_RE.match(header(text, "Partial")):
+                      return "the 'Partial:' line has characters other than letters, digits and simple punctuation", []
                   # `Partial: <which part>` verifies only part of a multi-claim lead; the lead stays open.
                   leads.append((int(m.group(1)), path, kind, header(text, "Partial")))
               for f in files:

@@ -9,12 +9,16 @@ Standard library only (Python 3.8+). Run from the repo root with the PR merged
 into the work tree. Environment: BASE (base commit SHA), PR_AUTHOR (login),
 OWNER (repo owner login), FINDINGS_INDEX (optional path to the findings_index.py
 to run; CI passes the copy from the base branch so a PR cannot change its own
-validator). Safety scan: added or changed findings and added manifest rows are
-scanned for text that could make another contributor's agent run code or delete
-things; a flagged PR is not auto-merged and waits for a maintainer. Prints GitHub Actions annotations. Exits 1 on any error; warnings
-don't fail.
+validator). Safety scan: added or changed findings, added manifest rows and the PR
+title and body (from the event JSON file) are scanned for text that could make another
+contributor's agent run code or delete things; a flagged PR is not auto-merged and waits
+for a maintainer. Commit messages are scanned as warnings. Also usable on any text:
+`python -I .github/scripts/pr_checks.py --scan-text FILE [--lenient]` (used by the
+issue-scan workflow through issue_scan.py). Prints GitHub Actions annotations. Exits 1
+on any error; warnings don't fail.
 """
 import csv
+import json
 import os
 import re
 import subprocess
@@ -466,16 +470,36 @@ def _bad_chars_in_code(s, inline):
     return out
 
 
-def scan_text(text):
-    """Safety scan of one findings file. -> [(lineno, rule, matched)] sorted; empty means clean."""
+HTML_MARK = re.compile(r"<!--|-->")
+
+
+def scan_text(text, lenient=False, warnings=None, what="findings text"):
+    """Safety scan of one text. -> [(lineno, rule, matched)] sorted; empty means clean.
+
+    Default (strict) is for findings files. lenient=True is for issue and comment bodies
+    and PR titles/bodies: the same code rules and text tricks, but a URL in code is only
+    a warning, and HTML comment markers (which issue templates leave in) are blanked so the
+    hidden text inside is scanned like visible text instead of being a hit by itself.
+    URL warnings are printed as annotations, or appended to `warnings` as (lineno, message)."""
     text = text.replace("\r\n", "\n")
+    if lenient:
+        text = HTML_MARK.sub("", text)  # not spaces: 4 would turn the text into an indented code block
     hits = []
+
+    def warn_url(n, url):
+        msg = "%s links to a URL outside github.com/radialmonster/orf-cleanroom and raw.pixls.us: %s" % (
+            what, ascii(url[:80])[1:-1])
+        if warnings is None:
+            print("::warning::%s (line %d)" % (msg, n))
+        else:
+            warnings.append((n, msg))
+
     for n, line in enumerate(text.split("\n"), 1):
-        for rx, what in ((BIDI, "Unicode bidirectional control character"), (ZEROW, "zero-width or invisible character"),
+        for rx, trick in ((BIDI, "Unicode bidirectional control character"), (ZEROW, "zero-width or invisible character"),
                          (CONTROL, "control character"), (TAGS, "Unicode tag character (invisible text)")):
             m = rx.search(line)
             if m:
-                hits.append((n, what, "U+%04X" % ord(m.group(0))))
+                hits.append((n, trick, "U+%04X" % ord(m.group(0))))
         m = BLOB.search(line)
         if m:
             hits.append((n, "very long base64-like run (%d characters)" % len(m.group(0)), m.group(0)[:30] + "..."))
@@ -492,8 +516,7 @@ def scan_text(text):
                 hits.append((n, "prose contains a command: " + rule, m.group(0).strip()))
         for um in URL.finditer(line):
             if not URL_OK.match(um.group(0)):
-                print("::warning::findings text links to a URL outside github.com/radialmonster/orf-cleanroom and "
-                      "raw.pixls.us (line %d): %s" % (n, ascii(um.group(0)[:80])[1:-1]))
+                warn_url(n, um.group(0))
     for lang, blines in blocks:
         inline = lang == "inline"
         nums = [n for n, _ in blines]
@@ -514,8 +537,11 @@ def scan_text(text):
                     hits.append((n, "sensitive path (home, system, credentials, workflows or devices)", m.group(0)))
             for um in URL.finditer(line):
                 if not URL_OK.match(um.group(0)):
-                    hits.append((n, "URL in code other than github.com/radialmonster/orf-cleanroom or raw.pixls.us",
-                                 um.group(0)[:80]))
+                    if lenient:
+                        warn_url(n, um.group(0))
+                    else:
+                        hits.append((n, "URL in code other than github.com/radialmonster/orf-cleanroom or raw.pixls.us",
+                                     um.group(0)[:80]))
             bad = _bad_chars_in_code(line, inline)
             if bad:
                 hits.append((n, "non-ASCII character in code (possible homoglyph)", "U+%04X" % ord(bad[0])))
@@ -646,11 +672,56 @@ def check_manifest(changes):
                     % (where, by.split(" ")[0], AUTHOR))
 
 
+def check_pr_text():
+    """Safety scan of the PR title and body (agents read them) and, as warnings, of commit messages.
+    The text comes from the event JSON file, never from the command line or a shell."""
+    ev_path = os.environ.get("GITHUB_EVENT_PATH", "")
+    if not ev_path or not os.path.isfile(ev_path):
+        return
+    try:
+        with open(ev_path, encoding="utf-8") as f:
+            pr = json.load(f).get("pull_request") or {}
+    except (OSError, ValueError):
+        return
+    for label, text in (("pull request title", pr.get("title")), ("pull request body", pr.get("body"))):
+        if text:
+            report_safety(label, scan_text(text, lenient=True, what=label))
+    try:
+        log = git("log", "--format=%B%x00", "%s..HEAD" % BASE).decode("utf-8", "replace")
+    except subprocess.CalledProcessError:
+        return
+    for msg in log.split("\x00"):
+        hits = scan_text(msg.strip(), lenient=True, warnings=[], what="commit message")
+        for n, rule, m in hits[:3]:
+            warning("commit message", "Safety scan of a commit message, line %d: %s (matched %s). Reviewer: check it."
+                    % (n, rule, ascii(m[:40])[1:-1]))
+
+
+def scan_file_cli(args):
+    """python -I pr_checks.py --scan-text FILE [--lenient]: scan one text file (- is stdin).
+    Prints one line per hit (line, rule; no more of the text than the PR checks show) and exits 1 on any hit."""
+    path = args[args.index("--scan-text") + 1] if len(args) > args.index("--scan-text") + 1 else "-"
+    data = sys.stdin.buffer.read() if path == "-" else open(path, "rb").read()
+    hits = scan_text(data.decode("utf-8", "replace"), lenient="--lenient" in args)
+    for n, rule, m in hits[:MAX_HITS]:
+        print("line %d: %s (matched %s)" % (n, rule, ascii(m[:60])[1:-1]))
+    if len(hits) > MAX_HITS:
+        print("%d more hit(s) not shown" % (len(hits) - MAX_HITS))
+    print("%d hit(s)." % len(hits))
+    sys.exit(1 if hits else 0)
+
+
 def main():
+    if "--scan-text" in sys.argv:
+        return scan_file_cli(sys.argv[1:])
     out = git("diff", "--name-status", "--no-renames", "%s...HEAD" % BASE).decode("utf-8")
     changes = [tuple(l.split("\t", 1)) for l in out.splitlines() if "\t" in l]
+    for status, path in changes:  # file names show up in bot comments and in agents' file lists
+        if status != "D" and not re.match(r"^[A-Za-z0-9._/-]+$", path):
+            error(path, "File names may only use letters, digits and . _ - / (%s)." % REVIEW)
     check_findings(changes)
     check_manifest(changes)
+    check_pr_text()
     if errors:
         print("%d problem(s) found." % len(errors))
         sys.exit(1)
