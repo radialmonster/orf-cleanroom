@@ -33,3 +33,5 @@ jobs:
         run: |
           python -I tools/test_v0_spec_check.py
           python -I tools/v0_spec_check.py --self-test
+      - name: PR safety scan tests
+        run: python -I tools/test_pr_checks_safety.py
