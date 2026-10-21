@@ -32,6 +32,25 @@ class ParseTests(unittest.TestCase):
         self.assertEqual(qs, [2, 20, 0])
         self.assertEqual(esc, [(8, 20)])
 
+    def test_scan_matches_parse(self):
+        # the compact one-byte-per-token streams used by --all equal the plain lists
+        spec = [(0, 5), (3, 31), (45, 7), (1, 0), (20, 9), (0, 1)]
+        buf = bits_to_bytes("".join(token(q, s) for q, s in spec) + "1" * 16)
+        qs, ss, marks, pos = t.parse(buf, 99, 2)
+        qa, sa, esc_q = t.array.array("B"), t.array.array("B"), t.collections.Counter()
+        marks2, pos2 = t.scan(buf, 99, 2, 0, None, qa, sa, 40, esc_q, 32)
+        self.assertEqual((marks, pos), (marks2, pos2))
+        self.assertEqual(list(qa), [min(q, 40) for q in qs])
+        self.assertEqual(list(sa), [s + 32 * (q >= t.ESC_Q) for q, s in zip(qs, ss)])
+        self.assertEqual(dict(esc_q), {45: 1, 20: 1})
+
+    def test_mi_on_views_matches_lists(self):
+        xs = [(7 * i + i * i // 5) % 4 for i in range(300)]
+        ys = [(3 * i + i // 7) % 8 for i in range(300)]
+        for lag in (0, 1, 3):
+            self.assertEqual(t.mi_base(xs, ys, lag),
+                             t.mi_base(memoryview(bytes(xs)), memoryview(bytes(ys)), lag))
+
     def test_pearson(self):
         self.assertAlmostEqual(t.pearson([1, 2, 3, 4], [2, 4, 6, 8]), 1.0)
         self.assertAlmostEqual(t.pearson([1, 2, 3, 4], [4, 3, 2, 1]), -1.0)

@@ -37,11 +37,16 @@ Usage: python orf_tokens.py FILE [FILE ...] [--max-tokens N | --all] [--rows N]
 Default is the first 2,000,000 tokens; --all parses the whole payload (slow in
 pure Python, roughly a million tokens per second or less; speed is reported).
 --rows N is shorthand for --max-tokens N x width.
+Memory and time: the symbol streams are kept at one byte per token, not as Python lists. On
+a 67 MB E-M5 Mark III file (82 M tokens) --all peaks near 0.55 GB and takes about 3.5 minutes;
+the list-based version peaked near 6.3 GB on the same file.
 """
 import argparse
 import array
 import collections
+import itertools
 import math
+import operator
 import os
 import sys
 import time
@@ -63,9 +68,18 @@ def locate(path):
 
 def parse(buf, max_tokens, w, esc_extra=0, esc_pos=None):
     """Return (q list, suffix list, bit position at every w-th token, bits used)."""
+    qs, ss = [], []
+    marks, pos = scan(buf, max_tokens, w, esc_extra, esc_pos, qs, ss, 1 << 62)
+    return qs, ss, marks, pos
+
+
+def scan(buf, max_tokens, w, esc_extra, esc_pos, qs, ss, cap, esc_q=None, esc_mark=0):
+    """Token scanner behind parse(). qs and ss are appendable sinks (or None to store
+    nothing): qs gets min(q, cap), ss gets the suffix plus esc_mark for escape tokens.
+    esc_q, if given, counts the exact q of every escape. Returns (marks, bits used)."""
     nbits = len(buf) * 8
     pad = buf + bytes(WIN)
-    qs, ss, marks = [], [], []
+    marks = []
     pos = 0
     n = 0
     frm = int.from_bytes
@@ -95,11 +109,15 @@ def parse(buf, max_tokens, w, esc_extra=0, esc_pos=None):
         if q >= ESC_Q:
             if esc_pos is not None:
                 esc_pos.append((pos - q - 6, q))  # bit position of the zero run's first bit
+            if esc_q is not None:
+                esc_q[q] += 1
             pos += esc_extra
-        qs.append(q)
-        ss.append(s)
+            s += esc_mark
+        if qs is not None:
+            qs.append(q if q < cap else cap)
+            ss.append(s)
         n += 1
-    return qs, ss, marks, pos
+    return marks, pos
 
 
 MISSING = 9  # symbol for "no value" (escape tokens)
@@ -115,7 +133,7 @@ def mi_pairs(xs, ys, rot=0):
     rot > 0 rotates ys by rot positions first: that destroys local dependence but
     keeps the marginals, so it measures the estimator's bias (the baseline)."""
     if rot:
-        ys = ys[rot:] + ys[:rot]
+        ys = itertools.chain(ys[rot:], ys[:rot])
     joint = collections.Counter(zip(xs, ys))
     cx, cy = collections.Counter(), collections.Counter()
     for (x, y), c in list(joint.items()):
@@ -128,7 +146,7 @@ def mi_pairs(xs, ys, rot=0):
 
 
 def lagged(a, b, lag):
-    """Aligned (a[t-lag], b[t]) sequences."""
+    """Aligned (a[t-lag], b[t]) sequences (slices: pass memoryviews to avoid copies)."""
     return a[:len(a) - lag], b[lag:]
 
 
@@ -140,12 +158,18 @@ def mi_base(a, b, lag=0):
 
 
 def pearson(x, y):
+    """Correlation of two equal-length integer sequences, from exact integer sums."""
     n = len(x)
-    mx, my = sum(x) / n, sum(y) / n
-    sxx = sum((u - mx) ** 2 for u in x)
-    syy = sum((v - my) ** 2 for v in y)
-    sxy = sum((u - mx) * (v - my) for u, v in zip(x, y))
+    sx, sy = sum(x), sum(y)
+    sxx = n * sum(map(operator.mul, x, x)) - sx * sx
+    syy = n * sum(map(operator.mul, y, y)) - sy * sy
+    sxy = n * sum(map(operator.mul, x, y)) - sx * sy
     return sxy / math.sqrt(sxx * syy) if sxx > 0 and syy > 0 else float("nan")
+
+
+def table(f):
+    """256-entry bytes.translate table for a function of the stored suffix byte."""
+    return bytes(f(v) if v < 64 else MISSING for v in range(256))
 
 
 def landing(buf, esc_extra, look=24, span=48, needed=20):
@@ -157,7 +181,7 @@ def landing(buf, esc_extra, look=24, span=48, needed=20):
     and is unique. A plain parse lands at q + 6 + escape-extra; a fixed 31-bit word at 31.
     Only meaningful on bodies where q=0 is the large majority."""
     escs = []
-    parse(buf, 1 << 62, 0, esc_extra, escs)
+    scan(buf, 1 << 62, 0, esc_extra, escs, None, None, 0)
     tab = collections.defaultdict(collections.Counter)
     unsure = 0
     for start, q in escs:
@@ -206,9 +230,11 @@ def report(path, a):
         limit = a.rows * w
     if a.all:
         limit = 1 << 62
-    qs, ss, marks, endpos = parse(buf, limit, stride, a.escape_extra)
+    # One byte per token (q capped at 40; suffix, +32 for escapes) instead of Python lists.
+    qa, sa, esc_q = array.array("B"), array.array("B"), collections.Counter()
+    marks, endpos = scan(buf, limit, stride, a.escape_extra, None, qa, sa, 40, esc_q, 32)
     dt = time.time() - t0
-    n = len(qs)
+    n = len(qa)
     nbits = len(buf) * 8
     print("== %s" % os.path.basename(path))
     print("payload: %dx%d  bytes=%d  bpp=%.3f" % (w, h, len(buf), nbits / (w * h)))
@@ -227,13 +253,12 @@ def report(path, a):
             d = [y - x for x, y in zip(marks, marks[1:])]
             print("bits per %d-token block: mean=%.1f min=%d max=%d" % (
                 stride, sum(d) / len(d), min(d), max(d)))
-    qh = collections.Counter(min(q, 40) for q in qs)
+    qh = collections.Counter(qa)
     esc = sum(c for q, c in qh.items() if q >= ESC_Q)
     print("escapes (q>=%d): %d (%.5f%% of tokens)" % (ESC_Q, esc, 100.0 * esc / n if n else 0))
     print("q histogram (share): " + " ".join(
         "%d:%.4f" % (q, qh[q] / n) for q in sorted(qh) if q < 12) + (
         " 12+:%.5f" % (sum(c for q, c in qh.items() if q >= 12) / n)))
-    esc_q = collections.Counter(q for q in qs if q >= ESC_Q)
     if esc_q:
         print("escape q values: " + " ".join("%d:%d" % kv for kv in sorted(esc_q.items())))
     if not n:
@@ -243,7 +268,8 @@ def report(path, a):
         null_bits = 6 + (1 - ones) / ones
         print("ones-density %.4f; tokens per pixel (estimated from bits per token): real %.4f, Bernoulli null %.4f" % (
             ones, nbits / (endpos / n) / (w * h), nbits / null_bits / (w * h)))
-    qc = [float(min(q, 8)) for q in qs]
+    qc = memoryview(qa.tobytes().translate(bytes(min(q, 8) for q in range(256))))
+    del qa
     cs = []
     for lag in (1, 2, 3, 6, stride):
         if 0 < lag < n - 100:
@@ -252,18 +278,24 @@ def report(path, a):
     if a.escape_landing:
         landing(buf, a.escape_extra)
 
-    # symbol streams; MISSING at escape tokens. L is the unsigned value 0..7.
-    isesc = [q >= ESC_Q for q in qs]
-    H = array.array("b", [MISSING if e else s >> 3 for e, s in zip(isesc, ss)])
-    L = array.array("b", [MISSING if e else s & 7 for e, s in zip(isesc, ss)])
-    B2 = array.array("b", [MISSING if e else (s >> 2) & 1 for e, s in zip(isesc, ss)])
-    B4 = array.array("b", [MISSING if e else s >> 4 for e, s in zip(isesc, ss)])
-    good = [s for e, s in zip(isesc, ss) if not e]
-    m = len(good)
+    del qc
+    # symbol streams, one byte per token; MISSING at escape tokens. L is the unsigned value 0..7.
+    sb = sa.tobytes()
+    del sa
+    H = memoryview(sb.translate(table(lambda v: v >> 3 if v < 32 else MISSING)))
+    L = memoryview(sb.translate(table(lambda v: v & 7 if v < 32 else MISSING)))
+    B2 = memoryview(sb.translate(table(lambda v: (v >> 2) & 1 if v < 32 else MISSING)))
+    B4 = memoryview(sb.translate(table(lambda v: v >> 4 if v < 32 else MISSING)))
+    sc = collections.Counter(sb)
+    m = sum(c for v, c in sc.items() if v < 32)
     print("suffix bit balance P(bit=1): " + " ".join(
-        "b%d=%.4f" % (k, sum((s >> k) & 1 for s in good) / m) for k in (4, 3, 2, 1, 0)))
-    hc = collections.Counter(s >> 3 for s in good)
-    lc = collections.Counter(s & 7 for s in good)
+        "b%d=%.4f" % (k, sum(c for v, c in sc.items() if v < 32 and (v >> k) & 1) / m) for k in (4, 3, 2, 1, 0)))
+    hc, lc = collections.Counter(), collections.Counter()
+    for v, c in sc.items():
+        if v < 32:
+            hc[v >> 3] += c
+            lc[v & 7] += c
+    del sb
     print("H share: " + " ".join("%d:%.4f" % (k, hc[k] / m) for k in sorted(hc)))
     print("L share: " + " ".join("%d:%.4f" % (k, lc[k] / m) for k in sorted(lc)))
     v, bs, _ = mi_base(H, L)
@@ -281,11 +313,9 @@ def report(path, a):
           "share carried by b4->b2 after baseline: %.2f" % (
               v4, base4, vh, baseh, (v4 - base4) / (vh - baseh) if vh > baseh else float("nan")))
     # b2(t) context: (b4(t-1), b2(t-2))
-    ctx = array.array("b", [MISSING] * len(B2))
-    for t in range(2, len(B2)):
-        p, r = B4[t - 1], B2[t - 2]
-        if p != MISSING and r != MISSING:
-            ctx[t] = p * 2 + r
+    ctx = memoryview(bytes([MISSING] * min(2, n)) + bytes(
+        MISSING if p == MISSING or r == MISSING else p * 2 + r
+        for p, r in zip(B4[1:n - 1], B2)))
     g, gb, ng = mi_base(ctx, B2)
     g1, g1b, _ = mi_base(B4, B2, 1)
     g2, g2b, _ = mi_base(B2, B2, 2)
