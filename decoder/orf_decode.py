@@ -110,7 +110,7 @@ def unpack_row(packing, order, raw, w):
         pad = sum(1 for p in raw[15::16] if p)   # F_PACKED128: byte 15 is 0 on all 5 CC0 files
     elif packing == "packed-16":
         # lead #71 (unverified): one 16-bit word per pixel (12-bit value << 4 in the three
-        # CC0 files); byte order per body. Values are the stored words, not shifted back.
+        # CC0 files); byte order per body (finding 2026-10-21--radialmonster--iiro-packed12-and-packed16-whole-frame-byte-order, Partial: the smoother order matches the TIFF mark on those 3 files; still autodetected by smoothness). Values are the stored words, not shifted back.
         out = array("H")
         out.frombytes(raw)
         if (order == "be") != (sys.byteorder == "big"):
