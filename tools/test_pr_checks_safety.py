@@ -40,6 +40,7 @@ MSHTA = J("ms", "hta")
 BAD_PY = {
     "subprocess": "import %s\n%s.run('ls', shell=True)" % (SP, SP),
     "subprocess-list-c": "import %s, sys\n%s.run([sys.executable, '-c', 'x'])" % (SP, SP),
+    "subprocess-tmp-script": "import %s, sys\n%s.run([sys.executable, '/tmp/x.py'])" % (SP, SP),
     "os-system": "import os\nos.%s('ls')" % J("sys", "tem"),
     "os-popen": "import os\nos.%s('ls')" % J("po", "pen"),
     "os-execv": "import os\nos.%s('/bin/sh', [])" % J("ex", "ecv"),
