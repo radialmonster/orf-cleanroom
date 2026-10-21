@@ -32,7 +32,8 @@ jobs:
           # Plain characters only: the path goes into a bot comment on the lead.
           FINDING_RE = re.compile(r"^findings/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+[.]md$")
           # `Partial:` text is quoted in a bot comment on the lead: no markup, links or mentions.
-          PARTIAL_RE = re.compile(r"^[A-Za-z0-9 ,.;:()+/_-]{0,200}$")
+          # Quotes and # (issue refs) are fine; no [ ] < > ` @ (links, HTML, code, mentions).
+          PARTIAL_RE = re.compile(r"^[A-Za-z0-9 ,.;:()+/_'\"#=%?!-]{0,1000}$")
 
 
           def gh(*args, **kw):
@@ -209,6 +210,7 @@ jobs:
                   return
 
               labels = gh("pr", "view", num, "--repo", repo, "--json", "labels", "--jq", ".labels[].name").split()
+              print("PR #%s not auto-merged: %s" % (num, reason))
               if "needs-maintainer" in labels:
                   print("Already flagged: " + reason)
                   return
