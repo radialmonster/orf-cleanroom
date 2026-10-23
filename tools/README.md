@@ -324,6 +324,23 @@ token-to-luma probe and the geometry part of lead #11.
 
     python -I tools/jpeg_dc.py path/to/file.ORF
 
+**`preview_pair_sensitivity.py`** supports the follow-up questions in leads
+#327 and #295 that the 12x12 screen left open. It reuses `jpeg_dc.py` and the
+same complete-block, area-mean, identity-aligned normalized grids as
+`preview_pair_screen.py` at 12x12, 24x24 and 32x32, with the frozen r >= 0.98
+cutoff and no alignment search. It reads standard EXIF capture time
+(DateTimeOriginal, then DateTimeDigitized, then DateTime) and groups same-model
+pairs by absolute camera-local wall-clock gap. It also compares exposure time,
+F-number, ISO, lens model and focal length for same-model pairs above and below
+the cutoff. Same-model uses the manifest `model` text matched by SHA-256. The
+metadata comparison is a descriptive negative control, not a shared-exposure or
+scene/capture classifier; time zones and wrong camera clocks are not corrected,
+and EXIF agreement does not establish a shared scene. Read-only, standard
+library CPU, aggregate JSON only. Verify input licences separately.
+
+    python -I -B tools/preview_pair_sensitivity.py FILE [FILE ...] > sensitivity.jsonl
+    python -I -B tools/test_preview_pair_sensitivity.py
+
 **`token_luma_probe.py`** tests a fixed token-field to low-resolution luma
 mapping against a within-row suffix permutation. The default `--map sum` takes
 `v = b2 + b4`; `--map b2` and `--map b4` select that bit alone. Every map
