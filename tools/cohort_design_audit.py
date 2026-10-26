@@ -59,7 +59,11 @@ def load_records(text, ids):
     if not ids or len(set(ids)) != len(ids) or any(not re.fullmatch(r"[0-9]+", i) for i in ids):
         raise ValueError("unique numeric public IDs required")
     candidates = {i: set() for i in ids}
-    for row in csv.DictReader(text.splitlines()):
+    reader = csv.DictReader(text.splitlines())
+    headers = reader.fieldnames or []
+    if any(headers.count(field) != 1 for field in FIELDS + ("source",)):
+        raise ValueError("missing or duplicate audited manifest column")
+    for row in reader:
         if row.get("pixls_id") in candidates:
             if row.get("source") != "pixls" or any(not row.get(f) for f in FIELDS):
                 raise ValueError("selected manifest row lacks required metadata")

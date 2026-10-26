@@ -121,6 +121,16 @@ class Tests(unittest.TestCase):
         with self.assertRaises(ValueError):
             load_records(manifest([row]), ["1"])
 
+    def test_duplicate_audited_column_cannot_override_body(self):
+        row = record(1, "camera-a", "normal", 10)
+        for field, replacement in (("model", "camera-b"), ("payload_w", "100"),
+                                   ("pixls_id", "2"), ("source", "own")):
+            text = manifest([row]).splitlines()
+            text[0] += "," + field
+            text[1] += "," + replacement
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                load_records("\n".join(text) + "\n", ["1"])
+
 
 if __name__ == "__main__":
     unittest.main()
