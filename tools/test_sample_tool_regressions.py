@@ -2,6 +2,7 @@
 import csv
 import hashlib
 import io
+import json
 import os
 import sys
 import tempfile
@@ -21,6 +22,79 @@ class SampleTools(unittest.TestCase):
     def setUpClass(cls):
         WORK.mkdir(parents=True, exist_ok=True)
 
+    def test_check_json_retains_known_records_and_unknown_positions(self):
+        contents = (b'cc0 synthetic', b'restricted synthetic', b'unlisted synthetic')
+        hashes = [hashlib.sha256(data).hexdigest() for data in contents]
+        good = dict(id='1', name='CC0.ORF', sha256=hashes[0], licence='CC0')
+        cc0_duplicate = dict(id='2', name='duplicate.ORF', sha256=hashes[1], licence='CC0')
+        restricted = dict(id='3', name='restricted.ORI', sha256=hashes[1], licence='CC-BY-4.0')
+        for listing in ([good, cc0_duplicate, restricted], [restricted, good, cc0_duplicate]):
+            with self.subTest(listing=listing), tempfile.TemporaryDirectory(dir=str(WORK)) as folder:
+                paths = []
+                for i, data in enumerate(contents):
+                    path = Path(folder) / ('private%d.ORF' % i)
+                    path.write_bytes(data)
+                    paths.append(str(path))
+                output = io.StringIO()
+                with mock.patch.object(pixls, 'rows', return_value=listing), \
+                        mock.patch.object(sys, 'argv', ['pixls_samples', 'check', '--json'] + paths + [paths[0]]), \
+                        mock.patch.object(sys, 'stdout', output):
+                    with self.assertRaises(SystemExit) as result:
+                        pixls.main()
+                self.assertEqual(result.exception.code, 1)
+                parsed = json.loads(output.getvalue())
+                self.assertEqual(parsed, {'files': [good, restricted], 'unknown_inputs': [3], 'unreadable_inputs': []})
+                self.assertNotIn(folder, output.getvalue())
+                record_path = Path(folder) / 'records.json'
+                record_path.write_text(output.getvalue(), encoding='utf-8')
+                self.assertEqual(list(manifest.licence_records(str(record_path))), [good, restricted])
+
+    def test_check_json_unknown_only_has_success_status(self):
+        with tempfile.TemporaryDirectory(dir=str(WORK)) as folder:
+            path = Path(folder) / 'unknown.ORF'
+            path.write_bytes(b'unknown synthetic')
+            output = io.StringIO()
+            with mock.patch.object(pixls, 'rows', return_value=[]), \
+                    mock.patch.object(sys, 'argv', ['pixls_samples', 'check', '--json', str(path)]), \
+                    mock.patch.object(sys, 'stdout', output):
+                with self.assertRaises(SystemExit) as result:
+                    pixls.main()
+            self.assertEqual(result.exception.code, 0)
+            self.assertEqual(json.loads(output.getvalue()), {'files': [], 'unknown_inputs': [1], 'unreadable_inputs': []})
+
+    def test_check_json_missing_input_keeps_other_results(self):
+        data = b'public synthetic'
+        record = dict(id='1', name='public.ORF', sha256=hashlib.sha256(data).hexdigest(), licence='CC0')
+        with tempfile.TemporaryDirectory(dir=str(WORK)) as folder:
+            good, unknown, missing = (Path(folder) / n for n in ('good.ORF', 'unknown.ORF', 'missing.ORF'))
+            good.write_bytes(data)
+            unknown.write_bytes(b'unlisted synthetic')
+            output, error = io.StringIO(), io.StringIO()
+            with mock.patch.object(pixls, 'rows', return_value=[record]), \
+                    mock.patch.object(sys, 'argv', ['pixls_samples', 'check', '--json', str(missing), str(good), str(unknown)]), \
+                    mock.patch.object(sys, 'stdout', output), mock.patch.object(sys, 'stderr', error):
+                with self.assertRaises(SystemExit) as result:
+                    pixls.main()
+            self.assertEqual(result.exception.code, 1)
+            self.assertEqual(json.loads(output.getvalue()), {'files': [record], 'unknown_inputs': [3], 'unreadable_inputs': [1]})
+            self.assertNotIn(folder, output.getvalue())
+            self.assertEqual(error.getvalue(), '')
+
+    def test_check_default_remains_human_readable(self):
+        data = b'public synthetic'
+        record = dict(id='1', name='public.ORF', sha256=hashlib.sha256(data).hexdigest(), licence='CC0')
+        with tempfile.TemporaryDirectory(dir=str(WORK)) as folder:
+            path = Path(folder) / 'sample.ORF'
+            path.write_bytes(data)
+            output = io.StringIO()
+            with mock.patch.object(pixls, 'rows', return_value=[record]), \
+                    mock.patch.object(sys, 'argv', ['pixls_samples', 'check', str(path)]), \
+                    mock.patch.object(sys, 'stdout', output):
+                with self.assertRaises(SystemExit) as result:
+                    pixls.main()
+            self.assertEqual(result.exception.code, 0)
+            self.assertEqual(output.getvalue(), 'CC0         %s  = public.ORF\n' % path)
+
     def test_duplicate_hash_non_cc0_wins_in_either_order(self):
         data = b"synthetic sample"
         digest = hashlib.sha256(data).hexdigest()
@@ -35,7 +109,7 @@ class SampleTools(unittest.TestCase):
                     f.write(data)
                 with mock.patch.object(pixls, "rows", return_value=listing):
                     with self.assertRaises(SystemExit) as result:
-                        pixls.cmd_check(mock.Mock(files=[path]))
+                        pixls.cmd_check(mock.Mock(files=[path], json=False))
                 self.assertEqual(result.exception.code, 1)
                 # Keep synthetic scratch in the checkout; bypass only the destination guard.
                 with mock.patch.object(pixls, "rows", return_value=listing), \

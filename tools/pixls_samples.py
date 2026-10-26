@@ -11,7 +11,7 @@ Usage:
   python pixls_samples.py list [--all-licences] [--missing MANIFEST]
                                                   # CC0 ORF/ORI files by default;
                                                   # --missing: only those not in MANIFEST
-  python pixls_samples.py check FILE [FILE ...]   # licence of local files, by SHA-256
+  python pixls_samples.py check [--json] FILE [FILE ...] # check local hashes against the live catalogue
   python pixls_samples.py download DIR [--model M] [--max N]
                                                   # CC0 only, SHA-256 verified;
                                                   # DIR must be outside the repo
@@ -107,15 +107,34 @@ def cmd_list(a):
 def cmd_check(a):
     lic = by_hash(rows())
     bad = 0
-    for p in a.files:
-        r = lic.get(sha256_file(p))
-        if r is None:
-            print("NOT LISTED  %s  (not a raw.pixls.us file; fine if it's your own, see RULES.md 'Data')" % p)
-        elif r["licence"] != "CC0":
-            print("NOT CC0     %s  (%s; don't use it here)" % (p, r["licence"]))
+    known, unknown, unreadable, seen = [], [], [], set()
+    for index, p in enumerate(a.files, 1):
+        try:
+            digest = sha256_file(p)
+        except OSError:
+            if not a.json:
+                raise
+            unreadable.append(index)
             bad += 1
-        else:
+            continue
+        r = lic.get(digest)
+        if r is None:
+            if a.json:
+                unknown.append(index)
+            else:
+                print("NOT LISTED  %s  (not a raw.pixls.us file; fine if it's your own, see RULES.md 'Data')" % p)
+        elif r["licence"] != "CC0":
+            if not a.json:
+                print("NOT CC0     %s  (%s; don't use it here)" % (p, r["licence"]))
+            bad += 1
+        elif not a.json:
             print("CC0         %s  = %s" % (p, r["name"]))
+        if a.json and r is not None and r["sha256"] not in seen:
+            known.append({k: r[k] for k in ("id", "name", "sha256", "licence")})
+            seen.add(r["sha256"])
+    if a.json:
+        print(json.dumps({"files": known, "unknown_inputs": unknown,
+                          "unreadable_inputs": unreadable}, indent=2))
     sys.exit(1 if bad else 0)
 
 
@@ -171,6 +190,7 @@ def main():
     p.add_argument("--all-licences", action="store_true")
     p.add_argument("--missing", metavar="MANIFEST", help="only files whose sha256 is not yet in this manifest CSV (e.g. samples/manifest.csv)")
     p = sub.add_parser("check")
+    p.add_argument("--json", action="store_true", help="emit reusable licence records and 1-based unlisted/unreadable input positions")
     p.add_argument("files", nargs="+")
     p = sub.add_parser("download")
     p.add_argument("dir", help="folder to save into (outside the repo; created if missing)")
