@@ -20,6 +20,7 @@ import argparse
 import csv
 import difflib
 import hashlib
+from html.parser import HTMLParser
 import json
 import os
 import re
@@ -37,6 +38,40 @@ def fetch(url):
         return r.read()
 
 
+class LicenceLinks(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.hrefs = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            self.hrefs.extend(value for key, value in attrs if key == 'href')
+
+
+def licence_from_html(html):
+    """Classify one unambiguous Creative Commons licence link; otherwise fail closed."""
+    if not isinstance(html, str) or '<![' in html:
+        return 'unknown'
+    parser = LicenceLinks()
+    try:
+        parser.feed(html)
+    except (AssertionError, ValueError):
+        return 'unknown'
+    if len(parser.hrefs) != 1 or not isinstance(parser.hrefs[0], str):
+        return 'unknown'
+    try:
+        url = urllib.parse.urlsplit(parser.hrefs[0])
+    except ValueError:
+        return 'unknown'
+    if (url.scheme not in ('http', 'https') or url.netloc.lower() != 'creativecommons.org'
+            or url.query or url.fragment):
+        return 'unknown'
+    if url.path.rstrip('/') == '/publicdomain/zero/1.0':
+        return 'CC0'
+    licence = re.fullmatch(r'/licenses/([a-z-]+)/([0-9.]+)/?', url.path)
+    return 'CC-%s-%s' % (licence.group(1).upper(), licence.group(2)) if licence else 'unknown'
+
+
 def rows():
     """Yield dicts for every Olympus / OM System ORF or ORI in the listing."""
     listing = json.loads(fetch(LISTING))
@@ -50,7 +85,6 @@ def rows():
         name = url.rsplit("/", 1)[1]
         if not name.lower().endswith((".orf", ".ori")):
             continue
-        lic = re.search(r"licenses/([a-z-]+)/([0-9.]+)", licence_html)
         file_id = re.search(r"getfile\.php/(\d+)/", url).group(1)
         # The hash is the one 64-hex run outside the link (a URL could hold another).
         hashes = re.findall(r"(?<![0-9a-f])[0-9a-f]{64}(?![0-9a-f])", re.sub(r"href='[^']*'", "", file_html))
@@ -62,7 +96,7 @@ def rows():
             "make": make,
             "model": model,
             "mode": mode,
-            "licence": "CC0" if "zero/1.0" in licence_html else ("CC-%s-%s" % (lic.group(1).upper(), lic.group(2)) if lic else "unknown"),
+            "licence": licence_from_html(licence_html),
             "sha256": hashes[0],
             "name": name,
             # Site names can repeat and contain ':', which Windows can't store.
