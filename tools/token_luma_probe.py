@@ -130,7 +130,10 @@ def shuffle_rows(sa, rows, w, rng):
 
 
 def preview_shift_scores(sa, rows, w, window, target, mapping="sum"):
-    """Score the declared target and every circular shift of its rows."""
+    """Score the declared target and every circular shift of its rows.
+
+    The target must be rectangular (every row len(target[0]) values): one token
+    grid sized from row 0 is scored against every shift."""
     nd = len(target)
     if nd < 2:
         raise ValueError("require at least two preview rows")

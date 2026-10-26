@@ -201,7 +201,8 @@ def resolve(found, errors):
             elif not state.get(ref):
                 state[ref] = 1
                 stack.append((ref, iter(found[ref].refs['Corrects'])))
-    for f in found.values():
+    reproducers = {}
+    for f in sorted(found.values(), key=lambda item: item.id):
         if not f.reproduces:
             continue
         t = found.get(f.reproduces)
@@ -219,6 +220,15 @@ def resolve(found, errors):
                 errors.append("%s: 'Lead:' must be the same as in %s (%s)" % (f.path, t.id, t.lead))
             if t.verifier and f.verifier.lower() == t.verifier.lower():
                 errors.append("%s: 'Verified by' must be someone who did not already verify %s" % (f.path, t.id))
+            if (f.verifier and f.verifier.lower() != t.author.lower()
+                    and f.verifier.lower() != t.verifier.lower()
+                    and f.author.lower() == t.author.lower() and f.lead == t.lead):
+                key = (t.id, f.verifier.lower())
+                if key in reproducers:
+                    errors.append("%s: 'Verified by' already verified %s in %s" %
+                                  (f.path, t.id, reproducers[key]))
+                else:
+                    reproducers[key] = f.path
 
 
 def statuses(found):
