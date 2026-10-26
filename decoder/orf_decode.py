@@ -46,6 +46,7 @@ F_FIG8 = "2026-10-21--radialmonster--figure8-negative-highres-e-m1-mark-ii"
 F_PACKED12 = "2026-10-19--radialmonster--packed-12-msb-two-values-per-three-bytes"
 F_PACKED128 = "2026-10-20--radialmonster--packed-12-8-groups-of-ten-values"
 F_PACKED16 = "2026-10-21--radialmonster--packed16-whole-frame-word-layout"
+F_TOY = "2026-10-26--radialmonster--packed16-toy-envelope-reproduction"
 F_FIXED = "2026-10-19--radialmonster--fixed-size-payloads-exact-else-compressed"
 F_ROWLAYOUT = "2026-10-21--radialmonster--two-field-row-layout-reproduction"
 F_ENDPOINT = "2026-10-21--radialmonster--token-end-and-final-run"
@@ -61,7 +62,8 @@ F_DEP_CORR = "2026-10-22--radialmonster--token-dependence-independence-wording-c
 STATUS = {
     "packed-12": "verified (%s, self-verified)" % F_PACKED12,
     "packed-12.8": "verified (%s, self-verified)" % F_PACKED128,
-    "packed-16": "verified (%s, self-verified)" % F_PACKED16,
+    # F_TOY is a separate synthetic-envelope stress result, not sensor truth.
+    "packed-16": "verified (%s, self-verified); toy envelope: %s (construction labels only)" % (F_PACKED16, F_TOY),
 }
 # the order choices per packing; the first one wins a tie
 ORDERS = {
@@ -131,7 +133,8 @@ def unpack_row(packing, order, raw, w):
         # files); byte order per body follows the TIFF mark on 3 of 3 (F_PACKED16;
         # also measured whole-frame in 2026-10-21--radialmonster--iiro-packed12-and-packed16-whole-frame-byte-order,
         # Partial), still autodetected by smoothness. Values are the stored words,
-        # not shifted back.
+        # not shifted back. The toy envelope result F_TOY tests construction labels;
+        # it does not establish a physically correct mapping.
         out = array("H")
         out.frombytes(raw)
         if (order == "be") != (sys.byteorder == "big"):
@@ -315,8 +318,11 @@ def decode_file(path, order=None, layout=None):
         # F_RUN31 (Partial for #31): a plain per-row running-sum test on five
         # public files stays inside a predeclared 0.5..1.5 within-row-null band
         # in 15/15 cells; it specifies no values, predictor or decode (V1 G2).
-        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open)")
-        r["notes"].append("compressed payload (%s bits per pixel); no decoder or padding rule is specified yet; suffix associations do not specify values, see specs/V1.md S1.1-S1.2, S1.7-S1.17, S2.3, G2, specs/V2.md S1.1-S1.2 and ROADMAP.md" % sig["bpp"])
+        # F_CONTEXT (Partial for #332): order-8 predictive structure reproduces on
+        # a named unassigned four-file cohort, but is not an identified codec or
+        # reconstruction (V1 S1.18).
+        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; predictive baselines are not a codec)")
+        r["notes"].append("compressed payload (%s bits per pixel); no decoder or padding rule is specified yet; suffix associations do not specify values, see specs/V1.md S1.1-S1.2, S1.7-S1.18, S2.3, G2, specs/V2.md S1.1-S1.2 and ROADMAP.md" % sig["bpp"])
         return r
     packing = sc
     r.update(variant="V0", packing=packing, status=STATUS[packing])
