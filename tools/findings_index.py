@@ -138,6 +138,9 @@ def parse_file(path, folder, name, found, errors):
                 err("'%s:' entry is not a finding ID or #issue: %s" % (key, part))
             else:
                 f.refs[key].append(part)
+    if fid in found:
+        err("duplicate finding ID %s (already in %s)" % (fid, found[fid].path))
+        return
     found[fid] = f
 
 
