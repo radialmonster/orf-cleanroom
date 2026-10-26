@@ -74,6 +74,28 @@ class SampleTools(unittest.TestCase):
                 manifest.main()
         self.assertTrue(stream.closed)
 
+    def test_append_rejects_nonterminated_destination_without_mutation(self):
+        sample = {"sha256": "a" * 64, "make": "Test", "model": "Test", "payload_w": 10,
+                  "payload_h": 10, "bpp": "1", "size_class": "variable", "compression_tag": 1}
+        for original in (b"existing,last-field-without-newline", b"existing,last-field\r"):
+            with self.subTest(original=original), tempfile.TemporaryDirectory(dir=str(WORK)) as scratch:
+                path = os.path.join(scratch, "out.csv")
+                with open(path, "wb") as f:
+                    f.write(original)
+                args = ["manifest_rows", "--by", "@tester", "--own", "--append", path, "synthetic"]
+                with mock.patch.object(manifest, "rows", return_value=[]) as listing, \
+                     mock.patch.object(manifest, "signature", return_value=sample) as signature, \
+                     mock.patch.object(manifest, "commit", return_value="test"), \
+                     mock.patch.object(sys, "argv", args), \
+                     mock.patch.object(sys, "stderr", io.StringIO()):
+                    with self.assertRaises(SystemExit) as raised:
+                        manifest.main()
+                    self.assertEqual(raised.exception.code, 2)
+                    listing.assert_not_called()
+                    signature.assert_not_called()
+                with open(path, "rb") as f:
+                    self.assertEqual(f.read(), original)
+
     def test_append_header_only_when_empty(self):
         signature = {"sha256": "a" * 64, "make": "Test", "model": "Test", "payload_w": 10,
                      "payload_h": 10, "bpp": "1", "size_class": "variable", "compression_tag": 1}
