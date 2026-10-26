@@ -20,6 +20,28 @@ def reference(a, b):
 
 
 class ScreenTests(unittest.TestCase):
+    def test_bad_jpeg_sampling_does_not_abort_remaining_files(self):
+        scan = b"\xff\xda\x00\x0c\x03\x01\x00\x02\x00\x03\x00\x00\x3f\x00"
+        dc = list(range(144))
+        original_decode = p.jpeg_dc.decode
+        for sampling in (0x01, 0x10):
+            frame = (b"\xff\xc0\x00\x11\x08\x00\x60\x00\x60\x03" +
+                     bytes([1, sampling, 0, 2, sampling, 0, 3, sampling, 0]))
+            inputs = {"bad.ORF": b"\xff\xd8" + frame + scan, "good.ORF": b"good synthetic input"}
+            def decode(data, offset):
+                return original_decode(data, offset) if data == inputs["bad.ORF"] else (12, 12, dc)
+            with self.subTest(sampling=sampling), \
+                    patch("builtins.open", side_effect=lambda path, mode: io.BytesIO(inputs[path])), \
+                    patch.object(p.jpeg_dc, "find_preview", return_value=(9216, 0, 1, 96, 96)), \
+                    patch.object(p.jpeg_dc, "decode", side_effect=decode):
+                rows = p.measure(["bad.ORF", "good.ORF"])
+                by_name = {record["name"]: (record, fp) for record, fp in rows}
+                self.assertEqual((by_name["bad.ORF"][0]["status"], by_name["bad.ORF"][0]["error"]),
+                                 ("unsupported", "ZeroDivisionError"))
+                self.assertIsNone(by_name["bad.ORF"][1])
+                self.assertEqual(by_name["good.ORF"][0]["status"], "ok")
+                self.assertIsNotNone(by_name["good.ORF"][1])
+
     def test_malformed_scan_does_not_abort_remaining_files(self):
         # A SOF component absent from SOS raises StopIteration in jpeg_dc.decode
         # (reported in #347). Keep this per-file failure out of pair scores.
