@@ -33,6 +33,8 @@ jobs:
         run: python tools/test_orf_tokens.py
       - name: orf signature tests
         run: python -I -B tools/test_orf_signature.py
+      - name: Active area metadata tests
+        run: python -I -B tools/test_orf_active_area.py
       - name: capture pair calibration tests
         run: python -I -B tools/test_capture_pair_calibration.py
       - name: Capture metadata audit tests
