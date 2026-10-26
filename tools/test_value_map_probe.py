@@ -288,7 +288,9 @@ class RunnerTests(unittest.TestCase):
             self.assertEqual(sample["sha256"], probe.file_hash(path))
             with open(path, "wb") as stream:
                 stream.write(synthetic_tiff(payload)[:-1])
-            with self.assertRaisesRegex(probe.ProbeError, "truncated"):
+            # The signature validator rejects the truncated strip before the
+            # measurement-specific bounds check can run.
+            with self.assertRaisesRegex(ValueError, "strip extent"):
                 probe.measure(1993, "SYNTHETIC_TEST_ONLY.ORF", path, 256)
 
     def test_fail_closed_and_diagnostics_hide_paths(self):

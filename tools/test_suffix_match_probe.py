@@ -211,21 +211,18 @@ class ParseTests(unittest.TestCase):
                     probe.checked_parse(b"\x80", 1, 1)
 
     def test_layout_bounds_and_dimensions(self):
-        for kwargs, reason in (({"offset": 1000}, "invalid_payload_bounds"),
-                               ({"length": 0}, "invalid_payload_bounds"),
-                               ({"width": 0}, "invalid_dimensions")):
-            data = synthetic_tiff(**kwargs)
-            with named_temp() as stream:
-                stream.write(data)
-                stream.flush()
-                sig = probe.orf_signature.signature(stream.name)
-                with self.assertRaisesRegex(probe.InputError, reason):
-                    probe.check_layout(data, sig)
+        # Start from a valid signature: signature() now rejects invalid strip
+        # extents before check_layout() can examine those negative controls.
         data = synthetic_tiff()
         with named_temp() as stream:
             stream.write(data)
             stream.flush()
             sig = probe.orf_signature.signature(stream.name)
+        for kwargs, changes, reason in (({"offset": 1000}, {}, "invalid_payload_bounds"),
+                                        ({"length": 0}, {}, "invalid_payload_bounds"),
+                                        ({"width": 0}, {"payload_w": 0}, "invalid_dimensions")):
+            with self.subTest(kwargs=kwargs), self.assertRaisesRegex(probe.InputError, reason):
+                probe.check_layout(synthetic_tiff(**kwargs), dict(sig, **changes))
         probe.check_layout(data, sig)
         for change, reason in (({"size_class": "packed-12"}, "unsupported_size_class"),
                                ({"payload_offset": 2}, "signature_layout_mismatch"),
