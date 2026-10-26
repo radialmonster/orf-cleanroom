@@ -290,8 +290,8 @@ def main(argv=None):
     ap.add_argument("files", nargs="*")
     ap.add_argument("--rows", type=int, default=156)
     ap.add_argument("--perms", type=int, default=2,
-                    help="shuffles per cell (default 2: a rough screen; z rests on an SD from "
-                         "this many null values, so use 20+ before quoting z as significance)")
+                    help="shuffles per cell (default 2: a rough screen; z is descriptive, "
+                         "not calibrated significance)")
     ap.add_argument("--kinds", default=",".join(KINDS))
     ap.add_argument("--preds", default=",".join(PREDS))
     ap.add_argument("--self-test", action="store_true")

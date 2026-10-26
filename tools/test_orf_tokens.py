@@ -22,6 +22,31 @@ def token(q, suffix):
 
 
 class ParseTests(unittest.TestCase):
+    def test_locate_multistrip_table_order_and_length_mismatch(self):
+        data = bytes(range(20))
+        for offsets, counts, expected in (([2, 12], [3, 4], data[2:5] + data[12:16]),
+                                          ([12, 2], [4, 3], data[12:16] + data[2:5])):
+            tags = {0x100: [5], 0x101: [4], 0x111: offsets, 0x117: counts}
+            with self.subTest(offsets=offsets), patch("builtins.open", return_value=io.BytesIO(data)), \
+                    patch.object(t, "Tiff") as reader:
+                reader.return_value.all_ifds.return_value = [tags]
+                self.assertEqual(t.locate("synthetic")[2], expected)
+        tags = {0x100: [5], 0x101: [4], 0x111: [2, 12], 0x117: [3]}
+        with patch("builtins.open", return_value=io.BytesIO(data)), patch.object(t, "Tiff") as reader:
+            reader.return_value.all_ifds.return_value = [tags]
+            with self.assertRaises(ValueError):
+                t.locate("synthetic")
+
+    def test_locate_rejects_short_and_overlapping_extents(self):
+        data = bytes(range(20))
+        for offsets, counts in (([1, 18], [4, 4]), ([1, 3], [4, 4]), ([1], [0])):
+            tags = {0x100: [5], 0x101: [4], 0x111: offsets, 0x117: counts}
+            with self.subTest(offsets=offsets, counts=counts), \
+                    patch("builtins.open", return_value=io.BytesIO(data)), patch.object(t, "Tiff") as reader:
+                reader.return_value.all_ifds.return_value = [tags]
+                with self.assertRaises(ValueError):
+                    t.locate("synthetic")
+
     def test_roundtrip(self):
         spec = [(0, 5), (3, 31), (1, 0), (7, 18), (0, 1)]
         buf = bits_to_bytes("".join(token(q, s) for q, s in spec) + "1" * 16)

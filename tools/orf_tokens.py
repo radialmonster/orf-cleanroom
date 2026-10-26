@@ -70,6 +70,11 @@ def locate(path):
         raise ValueError("cannot read the IFDs: %s" % exc)
     if len(offs) != len(counts):
         raise ValueError("%d strip offsets but %d strip byte counts" % (len(offs), len(counts)))
+    if not offs or any(o < 0 or c <= 0 or o + c > len(data) for o, c in zip(offs, counts)):
+        raise ValueError("invalid strip extent")
+    extents = sorted((o, o + c) for o, c in zip(offs, counts))
+    if any(b[0] < a[1] for a, b in zip(extents, extents[1:])):
+        raise ValueError("overlapping strip extents")
     contiguous = all(offs[i] + counts[i] == offs[i + 1] for i in range(len(offs) - 1))
     if contiguous:
         return w, h, data[offs[0]:offs[0] + sum(counts)]
