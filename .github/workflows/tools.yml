@@ -47,3 +47,9 @@ jobs:
         run: python -I -B tools/test_automerge_decision.py
       - name: Offline sample tool regression tests
         run: python -I -B tools/test_sample_tool_regressions.py
+      - name: Metadata cohort design audit tests
+        run: python -I -B tools/test_cohort_design_audit.py
+      - name: Body label holdout tests
+        run: python -I -B tools/test_body_label_holdout.py
+      - name: Payload feature probe tests
+        run: python -I -B tools/test_payload_feature_probe.py
