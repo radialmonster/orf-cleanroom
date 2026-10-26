@@ -44,6 +44,13 @@ def record(i, model, mode, width):
 
 
 class Tests(unittest.TestCase):
+    def test_quoted_multiline_models_keep_distinct_bodies(self):
+        rows = [record(1, 'camera\nvariant', 'normal', 10),
+                record(2, 'cameravariant', 'normal', 10)]
+        report = audit(load_records(manifest(rows), ['1', '2']))
+        self.assertEqual(len(report['levels']['body']), 2)
+        self.assertEqual(report['rank'], 2)
+
     def test_exact_rank_all_binary_3x3(self):
         for values in itertools.product((0, 1), repeat=9):
             rows = [list(values[i:i + 3]) for i in (0, 3, 6)]

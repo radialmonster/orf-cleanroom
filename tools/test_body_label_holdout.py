@@ -14,6 +14,21 @@ import body_label_holdout as probe
 
 
 class Tests(unittest.TestCase):
+    def test_cli_preserves_quoted_multiline_body(self):
+        report, manifest = self.fixture()
+        manifest[0]['model'] = 'camera\nvariant'
+        manifest[1]['model'] = 'cameravariant'
+        stream = io.StringIO(newline='')
+        writer = csv.DictWriter(stream, fieldnames=list(manifest[0]))
+        writer.writeheader()
+        writer.writerows(manifest)
+        output = io.StringIO()
+        with patch('builtins.open', side_effect=[io.BytesIO(json.dumps(report).encode()),
+                io.BytesIO(stream.getvalue().encode()), io.BytesIO(b'source')]), contextlib.redirect_stdout(output):
+            self.assertEqual(probe.main(['--features', 'x', '--manifest', 'y', '--ids', '1', '2', '3']), 0)
+        bodies = [row['body'][1] for row in json.loads(output.getvalue())['cohort']]
+        self.assertEqual(bodies[:2], ['camera\nvariant', 'cameravariant'])
+
     def test_training_only_scaling_and_distances(self):
         rows = [{'pixls_id': str(i), 'body': (label, ''), 'features': [x, 7]}
                 for i, (label, x) in enumerate([('A', 0), ('A', 2), ('B', 10), ('B', 12)])]

@@ -16,6 +16,7 @@ import argparse
 from collections import Counter
 import csv
 import hashlib
+import io
 import json
 import math
 import re
@@ -137,7 +138,7 @@ def main(argv=None):
             raw_features = stream.read()
         with open(args.manifest, 'rb') as stream:
             raw_manifest = stream.read()
-        reader = csv.DictReader(raw_manifest.decode('utf-8').splitlines())
+        reader = csv.DictReader(io.StringIO(raw_manifest.decode('utf-8'), newline=''))
         headers = reader.fieldnames or []
         required = ('pixls_id', 'sha256', 'pixls_name', 'make', 'model', 'licence', 'source')
         optional = ('payload_w', 'payload_h')
