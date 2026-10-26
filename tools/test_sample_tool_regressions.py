@@ -22,6 +22,25 @@ class SampleTools(unittest.TestCase):
     def setUpClass(cls):
         WORK.mkdir(parents=True, exist_ok=True)
 
+    def test_catalogue_licence_requires_unambiguous_authoritative_link(self):
+        cases = [
+            ("<a href='https://creativecommons.org/publicdomain/zero/1.0/' title='Creative Commons 0 - Public Domain' class='cc'>co</a>", 'CC0'),
+            ("<a href='http://creativecommons.org/licenses/by-nc-sa/4.0/' title='Creative Commons - Attribution, Non-Commercial, ShareAlike 4.0' class='cc'>cbna</a>", 'CC-BY-NC-SA-4.0'),
+            ("<a href='https://creativecommons.org/licenses/by-nc-sa/4.0/'>zero/1.0</a>", 'CC-BY-NC-SA-4.0'),
+            ("<a href='https://example.com/publicdomain/zero/1.0/'>CC0</a>", 'unknown'),
+            ("<a href='https://[broken/publicdomain/zero/1.0/'>CC0</a>", 'unknown'),
+            ("zero/1.0", 'unknown'),
+            (None, 'unknown'),
+            ("<![foo]><a href='https://creativecommons.org/publicdomain/zero/1.0/'>CC0</a>", 'unknown'),
+            ("<a href='https://creativecommons.org/publicdomain/zero/1.0/'>CC0</a> "
+             "<a href='https://creativecommons.org/licenses/by/4.0/'>BY</a>", 'unknown'),
+        ]
+        for html, expected in cases:
+            row = ['Olympus', 'Synthetic', 'mode', '', '', html, '',
+                   "<a href='https://raw.pixls.us/getfile.php/1/nice/a.ORF'>file</a> " + 'a' * 64]
+            with self.subTest(html=html), mock.patch.object(pixls, 'fetch', return_value=json.dumps([row]).encode()):
+                self.assertEqual(list(pixls.rows())[0]['licence'], expected)
+
     def test_check_json_retains_known_records_and_unknown_positions(self):
         contents = (b'cc0 synthetic', b'restricted synthetic', b'unlisted synthetic')
         hashes = [hashlib.sha256(data).hexdigest() for data in contents]
