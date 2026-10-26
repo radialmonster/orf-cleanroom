@@ -66,6 +66,8 @@ def date_time_original(data):
     for tags in t.all_ifds():
         ptr = tags.get(0x8769)
         if ptr:
+            if not isinstance(ptr, list) or len(ptr) != 1:
+                return None
             exif, _ = t.ifd(ptr[0])
             v = exif.get(0x9003)
             return v if isinstance(v, str) and v else None

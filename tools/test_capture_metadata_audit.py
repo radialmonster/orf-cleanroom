@@ -104,6 +104,25 @@ class Tests(unittest.TestCase):
                 read.assert_not_called()
                 self.records[1] = saved
 
+    def test_multiple_exif_pointers_are_not_valid_capture_times(self):
+        self.add('1', 'Body One', '2022:01:01 12:00:00', 1)
+        self.add('2', 'Body One', '2022:01:01 12:00:00', 2)
+        path = Path(self.args[2])
+        data = bytearray(path.read_bytes())
+        pointer_entry = 10 + 6 * 12
+        first = struct.unpack_from('<I', data, pointer_entry + 8)[0]
+        pointers_at = len(data)
+        data.extend(struct.pack('<II', first, first))
+        struct.pack_into('<II', data, pointer_entry + 4, 2, pointers_at)
+        path.write_bytes(data)
+        self.records[0]['sha256'] = hashlib.sha256(data).hexdigest()
+        status, out, err = self.run_cli()
+        self.assertEqual((status, err), (0, ''))
+        report = json.loads(out)
+        self.assertEqual([r['datetime_original_available'] for r in report['samples']], [False, True])
+        self.assertEqual(report['summary']['model_and_time_available'], 1)
+        self.assertEqual(report['same_model_time_groups'], [])
+
     def test_rejects_wrong_ids_hashes_duplicates_and_restrictions(self):
         self.add('1', 'Body One', '2022:01:01 12:00:00', 1)
         original = list(self.args)
