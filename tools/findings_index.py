@@ -181,6 +181,26 @@ def resolve(found, errors):
                 else:
                     ok.append(ref)
             f.refs[key] = ok
+    # Corrections must have a later endpoint; a cycle supersedes every member.
+    state = {}
+    for fid in found:
+        if state.get(fid):
+            continue
+        state[fid] = 1
+        stack = [(fid, iter(found[fid].refs['Corrects']))]
+        while stack:
+            current, refs = stack[-1]
+            ref = next(refs, None)
+            if ref is None:
+                state[current] = 2
+                stack.pop()
+            elif ref.startswith('#'):
+                continue
+            elif state.get(ref) == 1:
+                errors.append("%s: circular 'Corrects:' reference to %s" % (found[current].path, ref))
+            elif not state.get(ref):
+                state[ref] = 1
+                stack.append((ref, iter(found[ref].refs['Corrects'])))
     for f in found.values():
         if not f.reproduces:
             continue

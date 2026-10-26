@@ -21,6 +21,29 @@ def finding(folder):
 
 
 class FindingIds(unittest.TestCase):
+    def test_correction_cycles_rejected_and_chain_retained(self):
+        WORK.mkdir(parents=True, exist_ok=True)
+        for edges in ((1, 0), (1, 2, 0), (None, 0, 1)):
+            with self.subTest(edges=edges), tempfile.TemporaryDirectory(dir=str(WORK)) as folder:
+                dest = Path(folder) / 'findings' / 'container'
+                dest.mkdir(parents=True)
+                ids = ['2026-01-01--tester--item%d' % n for n in range(len(edges))]
+                for fid, target in zip(ids, edges):
+                    content = finding('container')
+                    if target is not None:
+                        content = content.replace('Variant: container\n',
+                                                  'Variant: container\nCorrects: %s\n' % ids[target])
+                    (dest / (fid + '.md')).write_text(content, encoding='utf-8')
+                found, errors = {}, []
+                index.scan(folder, found, errors)
+                index.resolve(found, errors)
+                if edges[0] is None:
+                    self.assertEqual(errors, [])
+                    self.assertEqual([index.statuses(found)[fid][0] for fid in ids],
+                                     ['superseded', 'superseded', 'self-verified'])
+                else:
+                    self.assertTrue(any('circular' in error.lower() for error in errors), errors)
+
     def test_distinct_ids_across_folders_are_retained(self):
         WORK.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(dir=str(WORK)) as folder:
