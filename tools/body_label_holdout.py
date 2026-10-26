@@ -70,6 +70,12 @@ def cohort(report, manifest, ids):
         count = sample['payload_bytes']
         if any(type(x) is not int or x < 1 for x in (width, height, count)):
             raise ValueError('invalid geometry')
+        for row in manifest:
+            if row['pixls_id'] == key:
+                for field, actual in (('payload_w', width), ('payload_h', height)):
+                    declared = row.get(field)
+                    if declared and int(declared) != actual:
+                        raise ValueError('feature geometry conflicts with manifest')
         starts = [w['payload_byte_start'] for w in windows]
         if starts != [i * (count - 65536) // 2 for i in range(3)] or count < 3 * 65536:
             raise ValueError('window coordinates disagree with frozen protocol')
