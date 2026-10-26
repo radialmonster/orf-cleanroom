@@ -48,7 +48,7 @@ def variant(size_class):
 def mode(width):
     # Four Thirds and Micro Four Thirds sensors are at most ~5.3k wide; High
     # Res Shot payloads are 8k+ wide. Measured from the payload, not the name.
-    return "hires" if width and int(width) > 6000 else "normal"
+    return "hires" if width and int(width) > 6000 else ("normal" if width else "")
 
 
 def clean(text):
@@ -143,15 +143,19 @@ def main():
                 print("skipped (not on raw.pixls.us; pass --own if it's yours): %s" % p, file=sys.stderr)
                 continue
             own = r is None
+            # A missing dimension is represented as zero by signature().  Without
+            # both dimensions the fixed-size test cannot classify the payload.
+            width, height = s["payload_w"] or "", s["payload_h"] or ""
+            size_class = s["size_class"] if width and height else ""
             out.writerow({
                 "source": "own" if own else "pixls",
                 "pixls_id": "" if own else r["id"], "pixls_name": "" if own else r["name"],
                 "sha256": s["sha256"], "licence": "not-shared" if own else "CC0",
-                "make": clean(s["make"]), "model": clean(s["model"]), "mode": mode(s["payload_w"]),
-                "payload_w": s["payload_w"], "payload_h": s["payload_h"], "bpp": s["bpp"],
-                "size_class": s["size_class"],
+                "make": clean(s["make"]), "model": clean(s["model"]), "mode": mode(width),
+                "payload_w": width, "payload_h": height, "bpp": s["bpp"],
+                "size_class": size_class,
                 "compression_tag": s["compression_tag"], "escape_bits": "", "calm_parse": "",
-                "row_stride": "", "variant": variant(s["size_class"]), "measured_by": by,
+                "row_stride": "", "variant": variant(size_class), "measured_by": by,
             })
 
 

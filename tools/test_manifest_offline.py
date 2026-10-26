@@ -25,6 +25,30 @@ def sample():
 
 
 class Tests(unittest.TestCase):
+    def test_missing_dimensions_do_not_invent_mode_or_size_class(self):
+        work = ROOT / 'work' / 'test-manifest-offline'
+        work.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=str(work)) as folder:
+            root = Path(folder)
+            for entry, missing in ((0, 'width'), (1, 'height')):
+                data = bytearray(sample())
+                struct.pack_into('<H', data, 10 + entry * 12, 65000)
+                path = root / 'sample.ORF'
+                path.write_bytes(data)
+                record = dict(id='42', name='a.ORF', sha256=hashlib.sha256(data).hexdigest(), licence='CC0')
+                out = io.StringIO()
+                with self.subTest(missing=missing):
+                    with mock.patch.object(manifest, 'rows', return_value=[record]), \
+                            mock.patch.object(manifest, 'commit', return_value='test'), \
+                            mock.patch.object(sys, 'argv', ['manifest_rows', '--by', '@tester', '--header', str(path)]), \
+                            contextlib.redirect_stdout(out):
+                        manifest.main()
+                    row = next(csv.DictReader(io.StringIO(out.getvalue())))
+                    self.assertEqual(row['payload_w' if entry == 0 else 'payload_h'], '')
+                    self.assertEqual(row['mode'], '' if entry == 0 else 'normal')
+                    self.assertEqual((row['bpp'], row['size_class'], row['variant']), ('', '', 'unassigned'))
+        self.assertEqual((manifest.mode(6000), manifest.mode(6001)), ('normal', 'hires'))
+
     def test_duplicate_json_keys_fail_before_output_or_append(self):
         work = ROOT / 'work' / 'test-manifest-offline'
         work.mkdir(parents=True, exist_ok=True)
