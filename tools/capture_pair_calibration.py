@@ -82,10 +82,14 @@ def file_meta(path):
         when = datetime.strptime(dto, "%Y:%m:%d %H:%M:%S")
     except ValueError:
         dto, when = None, None
-    return hashlib.sha256(data).hexdigest(), {
+    digest = hashlib.sha256(data).hexdigest()
+    measured = signature(path)
+    if measured["sha256"] != digest:
+        raise ValueError("sample changed while reading metadata")
+    return digest, {
         "base": base_name(path),
         "ori": path.lower().endswith(".ori"),
-        "hires": int(signature(path)["payload_w"] or 0) > HIRES_WIDTH,
+        "hires": int(measured["payload_w"] or 0) > HIRES_WIDTH,
         "dto": dto,
         "time": when,
     }

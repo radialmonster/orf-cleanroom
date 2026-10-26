@@ -61,6 +61,8 @@ jobs:
         run: python -I tools/test_issue_scan.py
       - name: Finding partial scope tests
         run: python -I -B tools/test_findings_partial.py
+      - name: Findings index identity tests
+        run: python -I -B tools/test_findings_index.py
       - name: Offline automerge decision tests
         run: python -I -B tools/test_automerge_decision.py
       - name: Offline sample tool regression tests
