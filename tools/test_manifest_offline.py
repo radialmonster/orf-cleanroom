@@ -63,6 +63,68 @@ class Tests(unittest.TestCase):
                         self.assertIn('invalid or unreadable licence records', err.getvalue())
                         self.assertNotIn(str(records), err.getvalue())
 
+    def test_invalid_handle_cannot_emit_offline_row(self):
+        work = ROOT / 'work' / 'test-manifest-offline'
+        work.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=str(work)) as folder:
+            root = Path(folder)
+            data = sample()
+            path = root / 'sample.ORF'
+            path.write_bytes(data)
+            records = root / 'records.json'
+            records.write_text(json.dumps([dict(id='42', name='a.ORF',
+                sha256=hashlib.sha256(data).hexdigest(), licence='CC0')]), encoding='utf-8')
+            out = io.StringIO()
+            args = ['manifest_rows', '--by', 'tester', '--header', '--licence-records', str(records), str(path)]
+            with mock.patch.object(manifest, 'rows', side_effect=AssertionError('network called')), \
+                    mock.patch.object(manifest, 'commit', return_value='test'), \
+                    mock.patch.object(sys, 'argv', args), contextlib.redirect_stdout(out), \
+                    contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit) as raised:
+                    manifest.main()
+            self.assertEqual(raised.exception.code, 2)
+            self.assertEqual(out.getvalue(), '')
+
+    def test_invalid_handles_fail_before_catalogue_or_output(self):
+        work = ROOT / 'work' / 'test-manifest-offline'
+        work.mkdir(parents=True, exist_ok=True)
+        for handle in ('tester', '', '@', '@tester other', '@tester @other', '@-tester',
+                       '@tester-', '@test--er', '@test_er'):
+            with self.subTest(handle=handle), tempfile.TemporaryDirectory(dir=str(work)) as folder:
+                dest = Path(folder) / 'output.csv'
+                dest.write_bytes(b'existing,row\n')
+                args = ['manifest_rows', '--by', handle, '--append', str(dest), 'sample']
+                out, err = io.StringIO(), io.StringIO()
+                with mock.patch.object(manifest, 'rows', return_value=[]) as catalogue, \
+                        mock.patch.object(manifest, 'signature') as signature, \
+                        mock.patch.object(sys, 'argv', args), contextlib.redirect_stdout(out), \
+                        contextlib.redirect_stderr(err):
+                    with self.assertRaises(SystemExit) as raised:
+                        manifest.main()
+                self.assertEqual(raised.exception.code, 2)
+                catalogue.assert_not_called()
+                signature.assert_not_called()
+                self.assertEqual(dest.read_bytes(), b'existing,row\n')
+                self.assertEqual(out.getvalue(), '')
+
+    def test_valid_handles_work_with_live_listing(self):
+        data = sample()
+        record = dict(id='42', name='a.ORF', sha256=hashlib.sha256(data).hexdigest(), licence='CC0')
+        work = ROOT / 'work' / 'test-manifest-offline'
+        work.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=str(work)) as folder:
+            path = Path(folder) / 'sample.ORF'
+            path.write_bytes(data)
+            for handle in ('@tester', '@A', '@a-b', '@' + 'a' * 39):
+                out = io.StringIO()
+                with self.subTest(handle=handle), mock.patch.object(manifest, 'rows', return_value=[record]), \
+                        mock.patch.object(manifest, 'commit', return_value='test'), \
+                        mock.patch.object(sys, 'argv', ['manifest_rows', '--by', handle, '--header', str(path)]), \
+                        contextlib.redirect_stdout(out):
+                    manifest.main()
+                row = next(csv.DictReader(io.StringIO(out.getvalue())))
+                self.assertEqual(row['measured_by'], handle + ' tools/orf_signature.py test')
+
     def test_offline_hash_match_and_no_catalogue(self):
         work = ROOT / 'work' / 'test-manifest-offline'
         work.mkdir(parents=True, exist_ok=True)
