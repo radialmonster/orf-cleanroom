@@ -6,6 +6,9 @@ payload can be larger than the active image; this tool reads the maker note
 (Exif 0x927C -> Olympus ImageProcessing sub-IFD tag 0x2040) and prints the
 active width/height (tags 0x0614/0x0615) and the crop rectangle 0x0637. It reads
 the TIFF structure only and decodes nothing.
+Payload geometry uses the image IFD with the largest total strip byte count,
+as in orf_signature.py. Without strip counts, primary IFD dimensions are
+labelled primary and no payload border is calculated.
 
 Standard library only, Python 3.8+. Prints aggregate metadata only.
 
@@ -98,11 +101,17 @@ def main(paths):
                 data = f.read()
             t = Tiff(data)
             main, _ = t.ifd(t.u32(4))
-            w = (main.get(0x100) or [0])[0]
-            h = (main.get(0x101) or [0])[0]
+            ifds = list(t.all_ifds())
+            best = max(ifds, key=lambda d: sum(d.get(0x117) or [0]), default=main)
+            has_payload = bool(sum(best.get(0x117) or [0]))
+            if not has_payload:
+                best = main
+            w = (best.get(0x100) or [0])[0]
+            h = (best.get(0x101) or [0])[0]
+            geometry = "payload" if has_payload else "primary"
             blob = maker_note(data)
             if blob is None:
-                print("%s payload %dx%d  no maker note" % (os.path.basename(path), w, h))
+                print("%s %s %dx%d  no maker note" % (os.path.basename(path), geometry, w, h))
                 continue
             imgs = olympus_tags(blob).get("image_processing", {})
             aw = imgs.get(0x0614, (0, 0, b"", None))[3]
@@ -114,11 +123,12 @@ def main(paths):
                 aw = ah = None   # more than one value: not an active width/height
             cr = imgs.get(0x0637, (0, 0, b"", None))[3]
             if aw is None or ah is None:
-                print("%s payload %dx%d  active dimensions not found" % (
-                    os.path.basename(path), w, h))
+                print("%s %s %dx%d  active dimensions not found" % (
+                    os.path.basename(path), geometry, w, h))
                 continue
-            print("%s payload %dx%d  active %dx%d  border %dx%d  crop %s" % (
-                os.path.basename(path), w, h, aw, ah, w - aw, h - ah,
+            border = "%dx%d" % (w - aw, h - ah) if has_payload else "unavailable"
+            print("%s %s %dx%d  active %dx%d  border %s  crop %s" % (
+                os.path.basename(path), geometry, w, h, aw, ah, border,
                 list(cr) if cr else "not found"))
         except (ValueError, TypeError, IndexError, KeyError, OSError, struct.error) as exc:
             print("%s: %s" % (path, exc), file=sys.stderr)
