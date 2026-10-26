@@ -1,5 +1,6 @@
 """Synthetic tests for capture_pair_calibration; no camera files."""
 import io
+import hashlib
 import os
 import sys
 import unittest
@@ -84,7 +85,7 @@ class Tests(unittest.TestCase):
         for dto in ("0000:00:00 00:00:00", "2025:02:30 10:00:00", "bad", "2025:1:01 10:00:00"):
             with self.subTest(dto=dto), patch("builtins.open", return_value=io.BytesIO(b"file")), \
                     patch.object(c, "date_time_original", return_value=dto), \
-                    patch.object(c, "signature", return_value={"payload_w": 5000}):
+                    patch.object(c, "signature", return_value={"payload_w": 5000, "sha256": hashlib.sha256(b"file").hexdigest()}):
                 _, result = c.file_meta("sample.ORF")
                 self.assertIsNone(result["dto"])
                 self.assertIsNone(result["time"])
@@ -95,10 +96,18 @@ class Tests(unittest.TestCase):
                 self.assertEqual(excluded, {"no_metadata": 1})
         with patch("builtins.open", return_value=io.BytesIO(b"file")), \
                 patch.object(c, "date_time_original", return_value="2025:01:01 10:00:00"), \
-                patch.object(c, "signature", return_value={"payload_w": 5000}):
+                patch.object(c, "signature", return_value={"payload_w": 5000, "sha256": hashlib.sha256(b"file").hexdigest()}):
             _, result = c.file_meta("sample.ORF")
             self.assertEqual(result["dto"], "2025:01:01 10:00:00")
             self.assertEqual(result["time"], datetime(2025, 1, 1, 10))
+
+    def test_changed_file_cannot_relabel_original_snapshot(self):
+        with patch("builtins.open", return_value=io.BytesIO(b"original")), \
+                patch.object(c, "date_time_original", return_value="2025:01:01 10:00:00"), \
+                patch.object(c, "signature", return_value={"payload_w": 8000,
+                    "sha256": hashlib.sha256(b"changed").hexdigest()}):
+            with self.assertRaisesRegex(ValueError, "changed"):
+                c.file_meta("P1.ORF")
 
     def test_screen_rejects_duplicate_self_and_malformed_pairs(self):
         a, b = h("a"), h("b")
