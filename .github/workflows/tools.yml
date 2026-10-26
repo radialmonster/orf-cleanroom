@@ -35,6 +35,10 @@ jobs:
         run: python -I -B tools/test_token_luma_probe.py
       - name: Token luma stride probe tests
         run: python -I -B tools/test_token_luma_stride_probe.py
+      - name: Token phase and suffix joint tests
+        run: |
+          python -I -B tools/test_token_phase_probe.py
+          python -I -B tools/suffix_joint_probe.py --self-test
       - name: orf signature tests
         run: python -I -B tools/test_orf_signature.py
       - name: Active area metadata tests

@@ -123,6 +123,32 @@ class Tests(unittest.TestCase):
         self.assertEqual(report['summary']['model_and_time_available'], 1)
         self.assertEqual(report['same_model_time_groups'], [])
 
+    def test_conflicting_exif_dates_are_not_counted_as_valid(self):
+        first = b'2022:01:01 12:00:00\0'
+        other = b'2022:01:01 12:00:01\0'
+        for left, right, wrong_type, available in ((first, other, None, False), (other, first, None, False),
+                                                    (first, first, None, True), (first, first, 0, False),
+                                                    (first, first, 1, False)):
+            with self.subTest(left=left, right=right, wrong_type=wrong_type):
+                data = bytearray(fixture('Body One', '2022:01:01 12:00:00', 1))
+                exif_at = len(data)
+                value_at = exif_at + 2 + 2 * 12 + 4
+                data.extend(struct.pack('<H', 2))
+                data.extend(struct.pack('<HHII', 36867, 2, len(left), value_at))
+                data.extend(struct.pack('<HHII', 36867, 2, len(right), value_at + len(left)))
+                data.extend(struct.pack('<I', 0) + left + right)
+                if wrong_type is not None:
+                    struct.pack_into('<H', data, exif_at + 2 + wrong_type * 12 + 2, 7)
+                struct.pack_into('<I', data, 10 + 6 * 12 + 8, exif_at)
+                path = self.root / 'sample.ORF'
+                path.write_bytes(data)
+                self.records = [dict(id='1', name='public.ORF',
+                    sha256=hashlib.sha256(data).hexdigest(), licence='CC0')]
+                status, out, err = self.run_cli(['--sample', '1', str(path)])
+                self.assertEqual((status, err), (0, ''))
+                report = json.loads(out)
+                self.assertEqual(report['samples'][0]['datetime_original_available'], available)
+
     def test_rejects_wrong_ids_hashes_duplicates_and_restrictions(self):
         self.add('1', 'Body One', '2022:01:01 12:00:00', 1)
         original = list(self.args)
