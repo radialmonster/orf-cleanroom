@@ -20,22 +20,23 @@ from suffix_joint_probe import scan_prefix  # noqa: E402
 class PhaseTests(unittest.TestCase):
     def test_balanced_controls(self):
         # Each phase gets each symbol exactly once, for every declared modulus.
+        # Entropies are sums of float logs, so they are compared to 12 places, not exactly.
         period = 840  # lcm(2..8)
         tokens = [(0, suffix) for suffix in (0, 4, 16, 20) for _ in range(period)]
         for result in phase_statistics(tokens)["moduli"]:
             expected = period // result["modulus"]
             self.assertEqual(result["phase_by_symbol_00_01_10_11"],
                              [[expected] * 4 for _ in range(result["modulus"])])
-            self.assertEqual(result["plugin_mi_bits"], 0)
-            self.assertEqual(result["symbol_entropy_bits"], 2)
-            self.assertEqual(result["conditional_symbol_entropy_bits"], 2)
+            self.assertAlmostEqual(result["plugin_mi_bits"], 0, places=12)
+            self.assertAlmostEqual(result["symbol_entropy_bits"], 2, places=12)
+            self.assertAlmostEqual(result["conditional_symbol_entropy_bits"], 2, places=12)
 
     def test_planted_phase_lock(self):
         tokens = [(0, (0, 4, 16, 20)[i % 4]) for i in range(800)]
         results = {r["modulus"]: r for r in phase_statistics(tokens)["moduli"]}
-        self.assertEqual(results[4]["plugin_mi_bits"], 2)
-        self.assertEqual(results[2]["plugin_mi_bits"], 1)
-        self.assertEqual(results[4]["conditional_symbol_entropy_bits"], 0)
+        self.assertAlmostEqual(results[4]["plugin_mi_bits"], 2, places=12)
+        self.assertAlmostEqual(results[2]["plugin_mi_bits"], 1, places=12)
+        self.assertAlmostEqual(results[4]["conditional_symbol_entropy_bits"], 0, places=12)
 
     def test_escape_indices_not_compacted(self):
         result = phase_statistics([(0, 0), (17, 20), (0, 4), (0, 16)])
