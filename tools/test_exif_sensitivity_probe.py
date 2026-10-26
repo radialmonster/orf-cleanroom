@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Synthetic TIFF bounds, byte-order and numeric sensitivity tests for #106."""
 import contextlib
+import hashlib
 import io
 import json
 import os
@@ -69,13 +70,23 @@ class SensitivityTests(unittest.TestCase):
             probe.sensitivity(data)
 
     def test_measure_sentinel_and_path_privacy(self):
-        measured = {"file": "private.ORF", "sha256": "publichash"}
-        with mock.patch("builtins.open", mock.mock_open(read_data=bytes(fixture(values=(65535,))))), \
+        data = bytes(fixture(values=(65535,)))
+        measured = {"file": "private.ORF", "sha256": hashlib.sha256(data).hexdigest()}
+        with mock.patch("builtins.open", mock.mock_open(read_data=data)), \
                 mock.patch.object(probe.signature, "signature", return_value=measured):
             result = probe.measure("1", "public.ORF", "private/path")
         self.assertTrue(result["contains_65535_sentinel"])
         self.assertEqual(result["photographic_sensitivity_raw"], [65535])
         self.assertNotIn("private", json.dumps(result))
+
+    def test_changed_input_cannot_attach_other_hash_to_sensitivity(self):
+        original = bytes(fixture(values=(200,)))
+        changed = bytes(fixture(values=(400,)))
+        other_signature = {"file": "private.ORF", "sha256": hashlib.sha256(changed).hexdigest()}
+        with mock.patch("builtins.open", mock.mock_open(read_data=original)), \
+                mock.patch.object(probe.signature, "signature", return_value=other_signature):
+            with self.assertRaises(ValueError):
+                probe.measure("1", "public.ORF", "private/path")
 
     def test_cli_failure_keeps_success_and_sanitizes(self):
         with mock.patch.object(probe, "measure", side_effect=[{"pixls_id": "1"},

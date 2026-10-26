@@ -64,8 +64,11 @@ def sensitivity(data):
 
 def measure(sample_id, public_name, path):
     with open(path, "rb") as stream:
-        values = sensitivity(stream.read())
+        data = stream.read()
+    values = sensitivity(data)
     measured = signature.signature(path)
+    if measured["sha256"] != hashlib.sha256(data).hexdigest():
+        raise ValueError("sample changed while reading metadata")
     measured.pop("file")  # never expose a local filename/path
     return {"pixls_id": sample_id, "pixls_name": public_name,
             "signature": measured, "photographic_sensitivity_raw": values,
