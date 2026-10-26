@@ -48,7 +48,8 @@ class Tests(unittest.TestCase):
                     'one_fraction': 0.5, 'transition_fraction': 0.5, 'byte_entropy_bits': 8}}
                     for start in (0, 65536, 131072)]})
             manifest.append({'pixls_id': key, 'pixls_name': key, 'sha256': digest,
-                'make': 'M', 'model': key, 'licence': 'CC0', 'source': 'pixls'})
+                'make': 'M', 'model': key, 'licence': 'CC0', 'source': 'pixls',
+                'payload_w': '100', 'payload_h': '100'})
         return {'schema': 'raw-bit-window-features-v1', 'window_count': 3,
                 'window_bytes': 65536, 'samples': samples, 'errors': []}, manifest
 
@@ -88,6 +89,29 @@ class Tests(unittest.TestCase):
         manifest[0]['sha256'] = 'not-a-sha256'
         with self.assertRaises(ValueError):
             probe.cohort(report, manifest, ['1', '2', '3'])
+
+    def test_geometry_conflict_with_manifest_is_rejected(self):
+        for field in ('payload_width', 'payload_height'):
+            report, manifest = self.fixture()
+            sample = report['samples'][0]
+            sample[field] = 200
+            sample['payload_bits_per_pixel'] = sample['payload_bytes'] * 8 / 20000
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                probe.cohort(report, manifest, ['1', '2', '3'])
+
+    def test_blank_manifest_geometry_is_not_a_conflict(self):
+        report, manifest = self.fixture()
+        manifest[0]['payload_w'] = manifest[0]['payload_h'] = ''
+        del manifest[1]['payload_w']
+        del manifest[1]['payload_h']
+        self.assertEqual(len(probe.cohort(report, manifest, ['1', '2', '3'])), 3)
+
+    def test_conflicting_duplicate_manifest_geometry_is_rejected(self):
+        for field in ('payload_w', 'payload_h'):
+            report, manifest = self.fixture()
+            conflicting = dict(manifest[0], **{field: '200'})
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                probe.cohort(report, manifest + [conflicting], ['1', '2', '3'])
 
     def test_non_numeric_public_id_is_rejected(self):
         report, manifest = self.fixture()
