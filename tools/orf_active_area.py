@@ -120,7 +120,7 @@ def main(paths):
             print("%s payload %dx%d  active %dx%d  border %dx%d  crop %s" % (
                 os.path.basename(path), w, h, aw, ah, w - aw, h - ah,
                 list(cr) if cr else "not found"))
-        except (ValueError, IndexError, KeyError, OSError, struct.error) as exc:
+        except (ValueError, TypeError, IndexError, KeyError, OSError, struct.error) as exc:
             print("%s: %s" % (path, exc), file=sys.stderr)
             failed = True
     return 1 if failed else 0
