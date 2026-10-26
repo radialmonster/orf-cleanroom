@@ -24,6 +24,9 @@ validity or independent captures.
 Input: the JSON lines printed by preview_pair_screen.py (UTF-8 or UTF-16, as
 PowerShell redirection writes) and the same files. Prints aggregates only:
 counts, rates, AUC (Mann-Whitney, ties 0.5) and score ranges per class.
+Each unordered pair of distinct SHA-256 hashes may occur only once; malformed,
+self, or duplicate pairs and correlations outside the finite [-1, 1] range
+are rejected. A null correlation represents an unavailable screen score.
 
 Usage: python -I -B tools/capture_pair_calibration.py --screen SCREEN.jsonl FILE [FILE ...]
        python -I -B tools/capture_pair_calibration.py --screen SCREEN.jsonl --files-from LIST.txt
@@ -33,6 +36,7 @@ import argparse
 import bisect
 import hashlib
 import json
+import math
 import os
 import re
 import sys
@@ -121,11 +125,27 @@ def calibrate(pos, neg):
 def analyse(records, meta, hard_seconds):
     days = sorted({m["dto"][:10] for m in meta.values() if m["dto"]})
     split_of = dict((d, "cal" if i % 2 == 0 else "val") for i, d in enumerate(days))
-    scores, excluded = {}, {}
+    scores, excluded, seen = {}, {}, set()
     for rec in records:
         if "pair" not in rec:
             continue
-        a, b = (meta.get(h) for h in rec["pair"])
+        pair = rec["pair"]
+        if (not isinstance(pair, list) or len(pair) != 2
+                or any(not isinstance(h, str) or not re.fullmatch(r"[0-9a-f]{64}", h) for h in pair)):
+            raise ValueError("pair must contain two lowercase SHA-256 hashes")
+        if pair[0] == pair[1]:
+            raise ValueError("self pair is invalid")
+        key = tuple(sorted(pair))
+        if key in seen:
+            raise ValueError("duplicate unordered pair")
+        seen.add(key)
+        if "r" not in rec:
+            raise ValueError("missing pair correlation")
+        r = rec["r"]
+        if r is not None and (isinstance(r, bool) or not isinstance(r, (int, float))
+                              or not -1 <= r <= 1 or not math.isfinite(r)):
+            raise ValueError("correlation must be null or a finite number in [-1, 1]")
+        a, b = (meta.get(h) for h in pair)
         if a is None or b is None or not a["dto"] or not b["dto"]:
             excluded["no_metadata"] = excluded.get("no_metadata", 0) + 1
             continue
@@ -196,9 +216,13 @@ def main(argv=None):
         sha, m = file_meta(path)
         meta.setdefault(sha, m)
     records = load_screen(a.screen)
+    try:
+        analysis = analyse(records, meta, a.hard_seconds)
+    except ValueError as exc:
+        ap.error(str(exc))
     print("files %d distinct %d without DateTimeOriginal %d" % (
         len(paths), len(meta), sum(1 for m in meta.values() if not m["dto"])))
-    report(*analyse(records, meta, a.hard_seconds), threshold=a.threshold)
+    report(*analysis, threshold=a.threshold)
 
 
 if __name__ == "__main__":

@@ -15,6 +15,10 @@ def m(name, dto, hires=False):
             "dto": dto, "time": datetime.strptime(dto, "%Y:%m:%d %H:%M:%S")}
 
 
+def h(letter):
+    return letter * 64
+
+
 class Tests(unittest.TestCase):
     def test_base_name(self):
         self.assertEqual(c.base_name("dir/P1012824_01.ORF"), "P1012824")
@@ -49,14 +53,14 @@ class Tests(unittest.TestCase):
 
     def test_split_and_report(self):
         meta = {
-            "a": m("P1.ORF", "2025:01:01 10:00:00", hires=True),
-            "b": m("P1.ORI", "2025:01:01 10:00:00"),
-            "c": m("P2.ORF", "2025:01:01 10:05:00"),
-            "d": m("P3.ORF", "2025:01:02 10:00:00"),
+            h("a"): m("P1.ORF", "2025:01:01 10:00:00", hires=True),
+            h("b"): m("P1.ORI", "2025:01:01 10:00:00"),
+            h("c"): m("P2.ORF", "2025:01:01 10:05:00"),
+            h("d"): m("P3.ORF", "2025:01:02 10:00:00"),
         }
-        recs = [{"pair": ["a", "b"], "r": 0.999}, {"pair": ["a", "c"], "r": 0.5},
-                {"pair": ["b", "c"], "r": 0.4}, {"pair": ["a", "d"], "r": 0.1},
-                {"pair": ["b", "d"], "r": None}, {"pair": ["c", "d"], "r": 0.0}]
+        recs = [{"pair": [h("a"), h("b")], "r": 0.999}, {"pair": [h("a"), h("c")], "r": 0.5},
+                {"pair": [h("b"), h("c")], "r": 0.4}, {"pair": [h("a"), h("d")], "r": 0.1},
+                {"pair": [h("b"), h("d")], "r": None}, {"pair": [h("c"), h("d")], "r": 0.0}]
         days, split_of, scores, excluded = c.analyse(recs, meta, 600)
         self.assertEqual(split_of, {"2025:01:01": "cal", "2025:01:02": "val"})
         self.assertEqual(scores[("cal", "P")], [0.999])
@@ -77,8 +81,8 @@ class Tests(unittest.TestCase):
                 self.assertIsNone(result["dto"])
                 self.assertIsNone(result["time"])
                 good = m("P2.ORF", "2025:01:01 10:00:00")
-                _, _, scores, excluded = c.analyse([{"pair": ["bad", "good"], "r": 0.9}],
-                                                    {"bad": result, "good": good}, 600)
+                _, _, scores, excluded = c.analyse([{"pair": [h("e"), h("f")], "r": 0.9}],
+                                                    {h("e"): result, h("f"): good}, 600)
                 self.assertEqual(scores, {})
                 self.assertEqual(excluded, {"no_metadata": 1})
         with patch("builtins.open", return_value=io.BytesIO(b"file")), \
@@ -87,6 +91,51 @@ class Tests(unittest.TestCase):
             _, result = c.file_meta("sample.ORF")
             self.assertEqual(result["dto"], "2025:01:01 10:00:00")
             self.assertEqual(result["time"], datetime(2025, 1, 1, 10))
+
+    def test_screen_rejects_duplicate_self_and_malformed_pairs(self):
+        a, b = h("a"), h("b")
+        single = {"pair": [a, b], "r": 0.5}
+        for pair in ([a, b], [b, a]):
+            for value in (0.5, 0.6, None):
+                with self.subTest(pair=pair, value=value):
+                    with self.assertRaisesRegex(ValueError, "duplicate"):
+                        c.analyse([single, {"pair": pair, "r": value}], {}, 600)
+        for pair in ([a, a], [a], [a, b, h("c")], "bad", [a, None], [a, "bad"]):
+            with self.subTest(pair=pair):
+                with self.assertRaises(ValueError):
+                    c.analyse([{"pair": pair, "r": 0.5}], {}, 600)
+
+    def test_invalid_screen_fails_before_report(self):
+        records = [{"pair": [h("a"), h("b")], "r": 0.5}] * 2
+        stdout, stderr = io.StringIO(), io.StringIO()
+        with patch.object(c, "load_screen", return_value=records), \
+                patch("sys.stdout", stdout), patch("sys.stderr", stderr):
+            with self.assertRaises(SystemExit) as raised:
+                c.main(["--screen", "synthetic"])
+        self.assertEqual(raised.exception.code, 2)
+        self.assertIn("duplicate unordered pair", stderr.getvalue())
+        self.assertEqual(stdout.getvalue(), "")
+
+    def test_repeated_pairs_cannot_claim_support(self):
+        a, b, d = h("a"), h("b"), h("d")
+        meta = {a: m("P1.ORF", "2025:01:01 10:00:00", hires=True),
+                b: m("P1.ORI", "2025:01:01 10:00:00"),
+                d: m("P2.ORF", "2025:01:01 10:05:00")}
+        records = [{"pair": [a, b], "r": 0.99}] * 10 + [{"pair": [a, d], "r": 0.2}] * 10
+        with self.assertRaisesRegex(ValueError, "duplicate"):
+            c.analyse(records, meta, 600)
+
+    def test_screen_rejects_invalid_correlations_even_without_metadata(self):
+        for value in (float("nan"), float("inf"), -float("inf"), -1.01, 1.01, "0.5", True):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(ValueError, "correlation"):
+                    c.analyse([{"pair": [h("a"), h("b")], "r": value}], {}, 600)
+        with self.assertRaisesRegex(ValueError, "correlation"):
+            c.analyse([{"pair": [h("a"), h("b")]}], {}, 600)
+        for value in (-1.0, 0.0, 1.0, None):
+            with self.subTest(value=value):
+                self.assertEqual(c.analyse([{"pair": [h("a"), h("b")], "r": value}], {}, 600)[3],
+                                 {"no_metadata": 1})
 
     def test_calibration_support_and_auc_counts(self):
         scores = {(split, kind): values for split in ("cal", "val")
