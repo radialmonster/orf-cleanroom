@@ -316,9 +316,9 @@ def decode_file(path, order=None, layout=None):
         # in 15/15 cells; it specifies no values, predictor or decode (V1 G2).
         # F_CONTEXT (Partial for #332): order-8 predictive structure reproduces on
         # a named unassigned four-file cohort, but is not an identified codec or
-        # reconstruction (V1 S1.17).
+        # reconstruction (V1 S1.18).
         r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; predictive baselines are not a codec)")
-        r["notes"].append("compressed payload (%s bits per pixel); no decoder or padding rule is specified yet; suffix associations do not specify values, see specs/V1.md S1.1-S1.2, S1.7-S1.17, S2.3, G2, specs/V2.md S1.1-S1.2 and ROADMAP.md" % sig["bpp"])
+        r["notes"].append("compressed payload (%s bits per pixel); no decoder or padding rule is specified yet; suffix associations do not specify values, see specs/V1.md S1.1-S1.2, S1.7-S1.18, S2.3, G2, specs/V2.md S1.1-S1.2 and ROADMAP.md" % sig["bpp"])
         return r
     packing = sc
     r.update(variant="V0", packing=packing, status=STATUS[packing])
