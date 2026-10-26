@@ -2,9 +2,20 @@
 
 **Quick way:** download CC0 files with `tools/pixls_samples.py download`, then
 
-    python tools/manifest_rows.py --by @yourhandle --append samples/manifest.csv ../orf-samples/*
+    python tools/manifest_rows.py --by '@yourhandle' --append samples/manifest.csv ../orf-samples/*
 
 That fills every column it can measure and leaves the rest blank. For your own files, add `--own` (you confirm they're yours or the owner agreed). If one of "your" files turns out to be identical to a raw.pixls.us file, the tool records it as that CC0 file, which is better: others can re-test it.
+
+To reuse previously verified records without contacting the catalogue, pass
+`--licence-records records.json`. The JSON is an array of records or an object
+with a `files` array; each record needs a positive numeric `id`, public ORF/ORI
+`name`, lowercase `sha256`, and `licence` (for example `CC0`). Extra fields are
+ignored. The caller must have retained the original licence verification and
+public identity; supplying JSON does not itself verify provenance. The tool
+matches the measured local hash and skips a hash if any supplied record for it
+is non-CC0. Include known restricted records: the offline file cannot reveal
+catalogue entries omitted from it. `--own` still requires ownership or the
+owner's agreement and cannot override a supplied non-CC0 record.
 
 Use `--append` rather than shell `>>`: on Windows, `>>` can write CRLF line endings.
 

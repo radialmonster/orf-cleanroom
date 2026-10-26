@@ -9,11 +9,13 @@ files are always skipped. Files not on raw.pixls.us are skipped unless you pass
 recorded with source=own and licence=not-shared. Bitstream columns are left
 blank; fill them only from a tools/ script you ran.
 
-Usage: python manifest_rows.py --by @yourhandle [--own] FILE [FILE ...] >> ../samples/manifest.csv
+Usage: python manifest_rows.py --by '@yourhandle' [--own] [--licence-records JSON]
+                              --append samples/manifest.csv FILE [FILE ...]
 """
 import argparse
 import csv
 from contextlib import nullcontext
+import json
 import os
 import re
 import subprocess
@@ -55,12 +57,45 @@ def clean(text):
     return re.sub(r"[^A-Za-z0-9 ,._()/-]", "_", str(text)).strip()
 
 
+def licence_records(path):
+    """Read retained identities; original licence verification is the caller's responsibility."""
+    with open(path, encoding="utf-8-sig") as stream:
+        data = json.load(stream)
+    if isinstance(data, dict):
+        data = data.get("files")
+    if not isinstance(data, list):
+        raise ValueError("licence records must be a list or an object with a files list")
+    identities = {}
+    for r in data:
+        if not isinstance(r, dict):
+            raise ValueError("licence record must be an object")
+        rid, name, digest, licence = (r.get(k) for k in ("id", "name", "sha256", "licence"))
+        if type(rid) is int:
+            rid = str(rid)
+        if not isinstance(rid, str) or not re.fullmatch(r"[1-9][0-9]*", rid):
+            raise ValueError("licence record ID must be a positive decimal")
+        if (not isinstance(name, str) or not name or not name.isprintable() or
+                any(c in name for c in "/\\") or not name.lower().endswith((".orf", ".ori"))):
+            raise ValueError("licence record name must be a public ORF/ORI filename")
+        if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+            raise ValueError("licence record needs a lowercase SHA-256")
+        if not isinstance(licence, str) or not licence or not licence.isprintable() or licence != licence.strip():
+            raise ValueError("licence record needs a licence")
+        identity = (name, digest)
+        if rid in identities and identities[rid] != identity:
+            raise ValueError("conflicting identities for the same public ID")
+        identities[rid] = identity
+        yield dict(r, id=rid)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--by", required=True, help="your own GitHub handle, e.g. @you")
     ap.add_argument("--own", action="store_true",
                     help="include files not on raw.pixls.us: you confirm they are yours or the owner agreed")
     ap.add_argument("--header", action="store_true", help="also print the header line")
+    ap.add_argument("--licence-records", metavar="JSON",
+                    help="use previously verified local licence records instead of the live catalogue")
     ap.add_argument("--append", metavar="CSV",
                     help="append the rows to this file (e.g. samples/manifest.csv) with LF endings, instead of printing them")
     ap.add_argument("files", nargs="+")
@@ -72,7 +107,13 @@ def main():
             existing.seek(-1, os.SEEK_END)
             if existing.read(1) != b"\n":
                 ap.error("--append destination must end in a newline")
-    listing = by_hash(rows())
+    if a.licence_records is not None:
+        try:
+            listing = by_hash(licence_records(a.licence_records))
+        except (OSError, UnicodeError, ValueError):
+            ap.error("invalid or unreadable licence records")
+    else:
+        listing = by_hash(rows())
     # Write LF endings ourselves; shell redirection on Windows can turn them into CRLF.
     # --header with --append writes the header only into a new or empty file.
     dest = open(a.append, "a", encoding="utf-8", newline="") if a.append else nullcontext(sys.stdout)
