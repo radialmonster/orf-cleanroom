@@ -138,6 +138,26 @@ class Tests(unittest.TestCase):
         self.assertEqual((row["payload_w"], row["payload_h"], row["bpp"], row["size_class"]),
                          ("2", "2", "16.000", "packed-16"))
 
+    def test_non_numeric_dimension_and_strip_count_fail_per_file(self):
+        for entry in (0, 1, 5):
+            data = bytearray(fixture())
+            struct.pack_into("<HI4s", data, 10 + entry * 12 + 2, 2, 2, b"2\0\0\0")
+            for paths in (["bad.orf"], ["bad.orf", "valid.orf"]):
+                with self.subTest(entry=entry, paths=paths):
+                    status, output, error = self.call(paths, {"bad.orf": bytes(data), "valid.orf": fixture()})
+                    self.assertEqual(status, 1)
+                    self.assertEqual([r["file"] for r in csv.DictReader(io.StringIO(output))],
+                                     ["valid.orf"] if len(paths) == 2 else [])
+                    self.assertIn("bad.orf:", error)
+
+    def test_missing_dimension_keeps_existing_empty_bpp(self):
+        data = bytearray(fixture())
+        struct.pack_into("<H", data, 10, 65000)
+        status, output, error = self.call(["missing.orf"], {"missing.orf": bytes(data)})
+        self.assertEqual((status, error), (0, ""))
+        row = next(csv.DictReader(io.StringIO(output)))
+        self.assertEqual((row["payload_w"], row["bpp"], row["size_class"]), ("0", "", "variable"))
+
     def test_help_and_no_arguments(self):
         for paths, expected in [(["--help"], 0), (["-h"], 0), ([], 2)]:
             status, output, error = self.call(paths, {})

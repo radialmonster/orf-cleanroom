@@ -138,7 +138,7 @@ def main(paths):
     for p in paths:
         try:
             row = signature(p)
-        except (ValueError, struct.error, OSError) as exc:
+        except (ValueError, TypeError, struct.error, OSError) as exc:
             print("%s: %s" % (p, exc), file=sys.stderr)
             failed = True
             continue
