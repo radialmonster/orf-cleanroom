@@ -36,6 +36,45 @@ class FindingIds(unittest.TestCase):
             self.assertEqual(errors, [])
             self.assertEqual(len(found), 2)
 
+    def test_repeated_reproducer_of_same_finding_is_not_a_new_verifier(self):
+        WORK.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=str(WORK)) as folder:
+            dest = Path(folder) / 'findings' / 'container'
+            dest.mkdir(parents=True)
+            target = '2026-01-01--tester--original'
+            (dest / (target + '.md')).write_text(finding('container'), encoding='utf-8')
+            for n, verifier in ((2, 'bob'), (3, 'BoB')):
+                body = finding('container').replace('Verified by: @tester', 'Verified by: @' + verifier)
+                body = body.replace('Variant: container\n', 'Variant: container\nReproduces: ' + target + '\n')
+                (dest / ('2026-01-0%d--tester--reproduction.md' % n)).write_text(body, encoding='utf-8')
+            found, errors = {}, []
+            index.scan(folder, found, errors)
+            index.resolve(found, errors)
+            self.assertTrue(any('already verified' in error for error in errors), errors)
+            # A different human verifier is allowed and contributes separate credit.
+            latest = dest / '2026-01-03--tester--reproduction.md'
+            latest.write_text(latest.read_text(encoding='utf-8').replace('@BoB', '@charlie'), encoding='utf-8')
+            found, errors = {}, []
+            index.scan(folder, found, errors)
+            index.resolve(found, errors)
+            self.assertEqual(errors, [])
+            self.assertEqual(set(index.statuses(found)[target][2]), {'bob', 'charlie'})
+
+    def test_reproduction_reference_rejects_unknown_self_and_mismatched_credit(self):
+        target_id = '2026-01-01--tester--original'
+        for defect in ('missing', 'self', 'author', 'lead', 'prior-verifier'):
+            with self.subTest(defect=defect):
+                target = index.Finding(target_id, 'container', 'original', 'tester', 'Original', 'alice', '#1')
+                repro = index.Finding('2026-01-02--tester--again', 'container', 'again',
+                                      'other' if defect == 'author' else 'tester', 'Again',
+                                      'alice' if defect == 'prior-verifier' else 'bob',
+                                      '#2' if defect == 'lead' else '#1')
+                repro.reproduces = ('2026-01-01--tester--missing' if defect == 'missing' else
+                                    repro.id if defect == 'self' else target_id)
+                errors = []
+                index.resolve({target.id: target, repro.id: repro}, errors)
+                self.assertTrue(errors, defect)
+
     def test_duplicate_id_across_folders_fails_check(self):
         WORK.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(dir=str(WORK)) as folder:
