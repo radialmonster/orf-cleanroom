@@ -13,6 +13,7 @@ Usage: python manifest_rows.py --by @yourhandle [--own] FILE [FILE ...] >> ../sa
 """
 import argparse
 import csv
+from contextlib import nullcontext
 import os
 import re
 import subprocess
@@ -68,31 +69,32 @@ def main():
     # Write LF endings ourselves; shell redirection on Windows can turn them into CRLF.
     # --header with --append writes the header only into a new or empty file.
     fresh = not a.append or not os.path.exists(a.append) or os.path.getsize(a.append) == 0
-    dest = open(a.append, "a", encoding="utf-8", newline="") if a.append else sys.stdout
-    out = csv.DictWriter(dest, fieldnames=COLUMNS, lineterminator="\n")
-    if a.header and fresh:
-        out.writeheader()
-    by = "%s tools/orf_signature.py %s" % (a.by, commit())
-    for p in a.files:
-        s = signature(p)
-        r = listing.get(s["sha256"])
-        if r is not None and r["licence"] != "CC0":
-            print("skipped (raw.pixls.us file under %s, not CC0): %s" % (r["licence"], p), file=sys.stderr)
-            continue
-        if r is None and not a.own:
-            print("skipped (not on raw.pixls.us; pass --own if it's yours): %s" % p, file=sys.stderr)
-            continue
-        own = r is None
-        out.writerow({
-            "source": "own" if own else "pixls",
-            "pixls_id": "" if own else r["id"], "pixls_name": "" if own else r["name"],
-            "sha256": s["sha256"], "licence": "not-shared" if own else "CC0",
-            "make": clean(s["make"]), "model": clean(s["model"]), "mode": mode(s["payload_w"]),
-            "payload_w": s["payload_w"], "payload_h": s["payload_h"], "bpp": s["bpp"],
-            "size_class": s["size_class"],
-            "compression_tag": s["compression_tag"], "escape_bits": "", "calm_parse": "",
-            "row_stride": "", "variant": variant(s["size_class"]), "measured_by": by,
-        })
+    dest = open(a.append, "a", encoding="utf-8", newline="") if a.append else nullcontext(sys.stdout)
+    with dest as dest:
+        out = csv.DictWriter(dest, fieldnames=COLUMNS, lineterminator="\n")
+        if a.header and fresh:
+            out.writeheader()
+        by = "%s tools/orf_signature.py %s" % (a.by, commit())
+        for p in a.files:
+            s = signature(p)
+            r = listing.get(s["sha256"])
+            if r is not None and r["licence"] != "CC0":
+                print("skipped (raw.pixls.us file under %s, not CC0): %s" % (r["licence"], p), file=sys.stderr)
+                continue
+            if r is None and not a.own:
+                print("skipped (not on raw.pixls.us; pass --own if it's yours): %s" % p, file=sys.stderr)
+                continue
+            own = r is None
+            out.writerow({
+                "source": "own" if own else "pixls",
+                "pixls_id": "" if own else r["id"], "pixls_name": "" if own else r["name"],
+                "sha256": s["sha256"], "licence": "not-shared" if own else "CC0",
+                "make": clean(s["make"]), "model": clean(s["model"]), "mode": mode(s["payload_w"]),
+                "payload_w": s["payload_w"], "payload_h": s["payload_h"], "bpp": s["bpp"],
+                "size_class": s["size_class"],
+                "compression_tag": s["compression_tag"], "escape_bits": "", "calm_parse": "",
+                "row_stride": "", "variant": variant(s["size_class"]), "measured_by": by,
+            })
 
 
 if __name__ == "__main__":

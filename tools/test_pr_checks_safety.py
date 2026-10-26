@@ -216,6 +216,24 @@ BENIGN_PROSE = [
 
 
 class SafetyScan(unittest.TestCase):
+    def test_builtin_subtraction_and_getattr_arguments(self):
+        for builtin in (EVAL, EXEC):
+            for expression in ("0-" + builtin + "('x')", "0 - " + builtin + "('x')",
+                               "0 -" + builtin + "('x')", "0- " + builtin + "('x')",
+                               "-" + builtin + "('x')", "0 --" + builtin + "('x')",
+                               "-" + builtin):
+                with self.subTest(expression=expression):
+                    self.assertTrue(pc.scan_text(fence(expression, "python")))
+        for separator in (",", ", "):
+            benign = "getattr(obj%s'width')" % separator
+            with self.subTest(separator=separator):
+                self.assertEqual(pc.scan_text(fence(benign, "python")), [])
+                for joiner in (" + ", " "):
+                    dynamic = "getattr(obj%s'un'%s'link')" % (separator, joiner)
+                    self.assertTrue(pc.scan_text(fence(dynamic, "python")))
+        for builtin in (EVAL, EXEC):
+            self.assertEqual(pc.scan_text(fence("tool --" + builtin, "sh")), [])
+
     def test_bad_python_fails(self):
         for name, body in BAD_PY.items():
             for lang in ("python", "sh"):

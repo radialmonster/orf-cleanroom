@@ -66,7 +66,10 @@ def base_file(path, rev=None):
 # import time, so no ClickFix-like literal sits on disk (antivirus false positives
 # on every clone).
 # ---------------------------------------------------------------------------
+import ast
 import bisect
+import io
+import tokenize
 import unicodedata
 
 
@@ -104,14 +107,11 @@ PY_RULES = [
         r"\bxmlrpc\b|\bsocketserver\b|\bparamiko\b|\bwebbrowser\b|\bwebsocket|"
         r"\b(?:open_connection|open_unix_connection|start_server|start_unix_server)\b")),
     ("dynamic code execution", re.compile(_x(
-        r"(?<![\w.-])(?:ev@@al|ex@@ec|ex@@ecfile|comp@@ile|breakpoint)\b(?![ \t]*=(?!=))|__imp@@ort__|\bimport@@lib\b|\brunpy\b|"
+        r"(?<![\w.])(?:ev@@al|ex@@ec|ex@@ecfile|comp@@ile|breakpoint)\b(?![ \t]*=(?!=))|__imp@@ort__|\bimport@@lib\b|\brunpy\b|"
         r"\bzipimport\b|\bpkgutil\b|\bimp\b|\bcode\.interact|\batexit\b|\bsignal\.(?:signal|alarm)|"
         r"\b__(?:builtins|globals|subclasses|bases|mro|loader|code|getattribute)__|\bbuiltins\b|"
         r"(?<![\w.])(?:globals|locals)\s*\(\s*\)|(?<![\w.])(?:set|del)attr\s*\(|"
-        r"(?<![\w.])getattr\s*\(\s*(?:os|sys|builtins|sub@@process|shutil)\b|"
-        # getattr(obj, <a name built at run time>) or getattr(obj, 'unlink'/'system'/...)
-        r"(?<![\w.])getattr\s*\([^,()]*,\s*(?:(?![\"'])|[\"'](?:unlink|rmdir|rename|replace|remove|removedirs|"
-        r"write_text|write_bytes|touch|chmod|system|popen|open|run|call|ex@@ec\w*|spawn\w*)[\"'])"))),
+        r"(?<![\w.])getattr\s*\(\s*(?:os|sys|builtins|sub@@process|shutil)\b"))),
     ("encoded or serialized payload", re.compile(_x(
         r"\bbase@@64\b|\bb(?:16|32|64|85)decode|\ba85decode|\bbinascii\.(?:a2b|unhexlify)|\bcodecs\.(?:decode|encode)|"
         r"\.decode\(\s*['\"](?:base64|hex|rot_?13|zlib|bz2|uu)|\bpick@@le\b|\bcPick@@le\b|\b_pick@@le\b|\bdill\b|"
@@ -333,12 +333,35 @@ def _open_hits(text):
     return hits
 
 
-def _py_scan(text):
+def _py_scan(text, lang=""):
     """-> [(offset, rule, matched text)] for Python-style danger in code text."""
     hits = []
     for rule, rx in PY_RULES:
         for m in rx.finditer(text):
+            # In shell text, a bare option name is not a builtin reference.
+            # Python blocks and call-like forms are always checked.
+            if (lang not in PY_LANGS and rule == "dynamic code execution"
+                    and m.group(0) in (_x("ev@@al"), _x("ex@@ec"), _x("ex@@ecfile"), _x("comp@@ile"), "breakpoint")
+                    and m.start() and text[m.start() - 1] == "-"
+                    and not re.match(r"[ \t]*\(", text[m.end():])):
+                continue
             hits.append((m.start(), rule, m.group(0)))
+    for m in re.finditer(r"(?<![\w.])getattr\s*\(", text):
+        args = _args(text, m.end())
+        if args is None or len(args) < 2:
+            hits.append((m.start(), "dynamic code execution", m.group(0)))
+            continue
+        try:
+            node = ast.parse(args[1], mode="eval").body
+            tokens = [t for t in tokenize.generate_tokens(io.StringIO(args[1]).readline)
+                      if t.type not in (tokenize.NEWLINE, tokenize.NL, tokenize.ENDMARKER)]
+            literal = (len(tokens) == 1 and tokens[0].type == tokenize.STRING
+                       and isinstance(node, ast.Constant) and isinstance(node.value, str))
+        except (SyntaxError, ValueError, tokenize.TokenError, IndentationError):
+            literal = False
+        dangerous = r"^(?:unlink|rmdir|rename|replace|remove|removedirs|write_text|write_bytes|touch|chmod|system|popen|open|run|call|exec\w*|spawn\w*)$"
+        if not literal or re.match(dangerous, node.value):
+            hits.append((m.start(), "dynamic code execution", m.group(0)))
     for m in OS_USE.finditer(text):
         if m.group(1) not in OS_OK and not re.match(r"O_[A-Z]+$", m.group(1)):  # O_* flags are inert; os.open is caught
             hits.append((m.start(), "os call that executes, deletes or changes files", m.group(0)))
@@ -576,7 +599,7 @@ def scan_text(text, lenient=False, warnings=None, what="findings text"):
         alltext = "\n".join(t for _, t in blines)
         starts_py = [0] + [i + 1 for i, c in enumerate(py_text) if c == "\n"]
         starts_sh = [0] + [i + 1 for i, c in enumerate(sh_text) if c == "\n"]
-        for off, rule, m in _py_scan(py_text):
+        for off, rule, m in _py_scan(py_text, lang):
             if inline and rule == "dynamic code execution" and re.fullmatch(r"\w+", py_text.strip()):
                 continue  # `eval` alone in a sentence names the function; it calls nothing
             hits.append((nums[_lineno(starts_py, off) - 1], rule, m))
