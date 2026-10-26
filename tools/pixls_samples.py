@@ -82,13 +82,27 @@ def rows():
         make, model, mode, licence_html, file_html = r[0], r[1], r[2], r[5], r[7]
         if not make.lower().startswith(MAKES):
             continue
-        url = re.search(r"href='([^']+)'", file_html).group(1)
+        if not isinstance(file_html, str) or '<![' in file_html:
+            raise ValueError("invalid catalogue file link")
+        parsed = LicenceLinks()
+        try:
+            parsed.feed(file_html)
+        except (AssertionError, ValueError):
+            raise ValueError("invalid catalogue file link")
+        if len(parsed.hrefs) != 1 or not isinstance(parsed.hrefs[0], str):
+            raise ValueError("ambiguous catalogue file link")
+        url = parsed.hrefs[0]
         name = url.rsplit("/", 1)[1]
         if not name.lower().endswith((".orf", ".ori")):
             continue
-        file_id = re.search(r"getfile\.php/(\d+)/", url).group(1)
-        # The hash is the one 64-hex run outside the link (a URL could hold another).
-        hashes = re.findall(r"(?<![0-9a-f])[0-9a-f]{64}(?![0-9a-f])", re.sub(r"href='[^']*'", "", file_html))
+        match = re.search(r"getfile\.php/(\d+)/", url)
+        if match is None:
+            raise ValueError("invalid catalogue file identity")
+        file_id = match.group(1)
+        # Preserve the existing search outside href values, including other attributes.
+        without_href = re.sub(r'''\bhref\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)''',
+                              "", file_html, flags=re.IGNORECASE)
+        hashes = re.findall(r"(?<![0-9a-f])[0-9a-f]{64}(?![0-9a-f])", without_href)
         if len(hashes) != 1:
             print("skipped (no single SHA-256 in the listing): id %s" % file_id, file=sys.stderr)
             continue

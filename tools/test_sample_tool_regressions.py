@@ -22,6 +22,33 @@ class SampleTools(unittest.TestCase):
     def setUpClass(cls):
         WORK.mkdir(parents=True, exist_ok=True)
 
+    def test_catalogue_file_html_quote_styles_and_ambiguous_links(self):
+        digest = 'a' * 64
+        url = 'https://raw.pixls.us/getfile.php/42/' + 'b' * 64 + '/a.ORF'
+        licence = "<a href='https://creativecommons.org/publicdomain/zero/1.0/'>CC0</a>"
+        for quote, attribute in (("'", 'href='), ('"', 'href='), ('', 'HREF = ')):
+            html = '<a %s%s%s%s>file</a> %s' % (attribute, quote, url, quote, digest)
+            row = ['Olympus', 'Synthetic', 'mode', '', '', licence, '', html]
+            with self.subTest(quote=quote), mock.patch.object(pixls, 'fetch', return_value=json.dumps([row]).encode()):
+                result = list(pixls.rows())
+                self.assertEqual(len(result), 1)
+                self.assertEqual((result[0]['id'], result[0]['name'], result[0]['url'], result[0]['sha256']),
+                                 ('42', 'a.ORF', url, digest))
+        html = '<a href="%s" data-sha="%s">file</a>' % (url, digest)
+        row = ['Olympus', 'Synthetic', 'mode', '', '', licence, '', html]
+        with mock.patch.object(pixls, 'fetch', return_value=json.dumps([row]).encode()):
+            self.assertEqual(list(pixls.rows())[0]['sha256'], digest)
+        html = "<a href='%s'>first</a><a href='%s'>second</a> %s" % (url, url, digest)
+        row = ['Olympus', 'Synthetic', 'mode', '', '', licence, '', html]
+        with mock.patch.object(pixls, 'fetch', return_value=json.dumps([row]).encode()):
+            with self.assertRaises(ValueError):
+                list(pixls.rows())
+        for html in ('no link ' + digest, '<![bad]>' + html):
+            row[-1] = html
+            with self.subTest(html=html), mock.patch.object(pixls, 'fetch', return_value=json.dumps([row]).encode()):
+                with self.assertRaises(ValueError):
+                    list(pixls.rows())
+
     def test_catalogue_licence_requires_unambiguous_authoritative_link(self):
         cases = [
             ("<a href='https://creativecommons.org/publicdomain/zero/1.0/' title='Creative Commons 0 - Public Domain' class='cc'>co</a>", 'CC0'),
