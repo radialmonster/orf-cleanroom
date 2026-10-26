@@ -22,7 +22,7 @@ class SampleTools(unittest.TestCase):
     def setUpClass(cls):
         WORK.mkdir(parents=True, exist_ok=True)
 
-    def test_catalogue_file_html_quote_styles_and_ambiguous_links(self):
+    def test_catalogue_file_html_quote_styles(self):
         digest = 'a' * 64
         url = 'https://raw.pixls.us/getfile.php/42/' + 'b' * 64 + '/a.ORF'
         licence = "<a href='https://creativecommons.org/publicdomain/zero/1.0/'>CC0</a>"
@@ -38,12 +38,14 @@ class SampleTools(unittest.TestCase):
         row = ['Olympus', 'Synthetic', 'mode', '', '', licence, '', html]
         with mock.patch.object(pixls, 'fetch', return_value=json.dumps([row]).encode()):
             self.assertEqual(list(pixls.rows())[0]['sha256'], digest)
+
+    def test_catalogue_file_html_requires_unambiguous_link(self):
+        digest = 'a' * 64
+        url = 'https://raw.pixls.us/getfile.php/42/nice/a.ORF'
+        licence = "<a href='https://creativecommons.org/publicdomain/zero/1.0/'>CC0</a>"
         html = "<a href='%s'>first</a><a href='%s'>second</a> %s" % (url, url, digest)
         row = ['Olympus', 'Synthetic', 'mode', '', '', licence, '', html]
-        with mock.patch.object(pixls, 'fetch', return_value=json.dumps([row]).encode()):
-            with self.assertRaises(ValueError):
-                list(pixls.rows())
-        for html in ('no link ' + digest, '<![bad]>' + html):
+        for html in (html, 'no link ' + digest, '<![bad]>' + html):
             row[-1] = html
             with self.subTest(html=html), mock.patch.object(pixls, 'fetch', return_value=json.dumps([row]).encode()):
                 with self.assertRaises(ValueError):
