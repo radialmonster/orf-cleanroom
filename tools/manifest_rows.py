@@ -100,6 +100,8 @@ def main():
                     help="append the rows to this file (e.g. samples/manifest.csv) with LF endings, instead of printing them")
     ap.add_argument("files", nargs="+")
     a = ap.parse_args()
+    if not re.fullmatch(r"@[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*", a.by):
+        ap.error("--by must be a single GitHub @login")
     # Appending to a row without a terminating LF would join two CSV rows.
     fresh = not a.append or not os.path.exists(a.append) or os.path.getsize(a.append) == 0
     if a.append and not fresh:
