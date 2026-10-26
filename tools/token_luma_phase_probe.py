@@ -108,6 +108,8 @@ def run_file(path, stride, rows, start, step, refine, window, perms, seed,
              mapping):
     if rows < 2 or start < 0 or step < 1 or refine < 0 or window < 1 or perms < 0:
         raise ValueError("invalid geometry")
+    if window % 2 == 0:
+        raise ValueError("window must be odd (the centred box spans 2*(window//2)+1 tokens)")
     w, h, buf = T.locate(path)
     if stride < w:
         raise ValueError("stride smaller than payload width")
@@ -203,6 +205,8 @@ def main():
     if (a.rows < 2 or a.start_row < 0 or a.step < 1 or a.refine < 0
             or a.window < 1 or a.perms < 0):
         ap.error("require rows>=2, start-row>=0, step>=1, refine>=0, window>=1, perms>=0")
+    if a.window % 2 == 0:
+        ap.error("--window must be odd (the centred box spans 2*(window//2)+1 tokens)")
     failed = False
     for index, path in enumerate(a.files, 1):
         try:

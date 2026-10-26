@@ -87,6 +87,29 @@ class CliTests(unittest.TestCase):
                     self.assertEqual(raised.exception.code, 2)
                     run.assert_not_called()
 
+    def test_window_must_be_positive_and_odd_before_file_access(self):
+        for window in (0, 2, 64):
+            argv = ["probe", "missing", "--stride", "10", "--window", str(window)]
+            with self.subTest(window=window), patch.object(sys, "argv", argv), \
+                    patch.object(p, "run_file") as run, \
+                    contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit) as raised:
+                    p.main()
+                self.assertEqual(raised.exception.code, 2)
+                run.assert_not_called()
+        for window in (1, 63):
+            argv = ["probe", "synthetic", "--stride", "10", "--window", str(window)]
+            with self.subTest(window=window), patch.object(sys, "argv", argv), \
+                    patch.object(p, "run_file") as run:
+                self.assertEqual(p.main(), 0)
+                self.assertEqual(run.call_args.args[6], window)
+
+    def test_run_file_rejects_even_window_before_file_access(self):
+        with patch.object(p.T, "locate") as locate:
+            with self.assertRaisesRegex(ValueError, "window must be odd"):
+                p.run_file("synthetic", 10, 2, 0, 1, 0, 2, 0, 1, "sum")
+            locate.assert_not_called()
+
     def test_mixed_failures_preserve_later_inputs_and_hide_paths(self):
         stderr = io.StringIO()
         argv = ["probe", "first", "private-path", "last", "--stride", "10"]
