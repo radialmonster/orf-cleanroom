@@ -2,6 +2,7 @@
 import io
 import hashlib
 import os
+import struct
 import sys
 import unittest
 from datetime import datetime
@@ -21,6 +22,52 @@ def h(letter):
 
 
 class Tests(unittest.TestCase):
+    def test_exif_pointer_requires_long_singleton(self):
+        stamp = b'2022:01:01 12:00:00\0'
+        for kind in (3, 4, 13):
+            data = bytearray(96)
+            struct.pack_into('<2sHIH', data, 0, b'II', 42, 8, 1)
+            struct.pack_into('<HHII', data, 10, 0x8769, kind, 1, 32)
+            struct.pack_into('<H', data, 32, 1)
+            struct.pack_into('<HHII', data, 34, 0x9003, 2, len(stamp), 64)
+            data[64:64 + len(stamp)] = stamp
+            with self.subTest(kind=kind):
+                self.assertEqual(c.date_time_original(data), stamp[:-1].decode() if kind == 4 else None)
+
+    def test_duplicate_exif_pointers_are_unavailable(self):
+        stamp = b'2022:01:01 12:00:00\0'
+        for other in (48, 80):
+            data = bytearray(160)
+            struct.pack_into('<2sHIH', data, 0, b'II', 42, 8, 2)
+            struct.pack_into('<HHII', data, 10, 0x8769, 4, 1, 48)
+            struct.pack_into('<HHII', data, 22, 0x8769, 4, 1, other)
+            for offset in (48, 80):
+                struct.pack_into('<H', data, offset, 1)
+                struct.pack_into('<HHII', data, offset + 2, 0x9003, 2, len(stamp), 120)
+            data[120:120 + len(stamp)] = stamp
+            with self.subTest(other=other):
+                self.assertIsNone(c.date_time_original(data))
+
+    def test_linked_and_sub_ifds_and_cycles(self):
+        stamp = b'2022:01:01 12:00:00\0'
+        for route in ('next', 'sub'):
+            data = bytearray(160)
+            struct.pack_into('<2sHIH', data, 0, b'II', 42, 8, 1 if route == 'sub' else 0)
+            if route == 'sub':
+                struct.pack_into('<HHII', data, 10, 0x14a, 4, 1, 32)
+            else:
+                struct.pack_into('<I', data, 10, 32)
+            struct.pack_into('<H', data, 32, 1)
+            struct.pack_into('<HHII', data, 34, 0x8769, 4, 1, 64)
+            struct.pack_into('<I', data, 46, 8)  # cyclic next-IFD chain
+            struct.pack_into('<H', data, 64, 1)
+            struct.pack_into('<HHII', data, 66, 0x9003, 2, len(stamp), 96)
+            data[96:96 + len(stamp)] = stamp
+            with self.subTest(route=route):
+                self.assertEqual(c.date_time_original(data), stamp[:-1].decode())
+            struct.pack_into('<H', data, 34, 1)  # no EXIF pointer anywhere in cycle
+            self.assertIsNone(c.date_time_original(data))
+
     def test_base_name(self):
         self.assertEqual(c.base_name("dir/P1012824_01.ORF"), "P1012824_01")
         self.assertEqual(c.base_name("P1012824.ORI"), "P1012824")

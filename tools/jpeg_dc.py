@@ -15,6 +15,7 @@ Usage:
     python -I tools/jpeg_dc.py FILE.jpg
 
 For an ORF the largest baseline JPEG with width and height >= 1000 is used.
+Any input failure exits 1; later valid inputs are still processed.
 """
 import os
 import sys
@@ -254,6 +255,7 @@ def main(paths):
     if not paths or paths[0] in ("-h", "--help"):
         print(__doc__)
         sys.exit(0 if paths else 2)
+    failed = False
     for path in paths:
         try:
             data = open(path, "rb").read()
@@ -261,6 +263,7 @@ def main(paths):
                 best = find_preview(data)
                 if best is None:
                     print("%s: no preview" % os.path.basename(path), file=sys.stderr)
+                    failed = True
                     continue
                 start = best[1]
             else:
@@ -269,8 +272,10 @@ def main(paths):
             print("%s: dc %dx%d  min %d  max %d  mean %.2f" % (
                 os.path.basename(path), wb, hb, min(dc), max(dc), sum(dc) / len(dc)))
         except (ValueError, IndexError, KeyError, OSError) as exc:
+            failed = True
             print("%s: %s" % (os.path.basename(path), exc), file=sys.stderr)
+    return int(failed)
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    sys.exit(main(sys.argv[1:]))
