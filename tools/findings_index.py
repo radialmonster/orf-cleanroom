@@ -117,6 +117,8 @@ def parse_file(path, folder, name, found, errors):
         err("'Verified by: @handle' line is missing or malformed")
     if not LEAD_RE.match(header.get("Lead", "")):
         err("'Lead: #<issue number>' line is missing or malformed")
+    if "Partial" in header and not header["Partial"]:
+        err("'Partial:' must describe the verified part when present")
     variant = header.get("Variant", "")
     if variant != folder:
         err("Variant '%s' does not match the folder '%s'" % (variant, folder))

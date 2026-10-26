@@ -90,7 +90,7 @@ def main(argv=None):
     for sample_id, public_name, path in args.sample:
         try:
             rows.append(measure(sample_id, public_name, path))
-        except (OSError, ValueError, struct.error) as error:
+        except (OSError, ValueError, TypeError, struct.error) as error:
             failures.append({"pixls_id": sample_id, "error_type": type(error).__name__})
     hashes = {}
     for name in ("exif_sensitivity_probe.py", "orf_signature.py"):
