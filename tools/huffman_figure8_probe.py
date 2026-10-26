@@ -145,7 +145,7 @@ def parse_rows(buf, start, codes, rows, w, sign, missing):
     return vals, marks, cats, invalid, r.pos
 
 
-def score(vals, rows, w, path, reset):
+def score(vals, rows, w, path, reset, h=3912):
     rec = [0] * (rows * w)
     for i, v in enumerate(vals):
         prev = 0 if (reset and i % w == 0) or i == 0 else rec[i - 1]
@@ -156,7 +156,7 @@ def score(vals, rows, w, path, reset):
     if best is None:
         raise ValueError("no embedded baseline preview")
     wb, hb, dc = jpeg_dc.decode(data, best[1])
-    nd = max(1, min(hb, round(rows * hb / 3912)))
+    nd = max(1, min(hb, round(rows * hb / h)))  # h: payload height of this file
     target = [dc[r * wb:(r + 1) * wb] for r in range(nd)]
     grid = []
     for rr in range(nd):
@@ -213,7 +213,7 @@ def run(path, rows, start, missing, sign, reset):
         if len(vals) < rows * w:
             print("    completed: values=%d invalid=%d (short)" % (len(vals), inv))
             continue
-        r = score(vals, rows, w, path, reset)
+        r = score(vals, rows, w, path, reset, h)
         mod = collections.Counter(m % 8 for m in marks)
         print("    completed: values=%d invalid=%d r=%+.5f row_mod8=%s categories=%s" % (
             len(vals), inv, r, dict(sorted(mod.items())), dict(cats.most_common(5))))

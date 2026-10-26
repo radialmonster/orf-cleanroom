@@ -59,7 +59,12 @@ def preview_target(dc, wb, hb, start, rows, image_h):
     """Preview DC rows covering the same vertical fraction as the token rows."""
     if rows < 2 or hb < 2 or image_h < 1 or start < 0:
         raise ValueError("require rows>=2, hb>=2, image_h>=1 and start>=0")
-    nd = max(2, round(rows * hb / image_h))
+    if start + rows > image_h:
+        # clamping the window to the bottom would compare token rows with the wrong
+        # preview rows and still print a normal-looking r/z
+        raise ValueError("start + rows (%d) is past the image height %d" % (start + rows, image_h))
+    nd = min(hb, max(2, round(rows * hb / image_h)))
+    # the clamp below only absorbs rounding (at most one DC row)
     r0 = min(max(0, hb - nd), max(0, round(start * hb / image_h)))
     return [dc[r * wb:(r + 1) * wb] for r in range(r0, r0 + nd)]
 
@@ -150,6 +155,8 @@ def main():
         ap.error("--stride is required unless --self-test is used")
     if a.rows < 2 or a.start_row < 0 or a.offset < 0 or a.window < 1 or a.perms < 1:
         ap.error("require rows>=2, start-row>=0, offset>=0, window>=1, perms>=1")
+    if a.window % 2 == 0:
+        ap.error("--window must be odd (the centred box spans 2*(window//2)+1 tokens)")
     failed = False
     for index, path in enumerate(a.files, 1):
         try:

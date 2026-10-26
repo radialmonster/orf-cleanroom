@@ -147,6 +147,12 @@ def decode(data, start):
     if sof is None or scan is None:
         raise ValueError("no baseline SOF0/SOS")
     w, h, comps = sof
+    if {c[0] for c in comps} - {c[0] for c in scan}:
+        raise ValueError("first scan does not hold every component (non-interleaved)")
+    if len(comps) == 1:
+        # a single-component scan is non-interleaved: one block per MCU in raster order,
+        # whatever sampling factors the SOF lists
+        comps = [(comps[0][0], 1, 1, comps[0][3])]
     hmax = max(c[1] for c in comps)
     vmax = max(c[2] for c in comps)
     mcux = (w + 8 * hmax - 1) // (8 * hmax)
@@ -232,7 +238,9 @@ def find_preview(data, max_dim=12000, max_area=100_000_000):
             j += L
         if dims and 1000 <= dims[0] <= max_dim and 1000 <= dims[1] <= max_dim \
                 and dims[0] * dims[1] <= max_area:
-            e = data.find(b"\xff\xd9", i)
+            # search for EOI from the SOS, not from SOI: header segments (APPn, a
+            # thumbnail) can hold FF D9, entropy-coded data cannot (FF is stuffed)
+            e = data.find(b"\xff\xd9", j - 2)
             length = (e + 2 - i) if e > 0 else (len(data) - i)
             if best is None or dims[0] * dims[1] > best[0]:
                 best = (dims[0] * dims[1], i, length, dims[0], dims[1])

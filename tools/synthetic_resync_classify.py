@@ -17,7 +17,9 @@ that choice. All full 128-bit windows must fit and all parse tails are counted.
 Each stream has an exact-length/popcount-preserving Fisher-Yates shuffled
 control. A specified LCG32 and rejection sampling select unbiased indices
 conditional on an ideal uniform 32-bit draw; the actual LCG is deterministic,
-not a claim of independent uniform permutations or a calibrated null. Real and
+not a claim of independent uniform permutations or a calibrated null (index =
+seed % bound uses the LCG's low bits, whose period is 2**k for the low k bits, so
+small-bound swaps near the end are strongly patterned). Real and
 shuffle training are separate; both classifiers evaluate both held-out groups.
 Shuffle labels mean source generator, not that shuffled bits follow its codec.
 In particular length/density can classify shuffles without coding structure.

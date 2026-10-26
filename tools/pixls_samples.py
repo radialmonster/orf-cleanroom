@@ -52,18 +52,34 @@ def rows():
             continue
         lic = re.search(r"licenses/([a-z-]+)/([0-9.]+)", licence_html)
         file_id = re.search(r"getfile\.php/(\d+)/", url).group(1)
+        # The hash is the one 64-hex run outside the link (a URL could hold another).
+        hashes = re.findall(r"(?<![0-9a-f])[0-9a-f]{64}(?![0-9a-f])", re.sub(r"href='[^']*'", "", file_html))
+        if len(hashes) != 1:
+            print("skipped (no single SHA-256 in the listing): id %s" % file_id, file=sys.stderr)
+            continue
         yield {
             "id": file_id,
             "make": make,
             "model": model,
             "mode": mode,
             "licence": "CC0" if "zero/1.0" in licence_html else ("CC-%s-%s" % (lic.group(1).upper(), lic.group(2)) if lic else "unknown"),
-            "sha256": re.search(r"[0-9a-f]{64}", file_html).group(0),
+            "sha256": hashes[0],
             "name": name,
             # Site names can repeat and contain ':', which Windows can't store.
-            "local_name": file_id + "_" + re.sub(r'[<>:"/\|?*]', "_", name),
+            "local_name": file_id + "_" + re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", name),
             "url": url,
         }
+
+
+def by_hash(listing):
+    """{sha256: row}. The same content can be listed more than once; it counts as CC0
+    only if every listing of it is CC0, so a non-CC0 row wins."""
+    out = {}
+    for r in listing:
+        prev = out.get(r["sha256"])
+        if prev is None or (prev["licence"] == "CC0" and r["licence"] != "CC0"):
+            out[r["sha256"]] = r
+    return out
 
 
 def sha256_file(path):
@@ -79,18 +95,20 @@ def cmd_list(a):
     if a.missing:
         with open(a.missing, newline="", encoding="utf-8") as f:
             listed = set(row["sha256"] for row in csv.DictReader(f))
-    for r in rows():
+    listing = list(rows())
+    lic = by_hash(listing)
+    for r in listing:
         if r["sha256"] in listed:
             continue
-        if a.all_licences or r["licence"] == "CC0":
+        if a.all_licences or lic[r["sha256"]]["licence"] == "CC0":
             print("%-6s %-16s %-14s %-22s %s  %s" % (r["id"], r["licence"], r["model"], r["mode"], r["sha256"][:12], r["name"]))
 
 
 def cmd_check(a):
-    by_hash = {r["sha256"]: r for r in rows()}
+    lic = by_hash(rows())
     bad = 0
     for p in a.files:
-        r = by_hash.get(sha256_file(p))
+        r = lic.get(sha256_file(p))
         if r is None:
             print("NOT LISTED  %s  (not a raw.pixls.us file; fine if it's your own, see RULES.md 'Data')" % p)
         elif r["licence"] != "CC0":
@@ -102,10 +120,11 @@ def cmd_check(a):
 
 
 def cmd_download(a):
-    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # realpath follows links and junctions; normcase makes the comparison case-blind on Windows.
+    repo = os.path.normcase(os.path.realpath(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
     dest = os.path.abspath(a.dir)
     try:
-        inside = os.path.commonpath([dest, repo]) == repo
+        inside = os.path.commonpath([os.path.normcase(os.path.realpath(dest)), repo]) == repo
     except ValueError:  # different drives
         inside = False
     if inside:
@@ -119,11 +138,12 @@ def cmd_download(a):
             sys.exit("No CC0 files for model %r.%s Run `list` for the exact names."
                      % (a.model, " Did you mean: %s?" % ", ".join(near) if near else ""))
     os.makedirs(dest, exist_ok=True)
+    lic = by_hash(listing)
     n = 0
     for r in listing:
-        if r["licence"] != "CC0" or (a.model and model_key(r["model"]) != key):
+        if lic[r["sha256"]]["licence"] != "CC0" or (a.model and model_key(r["model"]) != key):
             continue
-        if a.max and n >= a.max:
+        if a.max is not None and n >= a.max:
             break
         path = os.path.join(dest, r["local_name"])
         if not (os.path.exists(path) and sha256_file(path) == r["sha256"]):
@@ -157,6 +177,8 @@ def main():
     p.add_argument("--model", help="exact model name as `list` or the file tags show it; case and spaces are ignored (E-M10 does not match E-M10MarkII)")
     p.add_argument("--max", type=int, help="stop after this many files")
     a = ap.parse_args()
+    if a.cmd == "download" and a.max is not None and a.max < 0:
+        ap.error("--max must be 0 or more")
     {"list": cmd_list, "check": cmd_check, "download": cmd_download}[a.cmd](a)
 
 

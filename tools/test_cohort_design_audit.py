@@ -32,15 +32,15 @@ def minor_rank(rows):
 
 def manifest(rows):
     stream = io.StringIO()
-    out = csv.DictWriter(stream, fieldnames=FIELDS)
+    out = csv.DictWriter(stream, fieldnames=FIELDS + ("source",))
     out.writeheader()
     out.writerows(rows)
     return stream.getvalue()
 
 
 def record(i, model, mode, width):
-    return dict(zip(FIELDS, (str(i), "test%d.ORF" % i, "%064x" % i, "CC0",
-                             "make", model, mode, str(width), "10")))
+    return dict(zip(FIELDS + ("source",), (str(i), "test%d.ORF" % i, "%064x" % i, "CC0",
+                             "make", model, mode, str(width), "10", "pixls")))
 
 
 class Tests(unittest.TestCase):
@@ -109,6 +109,17 @@ class Tests(unittest.TestCase):
             load_records(manifest([dict(row, licence="unknown")]), ["1"])
         with self.assertRaises(ValueError):
             load_records(manifest([row, dict(row, pixls_id="2")]), ["1", "2"])
+
+    def test_non_numeric_public_id_is_rejected(self):
+        row = record(1, "a", "normal", 10)
+        row["pixls_id"] = "not-a-public-id"
+        with self.assertRaises(ValueError):
+            load_records(manifest([row]), ["not-a-public-id"])
+
+    def test_non_public_source_is_rejected(self):
+        row = dict(record(1, "a", "normal", 10), source="own")
+        with self.assertRaises(ValueError):
+            load_records(manifest([row]), ["1"])
 
 
 if __name__ == "__main__":

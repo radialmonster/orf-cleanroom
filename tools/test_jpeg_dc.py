@@ -40,6 +40,27 @@ class JpegTests(unittest.TestCase):
         best = j.find_preview(thumb + full)
         self.assertEqual((best[3], best[4]), (3200, 2400))
 
+    def test_eoi_inside_app_segment_does_not_end_preview(self):
+        app = b"\xff\xe1\x00\x06\xff\xd9xx"
+        data = b"\xff\xd8" + app + sof0(3200, 2400) + b"\xff\xda\x00\x02" + b"\xff\xd9"
+        self.assertEqual(j.find_preview(data)[2], len(data))
+
+    def test_missing_first_scan_component_is_rejected(self):
+        scan = b"\xff\xda\x00\x08\x01\x01\x00\x00\x3f\x00"
+        with self.assertRaisesRegex(ValueError, "first scan"):
+            j.decode(b"\xff\xd8" + sof0(16, 8) + scan, 0)
+
+    def test_single_component_sampling_factors_do_not_expand_mcus(self):
+        segment = bytes([8, 0, 8, 0, 24, 1, 1, 0x22, 0])
+        frame = b"\xff\xc0" + bytes([0, len(segment) + 2]) + segment
+        # One one-bit DC category 0 and one one-bit AC end-of-block code.
+        counts = bytes([1] + [0] * 15)
+        tables = b"\x00" + counts + b"\x00" + b"\x10" + counts + b"\x00"
+        dht = b"\xff\xc4" + (len(tables) + 2).to_bytes(2, "big") + tables
+        scan = b"\xff\xda\x00\x08\x01\x01\x00\x00\x3f\x00"
+        data = b"\xff\xd8" + frame + dht + scan + b"\x00\xff\xd9"
+        self.assertEqual(j.decode(data, 0), (3, 1, [0, 0, 0]))
+
 
 if __name__ == "__main__":
     unittest.main()

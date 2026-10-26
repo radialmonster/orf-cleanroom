@@ -16,6 +16,16 @@ import huffman_figure8_probe as probe
 
 
 class CommandTests(unittest.TestCase):
+    def test_actual_payload_height_reaches_both_score_calls(self):
+        with mock.patch.object(probe.T, "locate", return_value=(2, 7792, b"\x00" * 20)), \
+                mock.patch.object(probe, "parse_rows", return_value=(
+                    [1] * 4, [0], collections.Counter({1: 4}), 0, 4)), \
+                mock.patch.object(probe, "score", return_value=0.0) as score, \
+                contextlib.redirect_stdout(io.StringIO()):
+            probe.run("synthetic.orf", 2, 0, 5, "extend", False)
+        self.assertEqual(score.call_count, 2)
+        self.assertEqual([call.args[-1] for call in score.call_args_list], [7792, 7792])
+
     def invoke(self, args):
         out, err = io.StringIO(), io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):

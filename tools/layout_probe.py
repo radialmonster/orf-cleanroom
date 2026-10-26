@@ -57,6 +57,8 @@ def run(path, all_rows=False):
         def f01(i): return row(i//2) if i%2==0 else row(n1+i//2)
         def f10(i): return row(n1+i//2) if i%2==0 else row(i//2)
         for nm,fn,ok in (('natural',img_nat,True),('F01 first part=even image rows',f01,n1-(h-n1) in (0,1)),('F10 first part=odd image rows',f10,(h-n1)-n1 in (0,1))):
+            if not ok:  # the field mapping would read stored rows past h-1
+                print('  %-34s counts-consistent=False  skipped'%nm); continue
             ids=range(20,h-20,1 if all_rows else max(1,(h-40)//200))
             d2=sum(D(fn(i),fn(i+2),0,400) for i in ids)/len(ids)
             d1_=sum(D(fn(i),fn(i+1),0,400) for i in ids)/len(ids)

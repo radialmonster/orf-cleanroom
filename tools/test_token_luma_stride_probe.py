@@ -51,9 +51,13 @@ class TargetTests(unittest.TestCase):
 
     def test_clamps_and_rejects(self):
         dc = list(range(8 * 20))
-        last = p.preview_target(dc, 8, 20, 100, 10, 100)
+        # the last rows: rounding puts r0 at 19, the clamp keeps both DC rows inside
+        last = p.preview_target(dc, 8, 20, 95, 5, 100)
         self.assertEqual(last[0][0], 18 * 8)
-        for args in ((8, 20, -1, 10, 100), (8, 20, 0, 1, 100),
+        self.assertEqual(len(last), 2)
+        # past the image height: rejected, not silently shifted up
+        for args in ((8, 20, 100, 10, 100), (8, 20, 0, 200, 100),
+                     (8, 20, -1, 10, 100), (8, 20, 0, 1, 100),
                      (8, 1, 0, 10, 100), (8, 20, 0, 10, 0)):
             with self.assertRaises(ValueError):
                 p.preview_target(dc, *args)
