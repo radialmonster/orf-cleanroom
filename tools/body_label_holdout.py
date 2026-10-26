@@ -137,7 +137,14 @@ def main(argv=None):
             raw_features = stream.read()
         with open(args.manifest, 'rb') as stream:
             raw_manifest = stream.read()
-        rows = cohort(json.loads(raw_features), list(csv.DictReader(raw_manifest.decode('utf-8').splitlines())), args.ids)
+        reader = csv.DictReader(raw_manifest.decode('utf-8').splitlines())
+        headers = reader.fieldnames or []
+        required = ('pixls_id', 'sha256', 'pixls_name', 'make', 'model', 'licence', 'source')
+        optional = ('payload_w', 'payload_h')
+        if (any(headers.count(field) != 1 for field in required) or
+                any(headers.count(field) > 1 for field in optional)):
+            raise ValueError('missing or duplicate consumed manifest column')
+        rows = cohort(json.loads(raw_features), list(reader), args.ids)
         with open(__file__, 'rb') as stream:
             source_hash = hashlib.sha256(stream.read()).hexdigest()
         result = {'schema': 'body-label-file-holdout-v1', 'scope': __doc__,
