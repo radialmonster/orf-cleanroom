@@ -64,6 +64,17 @@ def u16(buf, npx, order):
     return list(struct.unpack_from("%s%dH" % (order, npx), buf, 0))
 
 
+class IncompleteWord(ValueError):
+    """A word-reversed candidate needs bytes outside the supplied row."""
+
+
+def word_pairs12(row, npx, variant, width):
+    needed = (npx // 2 * 3 + width - 1) // width * width
+    if len(row) < needed:
+        raise IncompleteWord("complete %d-byte word unavailable" % width)
+    return pairs12(swapped(row[:needed], width), 0, npx, variant)
+
+
 def candidates(size_class):
     """Return {name: function(rowbytes, npx) -> list of values}."""
     c = {}
@@ -75,8 +86,9 @@ def candidates(size_class):
             c["12-" + v] = lambda r, n, v=v: pairs12(r, 0, n, v)
             # same 3-byte layouts, after reversing bytes inside 16-bit or 32-bit words
             for width in (2, 4):
-                c["w%d-12-%s" % (width, v)] = lambda r, n, v=v, wd=width: pairs12(
-                    swapped(r[:n * 3 // 2], wd), 0, n, v)
+                # slice rounded up to whole words, so n*3/2 bytes not a multiple of the
+                # word width still leaves every byte pairs12 reads
+                c["w%d-12-%s" % (width, v)] = lambda r, n, v=v, wd=width: word_pairs12(r, n, v, wd)
     elif size_class == "packed-12.8":
         for v in VARIANTS:
             for pad in (15, 0):
@@ -157,7 +169,11 @@ def analyse(path, nrows, nbands, ncols):
         bands = [[read((s + i) * rb) for i in range(nrows)] for s in starts]
         res = {}
         for name, fn in cand.items():
-            dec = [[fn(r, ncols) for r in band] for band in bands]
+            try:
+                dec = [[fn(r, ncols) for r in band] for band in bands]
+            except IncompleteWord as exc:
+                print("  %s skipped: %s" % (name, exc))
+                continue
             agg = [stats(rows) for rows in dec]
             r = {k: mean(a[k] for a in agg) for k in ("over4095", "low4zero", "low2zero", "h1", "oe", "h2", "v2")}
             r["min"] = min(a["min"] for a in agg)
@@ -195,9 +211,13 @@ def analyse(path, nrows, nbands, ncols):
         for delta in (-16, -2, -1, 0, 1, 2, 16):
             cs = []
             for s in starts:
-                rows = [fn(read(s * rb + i * (rb + delta)), ncols) for i in range(nrows)]
+                try:
+                    rows = [fn(read(s * rb + i * (rb + delta)), ncols) for i in range(nrows)]
+                except IncompleteWord:
+                    cs = []
+                    break
                 cs.append(vcorr(rows))
-            out.append("%+d:%.3f" % (delta, mean(cs)))
+            out.append("%+d:%.3f" % (delta, mean(cs)) if cs else "%+d:unavailable" % delta)
         print("row-stride test (vcorr at row bytes + delta): " + " ".join(out))
 
 

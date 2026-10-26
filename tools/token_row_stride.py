@@ -41,7 +41,7 @@ def stride_scores(q, lo, hi, rows, head=32):
     q is an indexable sequence of q values. For each S, nrow is capped by
     `rows` and by the available tokens. The score is the one-sample z of
     d_i = mean(q of the first `head` tokens of row i) - mean(q of the rest),
-    over rows. Rows shorter than head+1 are skipped.
+    over rows. Strides S <= head+1 (no tokens after the head) are skipped.
     """
     n = len(q)
     prefix = array.array("I", itertools.accumulate(q, initial=0))

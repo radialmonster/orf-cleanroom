@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Independent hand arithmetic and malformed aggregate controls."""
 import copy
+import contextlib
+import io
 import os
 import sys
 import unittest
+from unittest.mock import patch
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import body_label_holdout as probe
 
@@ -78,6 +81,27 @@ class Tests(unittest.TestCase):
                 row['payload_bits_per_pixel'] = 8
             with self.subTest(change=change), self.assertRaises(ValueError):
                 probe.cohort(report, manifest, ['1', '2', '3'])
+
+    def test_matching_invalid_digest_is_rejected(self):
+        report, manifest = self.fixture()
+        report['samples'][0]['sha256'] = 'not-a-sha256'
+        manifest[0]['sha256'] = 'not-a-sha256'
+        with self.assertRaises(ValueError):
+            probe.cohort(report, manifest, ['1', '2', '3'])
+
+    def test_non_numeric_public_id_is_rejected(self):
+        report, manifest = self.fixture()
+        report['samples'][0]['pixls_id'] = 'not-a-public-id'
+        manifest[0]['pixls_id'] = 'not-a-public-id'
+        with self.assertRaises(ValueError):
+            probe.cohort(report, manifest, ['not-a-public-id', '2', '3'])
+
+    def test_cli_rejects_non_object_report(self):
+        error = io.StringIO()
+        with patch('builtins.open', side_effect=[io.BytesIO(b'[]'), io.BytesIO(b'pixls_id\n')]):
+            with contextlib.redirect_stderr(error):
+                self.assertEqual(probe.main(['--features', 'x', '--manifest', 'y', '--ids', '1', '2', '3']), 1)
+        self.assertIn('invalid diagnostic input', error.getvalue())
 
 
 if __name__ == '__main__':
