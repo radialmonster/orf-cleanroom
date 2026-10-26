@@ -212,6 +212,44 @@ class Tests(unittest.TestCase):
         self.assertIn("duplicate unordered pair", stderr.getvalue())
         self.assertEqual(stdout.getvalue(), "")
 
+    def test_duplicate_screen_keys_rejected_in_both_encodings(self):
+        a, b, d = h("a"), h("b"), h("d")
+        pair = '["%s","%s"]' % (a, b)
+        other = '["%s","%s"]' % (a, d)
+        for line in ('{"pair":%s,"pair":%s,"r":0.5}' % (pair, other),
+                     '{"pair":%s,"r":2,"r":0.5}' % pair):
+            for encoding in ("utf-8", "utf-16"):
+                with self.subTest(line=line, encoding=encoding):
+                    stdout, stderr = io.StringIO(), io.StringIO()
+                    with patch("builtins.open", return_value=io.BytesIO(line.encode(encoding))), \
+                            patch("sys.stdout", stdout), patch("sys.stderr", stderr), \
+                            patch.object(c, "report") as report:
+                        with self.assertRaises(SystemExit) as raised:
+                            c.main(["--screen", "private-screen"])
+                    self.assertEqual(raised.exception.code, 2)
+                    report.assert_not_called()
+                    self.assertEqual(stdout.getvalue(), "")
+                    self.assertNotIn("private-screen", stderr.getvalue())
+
+    def test_normal_screen_json_encodings(self):
+        text = '{"summary":{"samples":2}}\n{"pair":["%s","%s"],"r":0.5}\n' % (h("a"), h("b"))
+        for encoding in ("utf-8", "utf-16"):
+            with self.subTest(encoding=encoding), \
+                    patch("builtins.open", return_value=io.BytesIO(text.encode(encoding))):
+                self.assertEqual(c.load_screen("synthetic"), [{"summary": {"samples": 2}},
+                                                              {"pair": [h("a"), h("b")], "r": 0.5}])
+
+    def test_nonobject_screen_lines_fail_before_report(self):
+        for line in ("null", "2", "[]", '"text"'):
+            with self.subTest(line=line), \
+                    patch("builtins.open", return_value=io.BytesIO(line.encode("utf-8"))), \
+                    patch.object(c, "report") as report, \
+                    patch("sys.stdout", io.StringIO()), patch("sys.stderr", io.StringIO()):
+                with self.assertRaises(SystemExit) as raised:
+                    c.main(["--screen", "synthetic"])
+                self.assertEqual(raised.exception.code, 2)
+                report.assert_not_called()
+
     def test_repeated_pairs_cannot_claim_support(self):
         a, b, d = h("a"), h("b"), h("d")
         meta = {a: m("P1.ORF", "2025:01:01 10:00:00", hires=True),

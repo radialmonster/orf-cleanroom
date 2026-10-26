@@ -24,6 +24,7 @@ validity or independent captures.
 Input: the JSON lines printed by preview_pair_screen.py (UTF-8 or UTF-16, as
 PowerShell redirection writes) and the same files. Prints aggregates only:
 counts, rates, AUC (Mann-Whitney, ties 0.5) and score ranges per class.
+Each nonblank JSON line must be an object with unique keys.
 Each unordered pair of distinct SHA-256 hashes may occur only once; malformed,
 self, or duplicate pairs and correlations outside the finite [-1, 1] range
 are rejected. A null correlation represents an unavailable screen score.
@@ -52,11 +53,24 @@ HIRES_WIDTH = 6000
 MIN_CLASS_PAIRS = 10
 
 
+def unique_screen_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON object key")
+        result[key] = value
+    return result
+
+
 def load_screen(path):
     with open(path, "rb") as stream:
         raw = stream.read()
     text = raw.decode("utf-16") if raw[:2] in (b"\xff\xfe", b"\xfe\xff") else raw.decode("utf-8-sig")
-    return [json.loads(line) for line in text.splitlines() if line.strip()]
+    records = [json.loads(line, object_pairs_hook=unique_screen_object)
+               for line in text.splitlines() if line.strip()]
+    if any(not isinstance(record, dict) for record in records):
+        raise ValueError("screen lines must be JSON objects")
+    return records
 
 
 def base_name(name):
@@ -259,7 +273,10 @@ def main(argv=None):
         except (OSError, ValueError, TypeError, IndexError, KeyError, struct.error) as exc:
             ap.error("input %d: %s" % (index, type(exc).__name__))
         meta.setdefault(sha, m)
-    records = load_screen(a.screen)
+    try:
+        records = load_screen(a.screen)
+    except ValueError:
+        ap.error("invalid screen JSON")
     try:
         analysis = analyse(records, meta, a.hard_seconds)
     except ValueError as exc:
