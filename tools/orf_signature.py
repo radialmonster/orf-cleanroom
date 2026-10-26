@@ -99,8 +99,15 @@ def signature(path):
     model = next((d[0x110] for d in ifds if isinstance(d.get(0x110), str)), "")
     # The raw payload is the image IFD with the largest total strip byte count.
     best = max(ifds, key=lambda d: sum(d.get(0x117) or [0]))
+    offsets, counts = best.get(0x111), best.get(0x117)
+    if (not isinstance(offsets, list) or not isinstance(counts, list) or
+            not offsets or len(offsets) != len(counts)):
+        raise ValueError("missing or mismatched strip tables")
+    if any(type(off) is not int or type(count) is not int or off < 0 or count <= 0 or
+           off + count > len(data) for off, count in zip(offsets, counts)):
+        raise ValueError("strip extent outside file or empty")
     w, h = first(best, 0x100) or 0, first(best, 0x101) or 0
-    nbytes = sum(best.get(0x117) or [0])
+    nbytes = sum(counts)
     return {
         "file": os.path.basename(path),
         "sha256": hashlib.sha256(data).hexdigest(),

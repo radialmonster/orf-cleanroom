@@ -76,6 +76,39 @@ class Tests(unittest.TestCase):
         self.assertEqual(output, "")
         self.assertIn("empty.orf:", error)
 
+    def test_truncated_payload_does_not_produce_signature(self):
+        # The IFD declares 8 bytes at offset 86; the file contains only 4.
+        truncated = fixture()[:-4]
+        status, output, error = self.call(["truncated.orf", "valid.orf"],
+                                          {"truncated.orf": truncated, "valid.orf": fixture()})
+        self.assertEqual(status, 1)
+        self.assertEqual([r["file"] for r in csv.DictReader(io.StringIO(output))], ["valid.orf"])
+        self.assertIn("truncated.orf:", error)
+
+    def test_mismatched_strip_tables_do_not_produce_signature(self):
+        data = bytearray(fixture())
+        # StripOffsets is the fifth entry; replace its one value with two.
+        struct.pack_into("<II", data, 10 + 4 * 12 + 4, 2, len(data))
+        data.extend(struct.pack("<II", 86, 90))
+        status, output, error = self.call(["mismatch.orf"], {"mismatch.orf": bytes(data)})
+        self.assertEqual(status, 1)
+        self.assertEqual(output, "")
+        self.assertIn("mismatch.orf:", error)
+
+    def test_reordered_strips_are_valid(self):
+        data = bytearray(fixture())
+        offsets_at = len(data)
+        data.extend(struct.pack("<II", 90, 86))
+        counts_at = len(data)
+        data.extend(struct.pack("<II", 4, 4))
+        struct.pack_into("<II", data, 10 + 4 * 12 + 4, 2, offsets_at)
+        struct.pack_into("<II", data, 10 + 5 * 12 + 4, 2, counts_at)
+        status, output, error = self.call(["reordered.orf"], {"reordered.orf": bytes(data)})
+        self.assertEqual((status, error), (0, ""))
+        row = next(csv.DictReader(io.StringIO(output)))
+        self.assertEqual((row["payload_offset"], row["payload_bytes"], row["size_class"]),
+                         ("90", "8", "packed-16"))
+
     def test_help_and_no_arguments(self):
         for paths, expected in [(["--help"], 0), (["-h"], 0), ([], 2)]:
             status, output, error = self.call(paths, {})
