@@ -14,6 +14,7 @@ import collections
 import csv
 from fractions import Fraction
 import hashlib
+import io
 import json
 from pathlib import Path
 import re
@@ -59,7 +60,7 @@ def load_records(text, ids):
     if not ids or len(set(ids)) != len(ids) or any(not re.fullmatch(r"[0-9]+", i) for i in ids):
         raise ValueError("unique numeric public IDs required")
     candidates = {i: set() for i in ids}
-    reader = csv.DictReader(text.splitlines())
+    reader = csv.DictReader(io.StringIO(text, newline=""))
     headers = reader.fieldnames or []
     if any(headers.count(field) != 1 for field in FIELDS + ("source",)):
         raise ValueError("missing or duplicate audited manifest column")
