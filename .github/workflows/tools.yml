@@ -47,6 +47,8 @@ jobs:
         run: python -I -B tools/test_exif_sensitivity_probe.py
       - name: preview pair screen tests
         run: python -I -B tools/test_preview_pair_screen.py
+      - name: JPEG preview reader tests
+        run: python -I -B tools/test_jpeg_dc.py
       - name: suffix_match_probe tests
         run: |
           python -I tools/test_suffix_match_probe.py

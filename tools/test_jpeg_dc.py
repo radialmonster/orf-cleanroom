@@ -40,6 +40,12 @@ class JpegTests(unittest.TestCase):
         best = j.find_preview(thumb + full)
         self.assertEqual((best[3], best[4]), (3200, 2400))
 
+    def test_frame_without_scan_does_not_hide_valid_preview(self):
+        incomplete = b"\xff\xd8" + sof0(4000, 3000) + b"\xff\xd9"
+        valid = b"\xff\xd8" + sof0(3200, 2400) + b"\xff\xda\x00\x02" + b"\xff\xd9"
+        best = j.find_preview(incomplete + valid)
+        self.assertEqual((best[1], best[3], best[4]), (len(incomplete), 3200, 2400))
+
     def test_eoi_inside_app_segment_does_not_end_preview(self):
         app = b"\xff\xe1\x00\x06\xff\xd9xx"
         data = b"\xff\xd8" + app + sof0(3200, 2400) + b"\xff\xda\x00\x02" + b"\xff\xd9"

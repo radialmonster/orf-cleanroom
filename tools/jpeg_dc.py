@@ -213,6 +213,7 @@ def find_preview(data, max_dim=12000, max_area=100_000_000):
     while i >= 0:
         j = i + 2
         dims = None
+        has_scan = False
         while j < len(data):
             if data[j] != 0xFF:
                 j += 1
@@ -234,9 +235,10 @@ def find_preview(data, max_dim=12000, max_area=100_000_000):
                 w = (data[j + 5] << 8) | data[j + 6]
                 dims = (w, h)
             if m == 0xDA:
+                has_scan = True
                 break
             j += L
-        if dims and 1000 <= dims[0] <= max_dim and 1000 <= dims[1] <= max_dim \
+        if has_scan and dims and 1000 <= dims[0] <= max_dim and 1000 <= dims[1] <= max_dim \
                 and dims[0] * dims[1] <= max_area:
             # search for EOI from the SOS, not from SOI: header segments (APPn, a
             # thumbnail) can hold FF D9, entropy-coded data cannot (FF is stuffed)
