@@ -145,6 +145,55 @@ class SampleTools(unittest.TestCase):
                 with open(os.path.join(scratch, "out.csv"), newline="", encoding="utf-8") as f:
                     self.assertEqual(len(list(csv.reader(f))), 1)
 
+    def test_download_hash_mismatch_fails_batch_after_other_results(self):
+        good_data, late_data = b'good synthetic', b'late synthetic'
+        records = [dict(id='1', name='bad.ORF', local_name='bad.ORF', url='https://example.invalid/bad',
+                        sha256=hashlib.sha256(b'expected').hexdigest(), licence='CC0'),
+                   dict(id='2', name='good.ORF', local_name='good.ORF', url='https://example.invalid/good',
+                        sha256=hashlib.sha256(good_data).hexdigest(), licence='CC0'),
+                   dict(id='3', name='late.ORF', local_name='late.ORF', url='https://example.invalid/late',
+                        sha256=hashlib.sha256(late_data).hexdigest(), licence='CC0')]
+        contents = {'https://example.invalid/bad': b'wrong', 'https://example.invalid/good': good_data,
+                    'https://example.invalid/late': late_data}
+        with tempfile.TemporaryDirectory(dir=str(WORK)) as folder:
+            output, error = io.StringIO(), io.StringIO()
+            with mock.patch.object(pixls, 'rows', return_value=records), \
+                 mock.patch.object(pixls.os.path, 'commonpath', return_value='outside-repo'), \
+                 mock.patch.object(pixls, 'fetch', side_effect=contents.__getitem__), \
+                 mock.patch.object(sys, 'argv', ['pixls_samples', 'download', folder]), \
+                 mock.patch.object(sys, 'stdout', output), mock.patch.object(sys, 'stderr', error):
+                with self.assertRaises(SystemExit) as result:
+                    pixls.main()
+            self.assertEqual(result.exception.code, 1)
+            self.assertIn('hash mismatch, skipped: bad.ORF', error.getvalue())
+            self.assertFalse((Path(folder) / 'bad.ORF').exists())
+            self.assertEqual((Path(folder) / 'good.ORF').read_bytes(), good_data)
+            self.assertEqual((Path(folder) / 'late.ORF').read_bytes(), late_data)
+            self.assertEqual(len(output.getvalue().splitlines()), 2)
+
+    def test_download_clean_and_zero_limit_succeed(self):
+        data = b'good synthetic'
+        record = dict(id='1', name='good.ORF', local_name='good.ORF', url='https://example.invalid/good',
+                      sha256=hashlib.sha256(data).hexdigest(), licence='CC0')
+        with tempfile.TemporaryDirectory(dir=str(WORK)) as folder:
+            with mock.patch.object(pixls, 'rows', return_value=[record]), \
+                 mock.patch.object(pixls.os.path, 'commonpath', return_value='outside-repo'), \
+                 mock.patch.object(pixls, 'fetch', return_value=data) as fetch, \
+                 mock.patch.object(sys, 'argv', ['pixls_samples', 'download', folder, '--max', '0']), \
+                 mock.patch.object(sys, 'stdout', io.StringIO()):
+                self.assertIsNone(pixls.main())
+                fetch.assert_not_called()
+            with mock.patch.object(pixls, 'rows', return_value=[record]), \
+                 mock.patch.object(pixls.os.path, 'commonpath', return_value='outside-repo'), \
+                 mock.patch.object(pixls, 'fetch', return_value=data) as fetch, \
+                 mock.patch.object(sys, 'argv', ['pixls_samples', 'download', folder]), \
+                 mock.patch.object(sys, 'stdout', io.StringIO()):
+                self.assertIsNone(pixls.main())
+                fetch.assert_called_once()
+                self.assertIsNone(pixls.main())
+                fetch.assert_called_once()  # identical verified local content is reused
+            self.assertEqual((Path(folder) / 'good.ORF').read_bytes(), data)
+
     def test_stdout_is_not_closed(self):
         output = io.StringIO()
         with mock.patch.object(manifest, "rows", return_value=[]), \
