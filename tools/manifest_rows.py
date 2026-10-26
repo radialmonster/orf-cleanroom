@@ -65,10 +65,16 @@ def main():
                     help="append the rows to this file (e.g. samples/manifest.csv) with LF endings, instead of printing them")
     ap.add_argument("files", nargs="+")
     a = ap.parse_args()
+    # Appending to a row without a terminating LF would join two CSV rows.
+    fresh = not a.append or not os.path.exists(a.append) or os.path.getsize(a.append) == 0
+    if a.append and not fresh:
+        with open(a.append, "rb") as existing:
+            existing.seek(-1, os.SEEK_END)
+            if existing.read(1) != b"\n":
+                ap.error("--append destination must end in a newline")
     listing = by_hash(rows())
     # Write LF endings ourselves; shell redirection on Windows can turn them into CRLF.
     # --header with --append writes the header only into a new or empty file.
-    fresh = not a.append or not os.path.exists(a.append) or os.path.getsize(a.append) == 0
     dest = open(a.append, "a", encoding="utf-8", newline="") if a.append else nullcontext(sys.stdout)
     with dest as dest:
         out = csv.DictWriter(dest, fieldnames=COLUMNS, lineterminator="\n")
