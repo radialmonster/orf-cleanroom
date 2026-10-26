@@ -21,6 +21,57 @@ def finding(folder):
 
 
 class FindingIds(unittest.TestCase):
+    def test_correction_graphs_match_topological_oracle(self):
+        # Independently remove vertices with no incoming edges; cycles remain.
+        for mask in range(512):
+            edges = [(a, b) for a in range(3) for b in range(3)
+                     if mask & (1 << (3 * a + b))]
+            remaining = set(range(3))
+            while remaining:
+                roots = {v for v in remaining
+                         if not any(a in remaining and b == v for a, b in edges)}
+                if not roots:
+                    break
+                remaining -= roots
+            found = {str(v): index.Finding(str(v), 'container', str(v),
+                     'tester', 'Synthetic', 'tester', '#1') for v in range(3)}
+            for a, b in edges:
+                found[str(a)].refs['Corrects'].append(str(b))
+            errors = []
+            index.resolve(found, errors)
+            self.assertEqual(bool(errors), bool(remaining), mask)
+
+    def test_status_upgrade_credit_and_correction_precedence(self):
+        WORK.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=str(WORK)) as folder:
+            dest = Path(folder) / 'findings' / 'container'
+            dest.mkdir(parents=True)
+            original = '2026-01-01--tester--original'
+            upgrade = '2026-01-02--tester--upgrade'
+            correction = '2026-01-03--tester--correction'
+            (dest / (original + '.md')).write_text(finding('container'), encoding='utf-8')
+            body = finding('container').replace('Verified by: @tester', 'Verified by: @bob')
+            body = body.replace('Variant: container\n', 'Variant: container\nReproduces: ' + original + '\n')
+            (dest / (upgrade + '.md')).write_text(body, encoding='utf-8')
+            found, errors = {}, []
+            index.scan(folder, found, errors)
+            index.resolve(found, errors)
+            self.assertEqual(errors, [])
+            status, superseders, verifiers = index.statuses(found)[original]
+            self.assertEqual((status, superseders, verifiers), ('verified', [], ['bob']))
+            body = finding('container').replace('Lead: #1', 'Lead: #2')
+            body = body.replace('Variant: container\n', 'Variant: container\nCorrects: ' + original + '\n')
+            (dest / (correction + '.md')).write_text(body, encoding='utf-8')
+            found, errors = {}, []
+            index.scan(folder, found, errors)
+            index.resolve(found, errors)
+            self.assertEqual(errors, [])
+            status, superseders, verifiers = index.statuses(found)[original]
+            self.assertEqual(status, 'superseded')
+            self.assertEqual([f.id for f in superseders], [correction])
+            self.assertEqual(verifiers, ['bob'])
+            self.assertEqual(index.statuses(found)[correction][0], 'self-verified')
+
     def test_correction_cycles_rejected_and_chain_retained(self):
         WORK.mkdir(parents=True, exist_ok=True)
         for edges in ((1, 0), (1, 2, 0), (None, 0, 1)):
