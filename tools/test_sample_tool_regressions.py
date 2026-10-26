@@ -149,10 +149,10 @@ class SampleTools(unittest.TestCase):
         output = io.StringIO()
         with mock.patch.object(manifest, "rows", return_value=[]), \
              mock.patch.object(manifest, "commit", return_value="test"), \
-             mock.patch.object(manifest, "signature", side_effect=ValueError("synthetic failure")), \
+             mock.patch.object(manifest, "signature", side_effect=RuntimeError("synthetic failure")), \
              mock.patch.object(sys, "argv", ["manifest_rows", "--by", "@tester", "synthetic"]), \
              mock.patch.object(sys, "stdout", output):
-            with self.assertRaises(ValueError):
+            with self.assertRaises(RuntimeError):
                 manifest.main()
         self.assertFalse(output.closed)
 
@@ -160,10 +160,10 @@ class SampleTools(unittest.TestCase):
         stream = io.StringIO()
         with mock.patch.object(manifest, "rows", return_value=[]), \
              mock.patch.object(manifest, "commit", return_value="test"), \
-             mock.patch.object(manifest, "signature", side_effect=ValueError("synthetic failure")), \
+             mock.patch.object(manifest, "signature", side_effect=RuntimeError("synthetic failure")), \
              mock.patch("builtins.open", return_value=stream), \
              mock.patch.object(sys, "argv", ["manifest_rows", "--by", "@tester", "--append", "unused", "synthetic"]):
-            with self.assertRaises(ValueError):
+            with self.assertRaises(RuntimeError):
                 manifest.main()
         self.assertTrue(stream.closed)
 

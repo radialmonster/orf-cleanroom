@@ -5,6 +5,7 @@ import hashlib
 import io
 import json
 import os
+import runpy
 from pathlib import Path
 import struct
 import sys
@@ -48,6 +49,58 @@ class Tests(unittest.TestCase):
                     self.assertEqual(row['mode'], '' if entry == 0 else 'normal')
                     self.assertEqual((row['bpp'], row['size_class'], row['variant']), ('', '', 'unassigned'))
         self.assertEqual((manifest.mode(6000), manifest.mode(6001)), ('normal', 'hires'))
+
+    def test_batch_continues_after_bad_files_and_preserves_append_prefix(self):
+        work = ROOT / 'work' / 'test-manifest-offline'
+        work.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=str(work)) as folder:
+            root = Path(folder)
+            first, bad, missing, last = (root / n for n in ('first.ORF', 'bad.ORF', 'missing.ORF', 'last.ORF'))
+            first.write_bytes(sample())
+            bad.write_bytes(b'not TIFF')
+            last.write_bytes(sample() + b'extra synthetic bytes')
+            records = [dict(id=str(i), name=name, sha256=hashlib.sha256(path.read_bytes()).hexdigest(), licence='CC0')
+                       for i, name, path in ((1, 'first.ORF', first), (2, 'last.ORF', last))]
+            dest = root / 'out.csv'
+            prefix = b'existing,row\n'
+            dest.write_bytes(prefix)
+            args = ['manifest_rows', '--by', '@tester', '--append', str(dest)] + [str(p) for p in (first, bad, missing, last)]
+            out, err = io.StringIO(), io.StringIO()
+            with mock.patch.object(manifest, 'rows', return_value=records), \
+                 mock.patch.object(manifest, 'commit', return_value='test'), \
+                 mock.patch.object(sys, 'argv', args), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                self.assertEqual(manifest.main(), 1)
+            written = dest.read_bytes()
+            self.assertTrue(written.startswith(prefix))
+            appended = list(csv.DictReader(io.StringIO(written[len(prefix):].decode('utf-8')), fieldnames=manifest.COLUMNS))
+            self.assertEqual([row['pixls_id'] for row in appended], ['1', '2'])
+            self.assertEqual(err.getvalue().splitlines(), ['input 2: ValueError', 'input 3: FileNotFoundError'])
+            self.assertNotIn(folder, err.getvalue())
+            self.assertEqual(out.getvalue(), '')
+
+    def test_entrypoint_propagates_batch_failure_and_success(self):
+        work = ROOT / 'work' / 'test-manifest-offline'
+        work.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=str(work)) as folder:
+            root = Path(folder)
+            good, bad = root / 'good.ORF', root / 'bad.ORF'
+            good.write_bytes(sample())
+            bad.write_bytes(b'not TIFF')
+            records = root / 'records.json'
+            records.write_text(json.dumps([dict(id='1', name='good.ORF',
+                sha256=hashlib.sha256(sample()).hexdigest(), licence='CC0')]), encoding='utf-8')
+            script = str(ROOT / 'tools' / 'manifest_rows.py')
+            for paths, expected in (([str(good)], 0), ([str(bad), str(good)], 1)):
+                args = [script, '--by', '@tester', '--header', '--licence-records', str(records)] + paths
+                out, err = io.StringIO(), io.StringIO()
+                with self.subTest(expected=expected), mock.patch.object(sys, 'argv', args), \
+                     contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                    with self.assertRaises(SystemExit) as raised:
+                        runpy.run_path(script, run_name='__main__')
+                self.assertEqual(raised.exception.code, expected)
+                self.assertEqual([row['pixls_id'] for row in csv.DictReader(io.StringIO(out.getvalue()))], ['1'])
+                self.assertEqual(err.getvalue(), '' if expected == 0 else 'input 1: ValueError\n')
+                self.assertNotIn(folder, err.getvalue())
 
     def test_duplicate_json_keys_fail_before_output_or_append(self):
         work = ROOT / 'work' / 'test-manifest-offline'

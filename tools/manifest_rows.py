@@ -7,7 +7,8 @@ with the measured container facts (orf_signature.py). Non-CC0 raw.pixls.us
 files are always skipped. Files not on raw.pixls.us are skipped unless you pass
 --own, which confirms they are yours (or their owner agreed); they are then
 recorded with source=own and licence=not-shared. Bitstream columns are left
-blank; fill them only from a tools/ script you ran.
+blank; fill them only from a tools/ script you ran. Invalid or unreadable
+inputs are reported by ordinal; valid rows still append and the command exits 1.
 
 Usage: python manifest_rows.py --by '@yourhandle' [--own] [--licence-records JSON]
                               --append samples/manifest.csv FILE [FILE ...]
@@ -19,6 +20,7 @@ import json
 import os
 import re
 import subprocess
+import struct
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -128,13 +130,19 @@ def main():
     # Write LF endings ourselves; shell redirection on Windows can turn them into CRLF.
     # --header with --append writes the header only into a new or empty file.
     dest = open(a.append, "a", encoding="utf-8", newline="") if a.append else nullcontext(sys.stdout)
+    failed = False
     with dest as dest:
         out = csv.DictWriter(dest, fieldnames=COLUMNS, lineterminator="\n")
         if a.header and fresh:
             out.writeheader()
         by = "%s tools/orf_signature.py %s" % (a.by, commit())
-        for p in a.files:
-            s = signature(p)
+        for index, p in enumerate(a.files, 1):
+            try:
+                s = signature(p)
+            except (OSError, ValueError, TypeError, struct.error) as exc:
+                print("input %d: %s" % (index, type(exc).__name__), file=sys.stderr)
+                failed = True
+                continue
             r = listing.get(s["sha256"])
             if r is not None and r["licence"] != "CC0":
                 print("skipped (raw.pixls.us file under %s, not CC0): %s" % (r["licence"], p), file=sys.stderr)
@@ -157,7 +165,8 @@ def main():
                 "compression_tag": s["compression_tag"], "escape_bits": "", "calm_parse": "",
                 "row_stride": "", "variant": variant(size_class), "measured_by": by,
             })
+    return int(failed)
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
