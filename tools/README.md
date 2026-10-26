@@ -1047,6 +1047,18 @@ independent captures or causal effects. No raw files are read.
     python -I -B tools/cohort_design_audit.py --manifest samples/manifest.csv --ids 1993 1994 1995 1996
     python -I -B tools/test_cohort_design_audit.py
 
+**`capture_metadata_audit.py`** supports #318's capture-group metadata question.
+It checks every input hash and CC0 licence against retained records before
+reading metadata, then reports model/time availability and repeated groups
+without printing timestamps or local paths. Matching make, model and recorded
+second does not establish the same physical camera or independent captures.
+Timezone, subseconds and clock accuracy are not evaluated.
+
+    python -I -B tools/capture_metadata_audit.py --licence-records RECORDS.json --sample ID PATH
+    python -I -B tools/test_capture_metadata_audit.py
+
+Repeat `--sample ID PATH` for each public sample in the declared cohort.
+
 **`payload_feature_probe.py`** supports #299 with fixed raw-bit windows and
 aggregate density, transitions, byte entropy and run spectra. Schema v2 follows
 TIFF strip-table order, excludes physical gaps and explicitly omits planned
