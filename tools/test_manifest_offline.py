@@ -25,6 +25,44 @@ def sample():
 
 
 class Tests(unittest.TestCase):
+    def test_duplicate_json_keys_fail_before_output_or_append(self):
+        work = ROOT / 'work' / 'test-manifest-offline'
+        work.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=str(work)) as folder:
+            root = Path(folder)
+            data = sample()
+            sample_path = root / 'sample.ORF'
+            sample_path.write_bytes(data)
+            digest = hashlib.sha256(data).hexdigest()
+            record = '{"id":"42","name":"a.ORF","sha256":"%s","licence":"CC0"}' % digest
+            ambiguous = record.replace('"licence":"CC0"', '"licence":"CC-BY-4.0","licence":"CC0"')
+            payloads = ['[' + ambiguous + ']',
+                        '{"files":[],"files":[' + record + ']}',
+                        '[' + record + ',' + ambiguous + ']']
+            for payload in payloads:
+                for append in (False, True):
+                    with self.subTest(payload=payload, append=append):
+                        records = root / 'records.json'
+                        records.write_text(payload, encoding='utf-8')
+                        dest = root / 'out.csv'
+                        dest.write_bytes(b'existing,row\n')
+                        args = ['manifest_rows', '--by', '@tester', '--header', '--licence-records', str(records)]
+                        if append:
+                            args += ['--append', str(dest)]
+                        args.append(str(sample_path))
+                        out, err = io.StringIO(), io.StringIO()
+                        with mock.patch.object(manifest, 'rows', side_effect=AssertionError('network called')), \
+                                mock.patch.object(manifest, 'commit', return_value='test'), \
+                                mock.patch.object(sys, 'argv', args), contextlib.redirect_stdout(out), \
+                                contextlib.redirect_stderr(err):
+                            with self.assertRaises(SystemExit) as raised:
+                                manifest.main()
+                        self.assertEqual(raised.exception.code, 2)
+                        self.assertEqual(out.getvalue(), '')
+                        self.assertEqual(dest.read_bytes(), b'existing,row\n')
+                        self.assertIn('invalid or unreadable licence records', err.getvalue())
+                        self.assertNotIn(str(records), err.getvalue())
+
     def test_offline_hash_match_and_no_catalogue(self):
         work = ROOT / 'work' / 'test-manifest-offline'
         work.mkdir(parents=True, exist_ok=True)

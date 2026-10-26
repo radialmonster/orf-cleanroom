@@ -57,10 +57,19 @@ def clean(text):
     return re.sub(r"[^A-Za-z0-9 ,._()/-]", "_", str(text)).strip()
 
 
+def unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON object key")
+        result[key] = value
+    return result
+
+
 def licence_records(path):
     """Read retained identities; original licence verification is the caller's responsibility."""
     with open(path, encoding="utf-8-sig") as stream:
-        data = json.load(stream)
+        data = json.load(stream, object_pairs_hook=unique_object)
     if isinstance(data, dict):
         data = data.get("files")
     if not isinstance(data, list):
