@@ -4,6 +4,7 @@ import os
 import sys
 import unittest
 from datetime import datetime
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import capture_pair_calibration as c
@@ -65,7 +66,51 @@ class Tests(unittest.TestCase):
         self.assertEqual(excluded, {"E": 1})
         out = io.StringIO()
         c.report(days, split_of, scores, excluded, 0.98, out=out)
-        self.assertIn("calibrated t* 0.999000000", out.getvalue())
+        self.assertIn("calibration: unsupported", out.getvalue())
+
+    def test_invalid_dates_are_missing_metadata(self):
+        for dto in ("0000:00:00 00:00:00", "2025:02:30 10:00:00", "bad", "2025:1:01 10:00:00"):
+            with self.subTest(dto=dto), patch("builtins.open", return_value=io.BytesIO(b"file")), \
+                    patch.object(c, "date_time_original", return_value=dto), \
+                    patch.object(c, "signature", return_value={"payload_w": 5000}):
+                _, result = c.file_meta("sample.ORF")
+                self.assertIsNone(result["dto"])
+                self.assertIsNone(result["time"])
+                good = m("P2.ORF", "2025:01:01 10:00:00")
+                _, _, scores, excluded = c.analyse([{"pair": ["bad", "good"], "r": 0.9}],
+                                                    {"bad": result, "good": good}, 600)
+                self.assertEqual(scores, {})
+                self.assertEqual(excluded, {"no_metadata": 1})
+        with patch("builtins.open", return_value=io.BytesIO(b"file")), \
+                patch.object(c, "date_time_original", return_value="2025:01:01 10:00:00"), \
+                patch.object(c, "signature", return_value={"payload_w": 5000}):
+            _, result = c.file_meta("sample.ORF")
+            self.assertEqual(result["dto"], "2025:01:01 10:00:00")
+            self.assertEqual(result["time"], datetime(2025, 1, 1, 10))
+
+    def test_calibration_support_and_auc_counts(self):
+        scores = {(split, kind): values for split in ("cal", "val")
+                  for kind, values in (("P", [0.9] * 10), ("H", [0.1] * 10), ("E", [0.2] * 3))}
+        out = io.StringIO()
+        c.report([], {}, scores, {}, 0.5, out=out)
+        text = out.getvalue()
+        self.assertIn("AUC P (n=10) vs H (n=10) 1.0000, P (n=10) vs E (n=3) 1.0000", text)
+        self.assertIn("calibrated t* 0.900000000", text)
+        self.assertIn("validation: supported", text)
+        self.assertIn("H 0/10", text)
+        self.assertIn("scene unknown", text)
+
+    def test_small_cal_or_validation_class_is_unsupported(self):
+        for split in ("cal", "val"):
+            for kind in ("P", "H"):
+                scores = {(s, k): [0.9 if k == "P" else 0.1] * 10
+                          for s in ("cal", "val") for k in ("P", "H")}
+                scores[(split, kind)].pop()
+                out = io.StringIO()
+                c.report([], {}, scores, {}, 0.5, out=out)
+                self.assertIn(("calibration" if split == "cal" else "validation") + ": unsupported", out.getvalue())
+                if split == "cal":
+                    self.assertNotIn("calibrated t*", out.getvalue())
 
 
 if __name__ == "__main__":

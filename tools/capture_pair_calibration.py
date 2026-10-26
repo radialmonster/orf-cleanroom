@@ -8,15 +8,18 @@ classes:
   P  companion: a High Res ORF (payload wider than 6000) and an ORI with the
      same base name and the same DateTimeOriginal (camera-written pair)
   B  same second, not a companion (bursts, brackets): reported, not a negative
-  H  same calendar day, different second, |dt| <= --hard-seconds (default 600)
+  H  same calendar day, different second, |dt| <= --hard-seconds (default 600);
+     scene unknown, not an established unrelated negative
   S  same day, |dt| > --hard-seconds
   E  different calendar days
 Split held out by shooting day: sorted distinct days at even index are
 "cal", odd are "val"; cross-split pairs count only in "all". On cal, t* is
-the observed P/H score maximizing TPR(P) - FPR(H) (ties: highest), then
+the observed P/H score maximizing P hit rate minus H hit rate (ties: highest), then
 applied unchanged to val. Base names drop the extension and a trailing _<n>
 copy suffix. DateTimeOriginal has 1 s resolution; files without it are
-reported and left out.
+reported and left out. Calibration and validation each require at least 10 P
+and 10 H pairs; meeting this descriptive minimum does not establish statistical
+validity or independent captures.
 
 Input: the JSON lines printed by preview_pair_screen.py (UTF-8 or UTF-16, as
 PowerShell redirection writes) and the same files. Prints aggregates only:
@@ -40,10 +43,12 @@ from orf_signature import Tiff, signature  # noqa: E402
 
 CLASSES = "PBHSE"
 HIRES_WIDTH = 6000
+MIN_CLASS_PAIRS = 10
 
 
 def load_screen(path):
-    raw = open(path, "rb").read()
+    with open(path, "rb") as stream:
+        raw = stream.read()
     text = raw.decode("utf-16") if raw[:2] in (b"\xff\xfe", b"\xfe\xff") else raw.decode("utf-8-sig")
     return [json.loads(line) for line in text.splitlines() if line.strip()]
 
@@ -64,14 +69,21 @@ def date_time_original(data):
 
 
 def file_meta(path):
-    data = open(path, "rb").read()
+    with open(path, "rb") as stream:
+        data = stream.read()
     dto = date_time_original(data)
+    try:
+        if not dto or not re.fullmatch(r"[0-9]{4}:[0-9]{2}:[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}", dto):
+            raise ValueError("missing or malformed DateTimeOriginal")
+        when = datetime.strptime(dto, "%Y:%m:%d %H:%M:%S")
+    except ValueError:
+        dto, when = None, None
     return hashlib.sha256(data).hexdigest(), {
         "base": base_name(path),
         "ori": path.lower().endswith(".ori"),
         "hires": int(signature(path)["payload_w"] or 0) > HIRES_WIDTH,
         "dto": dto,
-        "time": datetime.strptime(dto, "%Y:%m:%d %H:%M:%S") if dto else None,
+        "time": when,
     }
 
 
@@ -134,6 +146,7 @@ def report(days, split_of, scores, excluded, threshold, out=sys.stdout):
     p("days %d (cal %d, val %d); excluded pairs %s" % (
         len(days), sum(v == "cal" for v in split_of.values()), sum(v == "val" for v in split_of.values()),
         json.dumps(excluded, sort_keys=True)))
+    p("H: same-session, scene unknown; its hit rate is not a verified false-positive rate")
     for sp in ("all", "cal", "val"):
         p("== %s" % sp)
         for c in CLASSES:
@@ -144,13 +157,19 @@ def report(days, split_of, scores, excluded, threshold, out=sys.stdout):
                     c, len(v), threshold, hits, hits / len(v), v[0], v[len(v) // 2], v[-1]))
         P, H, E = (scores.get((sp, c), []) for c in "PHE")
         a1, a2 = auc(P, H), auc(P, E)
-        p("  AUC P vs H %s, P vs E %s" % ("%.4f" % a1 if a1 is not None else "n/a",
-                                          "%.4f" % a2 if a2 is not None else "n/a"))
+        p("  AUC P (n=%d) vs H (n=%d) %s, P (n=%d) vs E (n=%d) %s" % (
+            len(P), len(H), "%.4f" % a1 if a1 is not None else "n/a",
+            len(P), len(E), "%.4f" % a2 if a2 is not None else "n/a"))
         if P and H:
             p("  min P %.6f, max H %.6f: %s" % (min(P), max(H), "separable" if min(P) > max(H) else "overlap"))
     P, H = scores.get(("cal", "P"), []), scores.get(("cal", "H"), [])
-    if not P or not H:
-        p("calibration: no P or H pairs on cal days")
+    vp, vh = scores.get(("val", "P"), []), scores.get(("val", "H"), [])
+    cal_ok = len(P) >= MIN_CLASS_PAIRS and len(H) >= MIN_CLASS_PAIRS
+    val_ok = len(vp) >= MIN_CLASS_PAIRS and len(vh) >= MIN_CLASS_PAIRS
+    p("minimum support per split: P >= %d and H >= %d pairs; descriptive only" % (MIN_CLASS_PAIRS, MIN_CLASS_PAIRS))
+    p("calibration: %s (P=%d H=%d)" % ("supported" if cal_ok else "unsupported", len(P), len(H)))
+    p("validation: %s (P=%d H=%d)" % ("supported" if val_ok and cal_ok else "unsupported", len(vp), len(vh)))
+    if not cal_ok:
         return
     j, th = calibrate(P, H)
     p("calibrated t* %.9f (J on cal %.4f)" % (th, j))

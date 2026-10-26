@@ -29,6 +29,8 @@ jobs:
         run: python tools/test_value_map_probe.py
       - name: orf_tokens tests
         run: python tools/test_orf_tokens.py
+      - name: capture pair calibration tests
+        run: python -I -B tools/test_capture_pair_calibration.py
       - name: suffix_match_probe tests
         run: |
           python -I tools/test_suffix_match_probe.py
