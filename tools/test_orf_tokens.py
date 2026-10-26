@@ -22,6 +22,31 @@ def token(q, suffix):
 
 
 class ParseTests(unittest.TestCase):
+    def test_locate_multistrip_table_order_and_length_mismatch(self):
+        data = bytes(range(20))
+        for offsets, counts, expected in (([2, 12], [3, 4], data[2:5] + data[12:16]),
+                                          ([12, 2], [4, 3], data[12:16] + data[2:5])):
+            tags = {0x100: [5], 0x101: [4], 0x111: offsets, 0x117: counts}
+            with self.subTest(offsets=offsets), patch("builtins.open", return_value=io.BytesIO(data)), \
+                    patch.object(t, "Tiff") as reader:
+                reader.return_value.all_ifds.return_value = [tags]
+                self.assertEqual(t.locate("synthetic")[2], expected)
+        tags = {0x100: [5], 0x101: [4], 0x111: [2, 12], 0x117: [3]}
+        with patch("builtins.open", return_value=io.BytesIO(data)), patch.object(t, "Tiff") as reader:
+            reader.return_value.all_ifds.return_value = [tags]
+            with self.assertRaises(ValueError):
+                t.locate("synthetic")
+
+    def test_locate_rejects_short_and_overlapping_extents(self):
+        data = bytes(range(20))
+        for offsets, counts in (([1, 18], [4, 4]), ([1, 3], [4, 4]), ([1], [0])):
+            tags = {0x100: [5], 0x101: [4], 0x111: offsets, 0x117: counts}
+            with self.subTest(offsets=offsets, counts=counts), \
+                    patch("builtins.open", return_value=io.BytesIO(data)), patch.object(t, "Tiff") as reader:
+                reader.return_value.all_ifds.return_value = [tags]
+                with self.assertRaises(ValueError):
+                    t.locate("synthetic")
+
     def test_roundtrip(self):
         spec = [(0, 5), (3, 31), (1, 0), (7, 18), (0, 1)]
         buf = bits_to_bytes("".join(token(q, s) for q, s in spec) + "1" * 16)
@@ -98,6 +123,23 @@ class ParseTests(unittest.TestCase):
         for lag in (0, 1, 3):
             self.assertEqual(t.mi_base(xs, ys, lag),
                              t.mi_base(memoryview(bytes(xs)), memoryview(bytes(ys)), lag))
+
+    def test_mi_base_rotates_short_sequences(self):
+        # 5000 tokens, y a function of x: the rotated baseline must be near 0, not equal
+        # to the measured MI (rotation longer than the sequence used to be a no-op)
+        import random
+        rng = random.Random(1)
+        x = bytes(rng.randrange(4) for _ in range(5000))
+        v, base, n = t.mi_base(memoryview(x), memoryview(x))
+        self.assertGreater(v, 1.9)
+        self.assertLess(base, 0.05)
+        self.assertEqual(n, 5000)
+
+    def test_no_row_mark_without_a_token(self):
+        # two tokens then 12 zero bits (no stop bit), stride 1: two row starts, not three
+        buf = bits_to_bytes(token(0, 1) + token(0, 2) + "0" * 12)
+        marks, _ = t.scan(buf, 10, 1, 0, None, None, None, 40)
+        self.assertEqual(marks, [0, 6])
 
     def test_pearson(self):
         self.assertAlmostEqual(t.pearson([1, 2, 3, 4], [2, 4, 6, 8]), 1.0)

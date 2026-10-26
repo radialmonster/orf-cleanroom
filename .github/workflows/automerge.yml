@@ -34,6 +34,9 @@ jobs:
           # `Partial:` text is quoted in a bot comment on the lead: no markup, links or mentions.
           # Quotes and # (issue refs) are fine; no [ ] < > ` @ (links, HTML, code, mentions).
           PARTIAL_RE = re.compile(r"^[A-Za-z0-9 ,.;:()+/_'\"#=%?!-]*$")
+          # GitHub autolinks URLs and bare domains; `/` and `:` alone (paths, "V1: rows") stay allowed.
+          LINKISH_RE = re.compile(r"://|\bwww[.]|\b[A-Za-z0-9-]+[.](?:com|org|net|io|dev|app|co|me|ly|xyz|info|gg|us|uk|de)\b",
+                                  re.I)
 
 
           def gh(*args, **kw):
@@ -60,14 +63,17 @@ jobs:
               return f["status"] == "added" and FINDING_RE.match(f["filename"]) and not f["filename"].endswith("/README.md")
 
 
-          def decide(files, author, read_text, read_issue):
+          def decide(files, author, read_text, read_issue, total=None):
               """-> (reason, leads). reason "" means auto-mergeable; leads = [(issue number, finding path, kind, partial)],
               kind "self" (verifier is the finder), "independent" (a different person) or "upgrade"
               (a `Reproduces:` file by a different person, for a self-verified finding; the lead may be closed).
 
               read_text(file entry) -> decoded text of the file at the PR head (data only);
-              read_issue(n) -> {"author": login, "labels": [...], "pr": bool} or None."""
+              read_issue(n) -> {"author": login, "labels": [...], "pr": bool} or None;
+              total: the PR's changed_files count (the files list is capped at 3000 entries)."""
               leads = []
+              if total is not None and (total != len(files) or total >= 3000):
+                  return "its list of changed files could not be read in full", []
               if not files or any(not (is_finding(f) or (f["status"] == "modified" and f["filename"] == "samples/manifest.csv"))
                                   for f in files):
                   return "it changes more than new files under findings/ and rows added to samples/manifest.csv", []
@@ -97,8 +103,10 @@ jobs:
                           or "lead" not in issue["labels"]):
                       return ("the lead issue #%s is missing, is not labelled lead, or was not opened by @%s"
                               % (m.group(1), fauthor)), []
-                  if not PARTIAL_RE.match(header(text, "Partial")):
-                      return "the 'Partial:' line has characters other than letters, digits and simple punctuation", []
+                  partial = header(text, "Partial")
+                  if not PARTIAL_RE.match(partial) or LINKISH_RE.search(re.sub(r"\braw[.]pixls[.]us\b", "", partial, flags=re.I)):
+                      return ("the 'Partial:' line has characters other than letters, digits and simple punctuation, "
+                              "or a link"), []
                   # `Partial: <which part>` verifies only part of a multi-claim lead; the lead stays open.
                   leads.append((int(m.group(1)), path, kind, header(text, "Partial")))
               for f in files:
@@ -110,7 +118,10 @@ jobs:
                   for line in patch.split("\n"):
                       if not line.startswith("+"):
                           continue
-                      last = line[1:].rsplit(",", 1)[-1].lstrip('"')
+                      try:
+                          last = next(csv.reader([line[1:]]), [""])[-1]
+                      except csv.Error:
+                          return "a new manifest row is not valid CSV", []
                       if not last.lower().startswith("@" + author.lower() + " "):
                           return "a new manifest row has a measured_by that does not start with @" + author, []
               return "", leads
@@ -131,8 +142,13 @@ jobs:
               for pr in prs:
                   if "needs-maintainer" in [l["name"] for l in pr["labels"]]:
                       continue
-                  runs = json.loads(gh("api", "repos/%s/commits/%s/check-runs?check_name=check" % (repo, pr["headRefOid"])))
-                  if any(c["conclusion"] == "success" for c in runs.get("check_runs", [])):
+                  runs = json.loads(gh("api", "repos/%s/commits/%s/check-runs?check_name=check&filter=latest"
+                                       % (repo, pr["headRefOid"])))
+                  # Only the Actions app's latest `check` run counts: an older success, or a run named
+                  # `check` from another app, must not stand in for the current result.
+                  ours = [c for c in runs.get("check_runs", []) if (c.get("app") or {}).get("slug") == "github-actions"]
+                  latest = max(ours, key=lambda c: (c.get("started_at") or "", c.get("id") or 0), default=None)
+                  if latest and latest.get("conclusion") == "success":
                       try:
                           handle(repo, pr)
                       except Exception as e:
@@ -164,7 +180,8 @@ jobs:
                   return {"author": d["user"]["login"], "labels": [l["name"] for l in d["labels"]],
                           "pr": "pull_request" in d}
 
-              reason, leads = decide(files, author, read_text, read_issue)
+              total = int(gh("api", "repos/%s/pulls/%s" % (repo, num), "--jq", ".changed_files").strip())
+              reason, leads = decide(files, author, read_text, read_issue, total)
               if not reason:
                   # A merge can fail transiently, or succeed and still report an error; confirm by state.
                   for wait in (5, 20, 60, 0):

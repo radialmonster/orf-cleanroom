@@ -66,7 +66,10 @@ def base_file(path, rev=None):
 # import time, so no ClickFix-like literal sits on disk (antivirus false positives
 # on every clone).
 # ---------------------------------------------------------------------------
+import ast
 import bisect
+import io
+import tokenize
 import unicodedata
 
 
@@ -81,26 +84,30 @@ FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})(.*)$")
 HEREDOC = re.compile(r"<<-?[ \t]*(['\"]?)([A-Za-z_]\w*)\1")
 INLINE = re.compile(r"(`+)(.+?)(?<!`)\1(?!`)")
 LIST_ITEM = re.compile(r"^[ \t]*(?:[-*+]|\d+[.)])[ \t]")
+QUOTE = re.compile(r"^[ \t]{0,3}(?:>[ \t]?)+")
 PY_LANGS = ("python", "py", "python3", "py3", "pycon")
 
 # --- Python rules (run on all code text) -----------------------------------
 PY_RULES = [
     ("process execution", re.compile(_x(
         r"\bpty\b|\bpopen\b|\bpex@@pect\b|\bplumbum\b|\bmultiprocessing\b|\bcommands\.getoutput|"
-        r"\b(?:posix|nt)\.\w+|\bwinreg\b|\b_winapi\b|\bmsvcrt\b|os\.startfile"))),
+        r"\b(?:posix|nt)\.\w+|\bwinreg\b|\b_winapi\b|\bmsvcrt\b|os\.startfile|\bcreate_sub@@process_\w+|"
+        r"\.os\.\w+|(?<![\w.])vars\s*\(\s*(?:os|sys|builtins|sub@@process|shutil)\b"))),
     ("file deletion or move", re.compile(
         r"\bshutil\b|\btempfile\b|\bfileinput\b|\bsqlite3\b|\bmmap\b|\bshelve\b|\bFileHandler\b|"
         r"\.(?:unlink|rmdir|rename|renames|chmod|chown|lchmod|symlink_to|hardlink_to|link_to|touch|"
         r"truncate|extractall|extract)\s*\(|\bPath\([^()]*\)\s*\.replace\s*\(|\bmissing_ok\b")),
     ("file writing", re.compile(
         r"\.(?:save|savez|savez_compressed|savetxt|tofile|to_csv|to_pickle|"
-        r"to_parquet|to_excel|savefig|imwrite|write_image)\s*\(|\bFileIO\s*\(|\bfdopen\b|\bcodecs\.open\b")),
+        r"to_parquet|to_excel|savefig|imwrite|write_image)\s*\(|\bFileIO\s*\(|\bfdopen\b|\bcodecs\.open\b|"
+        r"\b(?:ZipFile|TarFile|PyZipFile)\s*\(")),
     ("network access", re.compile(
         r"\bsocket\b|\bssl\b|\burllib(?!\.parse\b)|\burllib[23]\b|http\.client|http\.server|http\.cookiejar|"
         r"\brequests\b|\bhttpx\b|\baiohttp\b|\bftplib\b|\bsmtplib\b|\btelnetlib\b|\bpoplib\b|\bimaplib\b|"
-        r"\bxmlrpc\b|\bsocketserver\b|\bparamiko\b|\bwebbrowser\b|\bwebsocket")),
+        r"\bxmlrpc\b|\bsocketserver\b|\bparamiko\b|\bwebbrowser\b|\bwebsocket|"
+        r"\b(?:open_connection|open_unix_connection|start_server|start_unix_server)\b")),
     ("dynamic code execution", re.compile(_x(
-        r"(?<![\w.])(?:ev@@al|ex@@ec|ex@@ecfile|comp@@ile|breakpoint)\s*\(|__imp@@ort__|\bimport@@lib\b|\brunpy\b|"
+        r"(?<![\w.])(?:ev@@al|ex@@ec|ex@@ecfile|comp@@ile|breakpoint)\b(?![ \t]*=(?!=))|__imp@@ort__|\bimport@@lib\b|\brunpy\b|"
         r"\bzipimport\b|\bpkgutil\b|\bimp\b|\bcode\.interact|\batexit\b|\bsignal\.(?:signal|alarm)|"
         r"\b__(?:builtins|globals|subclasses|bases|mro|loader|code|getattribute)__|\bbuiltins\b|"
         r"(?<![\w.])(?:globals|locals)\s*\(\s*\)|(?<![\w.])(?:set|del)attr\s*\(|"
@@ -119,14 +126,17 @@ SUBPROC = re.compile(_x(r"\bsub@@process\b(?!\.(?:PIPE|DEVNULL|STDOUT|CalledProc
 OS_USE = re.compile(r"(?<![\w.])os\.(\w+)")
 SYS_USE = re.compile(r"(?<![\w.])sys\.(\w+)")
 FROM_OS = re.compile(r"\bfrom\s+(os|sys)\s+import\s+([^\n#]+)")
-IMPORT_AS = re.compile(r"\bimport\s+(?:os|sys|builtins)\s+as\b|\bfrom\s+(?:os|sys)\s+import\s+\*")
+IMPORT_AS = re.compile(_x(r"\bimport\s+[^\n#;]*\b(?:os|sys|builtins|sub@@process|shutil)\s+as\b|"
+                            r"\bfrom\s+(?:os|sys|sub@@process)\s+import\s+\*"))
 SYS_PATH = re.compile(r"(?<![\w.])sys\.path\.(?:insert|append|extend)\s*\(([^)\n]*)\)")
 SAFE_PATHS = {"tools", "decoder", ".", "./tools", "./decoder", "tools/", "decoder/", "../tools", "../decoder"}
 PYTHONPATH = re.compile(r"\bPYTHONPATH\s*=\s*['\"]?([^\s'\"]*)")
 
 # --- shell / PowerShell rules (run on code that is not a Python block) ------
-_PRE = (r"(?:^|[;&|(){}`]|\$\(|(?<![\w.-])(?:then|do|else|elif|if|while|until|xargs|exec|env|nohup|time|command|"
-        r"builtin|sudo|doas|-exec|-execdir|-ok)[ \t]+)[ \t]*(?:\\|(?:[\w./~$-]*[/\\]))?['\"]?")
+# A command starts a line (after an optional `$ `, `% ` or `PS C:\> ` prompt), follows a
+# separator, or follows a word that runs its argument.
+_PRE = (r"(?:^(?:[ \t]*(?:\$|%|PS[^>\n]{0,80}>)[ \t]+)?|[;&|(){}`]|\$\(|(?<![\w.-])(?:then|do|else|elif|if|while|until|"
+        r"xargs|exec|env|nohup|time|command|builtin|sudo|doas|-exec|-execdir|-ok)[ \t]+)[ \t]*(?:\\|(?:[\w./~$-]*[/\\]))?['\"]?")
 _AMB = r"(?=[ \t]+(?![=(\[.,:)]))"       # `del x` yes, `del = 3` / `rm(x)` no
 _END = r"(?![\w.-])"
 _FLAGS = re.I | re.M
@@ -220,7 +230,9 @@ PROSE_CMD = [
         r"\b(?:curl|wget)[ \t]+(?:-\S+[ \t]+)*\S*(?:https?://|ftp://)|\b(?:Invoke-Web@@Request|"
         r"Invoke-Rest@@Method|iwr|irm)[ \t]+\S|\bInvoke-Ex@@pression\b"), re.I)),
     ("recursive or forced delete", re.compile(r"\brm[ \t]+-\w*[rf]|\bRemove-Item\b[^\n]*-Recurse|\brd[ \t]+/s|"
-                                              r"\bdel[ \t]+/[fsq]|\bmkfs\b|\bdd[ \t]+if=|:\(\)[ \t]*\{", re.I)),
+                                              r"\bdel[ \t]+/[fsq]|\bmkfs\b|\bdd[ \t]+if=|:\(\)[ \t]*\{|\brmtree\b", re.I)),
+    ("destructive git command", re.compile(r"\bgit[ \t]+(?:push\b[^\n]*?[ \t](?:--force(?:-with-lease)?\b|-f\b|\+\S)|"
+                                           r"reset[ \t]+(?:\S+[ \t]+)*--hard\b|clean[ \t]+(?:\S+[ \t]+)*-\w*f)", re.I)),
     ("privileged or encoded command", re.compile(_x(
         r"\bsudo[ \t]+\S|-Encoded@@Command\b|\bpower@@shell[^\n]*[ \t]-e@@nc\b|\bbase@@64[ \t]+-d\b"), re.I)),
 ]
@@ -238,12 +250,16 @@ HTML_BAD = re.compile(r"<!--|<(?:script|iframe|object|embed|style|svg|form|input
                       r"\]\(\s*(?:javascript|vbscript|file):", re.I)
 
 # --- text tricks (everything) -----------------------------------------------
-BIDI = re.compile("[‪-‮⁦-⁩‎‏؜]")
-ZEROW = re.compile("[​-‍﻿⁠᠎­͏ᅟᅠㅤﾠ⁡-⁤]")
+BIDI = re.compile("[\u202a-\u202e\u2066-\u2069\u200e\u200f\u061c]")
+ZEROW = re.compile("[\u200b-\u200d\ufeff\u2060\u180b-\u180e\xad\u034f\u115f\u1160\u3164\uffa0\u2061-\u2065"
+                   "\u206a-\u206f\ufff9-\ufffb\u17b4\u17b5]")
+# Variation selectors are invisible; U+FE0F (emoji style) is ordinary only right after a symbol.
+VARSEL = re.compile("[\ufe00-\ufe0f\U000e0100-\U000e01ef]")
 CONTROL = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f]")
 BLOB = re.compile(r"[A-Za-z0-9+/=]{200,}")
+BLOB_LINE = re.compile(r"^[ \t>]*[A-Za-z0-9+/=]{40,}[ \t]*$")  # 4+ such lines in a row: a wrapped blob
 TAGS = re.compile("[\U000e0000-\U000e007f]")  # Unicode tag characters: invisible text
-TRICK_RULES = ("Unicode", "zero-width", "control", "very long")
+TRICK_RULES = ("Unicode", "zero-width", "control", "very long", "variation selector", "base64-like block")
 
 
 def _lineno(starts, offset):
@@ -297,6 +313,9 @@ def _open_hits(text):
         bare = text[max(0, m.start() - 1):m.start()] != "."
         mode_ok = True
         for k, a in enumerate(args):
+            if a.startswith("*"):
+                mode_ok = False  # open(*args) / open(**kw): mode unknown
+                continue
             lit = re.match(_STR, a, re.S)
             kw = re.match(r"^(\w+)\s*=\s*(.*)$", a, re.S)
             if kw and kw.group(1) == "mode":
@@ -307,19 +326,42 @@ def _open_hits(text):
                 continue
             if lit and re.match(r"^[rwaxbtU+]+$", lit.group(2)) and re.search(r"[waxU+]", lit.group(2)):
                 mode_ok = False
-            elif not lit and not kw and bare and k == 1:
-                mode_ok = False  # open(p, <variable>): mode unknown
+            elif not lit and not kw and k == (1 if bare else 0) and a:
+                mode_ok = False  # open(p, <variable>) or Path.open(<variable>): mode unknown
         if not mode_ok:
             hits.append((m.start(), "open() with a write, append, create or unknown mode"))
     return hits
 
 
-def _py_scan(text):
+def _py_scan(text, lang=""):
     """-> [(offset, rule, matched text)] for Python-style danger in code text."""
     hits = []
     for rule, rx in PY_RULES:
         for m in rx.finditer(text):
+            # In shell text, a bare option name is not a builtin reference.
+            # Python blocks and call-like forms are always checked.
+            if (lang not in PY_LANGS and rule == "dynamic code execution"
+                    and m.group(0) in (_x("ev@@al"), _x("ex@@ec"), _x("ex@@ecfile"), _x("comp@@ile"), "breakpoint")
+                    and m.start() and text[m.start() - 1] == "-"
+                    and not re.match(r"[ \t]*\(", text[m.end():])):
+                continue
             hits.append((m.start(), rule, m.group(0)))
+    for m in re.finditer(r"(?<![\w.])getattr\s*\(", text):
+        args = _args(text, m.end())
+        if args is None or len(args) < 2:
+            hits.append((m.start(), "dynamic code execution", m.group(0)))
+            continue
+        try:
+            node = ast.parse(args[1], mode="eval").body
+            tokens = [t for t in tokenize.generate_tokens(io.StringIO(args[1]).readline)
+                      if t.type not in (tokenize.NEWLINE, tokenize.NL, tokenize.ENDMARKER)]
+            literal = (len(tokens) == 1 and tokens[0].type == tokenize.STRING
+                       and isinstance(node, ast.Constant) and isinstance(node.value, str))
+        except (SyntaxError, ValueError, tokenize.TokenError, IndentationError):
+            literal = False
+        dangerous = r"^(?:unlink|rmdir|rename|replace|remove|removedirs|write_text|write_bytes|touch|chmod|system|popen|open|run|call|exec\w*|spawn\w*)$"
+        if not literal or re.match(dangerous, node.value):
+            hits.append((m.start(), "dynamic code execution", m.group(0)))
     for m in OS_USE.finditer(text):
         if m.group(1) not in OS_OK and not re.match(r"O_[A-Z]+$", m.group(1)):  # O_* flags are inert; os.open is caught
             hits.append((m.start(), "os call that executes, deletes or changes files", m.group(0)))
@@ -347,8 +389,8 @@ def _py_scan(text):
     for m in SUBPROC.finditer(text):
         after = text[m.end():]
         ls = text.rfind("\n", 0, m.start()) + 1
-        if re.match(r"\s*import\s", text[ls:m.start()]):
-            continue  # plain `import ..., subprocess`: the uses are checked below
+        if re.match(r"\s*import\s", text[ls:m.start()]) and not re.match(r"\s+as\b", after):
+            continue  # plain `import ..., subprocess`: the uses are checked below (an alias is not)
         call =re.match(r"\.(?:run|check_call|check_output|call)\s*\(", after)
         args = _args(after, call.end()) if call else None
         first = args[0] if args else ""
@@ -362,8 +404,9 @@ def _py_scan(text):
         if (not listed or not repo_tool or re.search(r"shell\s*=\s*(?!False)", after[:400].split("\n\n")[0])
                 or re.search(r"""['"]-[A-Za-z]*c['"]|['"]pip['"]|['"]-m['"]""", body)):
             hits.append((m.start(), "process execution", "sub" + "process"))
-    for m in re.finditer(r"\.(write_text|write_bytes)\s*\(([^)\n]*)\)", text):
-        arg = m.group(2).strip()
+    for m in re.finditer(r"\.(write_text|write_bytes)\s*\(", text):
+        args = _args(text, m.end())  # may span lines or hold nested calls
+        arg = args[0] if args else ""
         line_start = text.rfind("\n", 0, m.start()) + 1
         head = text[line_start:m.start()]
         scratch = re.search(r"""Path\(\s*['"]/tmp/[\w.-]+['"]\s*\)\s*$""", head)
@@ -379,6 +422,12 @@ def _env_scan(text):
         if any(v not in SAFE_PATHS for v in re.split(r"[:;]", m.group(1)) if v):
             hits.append((m.start(), "PYTHONPATH outside the repo tools", m.group(0)))
     return hits
+
+
+def _sh_unquote(text):
+    """The shell joins `r\\m`, `r''m` and `r""m` into `rm`; scan the joined form. Only characters
+    inside a line are removed, so line numbers (counted from newlines) are unchanged."""
+    return re.sub(r"\\(?=[A-Za-z0-9_-])|''|\"\"", "", text)
 
 
 def _sh_scan(text):
@@ -434,9 +483,13 @@ def _segments(lines, lang):
 def extract_code(text):
     """-> (blocks, prose_lines). blocks: [(lang, [(lineno, text), ...])]; prose_lines: [(lineno, text)].
     Fenced blocks, 4-space/tab indented lines (not list items) and inline `code` all count as code;
-    an unclosed fence runs to the end."""
-    blocks, prose, fence, cur = [], [], None, None
+    an unclosed fence runs to the end. Blockquote `>` markers are stripped first, and a fence may
+    open on a list-item line (`- ```sh`), as markdown renders both as code."""
+    blocks, prose, fence, cur, quoted = [], [], None, None, False
     for n, line in enumerate(text.split("\n"), 1):
+        q = QUOTE.match(line)
+        if q and (not fence or quoted):
+            line = line[q.end():]
         if fence:
             m = FENCE.match(line)
             if m and m.group(1)[0] == fence[0] and len(m.group(1)) >= fence[1] and not m.group(2).strip():
@@ -444,12 +497,13 @@ def extract_code(text):
             else:
                 cur[1].append((n, line))
             continue
-        m = FENCE.match(line)
+        li = LIST_ITEM.match(line)
+        m = FENCE.match(line) or (li and FENCE.match(line[li.end():]))
         if m and not (m.group(1)[0] == "`" and "`" in m.group(2)):
             lang = (m.group(2).strip().split() or [""])[0].lower().lstrip("{.")
             cur = (lang, [])
             blocks.append(cur)
-            fence = (m.group(1)[0], len(m.group(1)))
+            fence, quoted = (m.group(1)[0], len(m.group(1))), bool(q)
             continue
         if (line.startswith("    ") or line.startswith("\t")) and line.strip() and not LIST_ITEM.match(line):
             if blocks and blocks[-1][0] == "indented" and blocks[-1][1][-1][0] == n - 1:
@@ -486,9 +540,14 @@ def scan_text(text, lenient=False, warnings=None, what="findings text"):
     hidden text inside is scanned like visible text instead of being a hit by itself.
     URL warnings are printed as annotations, or appended to `warnings` as (lineno, message)."""
     text = text.replace("\r\n", "\n")
+    hits = []
+    # A lone CR is a line break to some renderers but not to a line-by-line scan: flag it, then split on it.
+    for n, line in enumerate(text.split("\n"), 1):
+        if "\r" in line:
+            hits.append((n, "control character", "U+000D"))
+    text = text.replace("\r", "\n")
     if lenient:
         text = HTML_MARK.sub("", text)  # not spaces: 4 would turn the text into an indented code block
-    hits = []
 
     def warn_url(n, url):
         msg = "%s links to a URL outside github.com/radialmonster/orf-cleanroom and raw.pixls.us: %s" % (
@@ -504,9 +563,20 @@ def scan_text(text, lenient=False, warnings=None, what="findings text"):
             m = rx.search(line)
             if m:
                 hits.append((n, trick, "U+%04X" % ord(m.group(0))))
+        for m in VARSEL.finditer(line):
+            if m.group(0) != "\ufe0f" or m.start() == 0 or not unicodedata.category(line[m.start() - 1]).startswith("S"):
+                hits.append((n, "variation selector (invisible character)", "U+%04X" % ord(m.group(0))))
+                break
         m = BLOB.search(line)
         if m:
             hits.append((n, "very long base64-like run (%d characters)" % len(m.group(0)), m.group(0)[:30] + "..."))
+    run = 0
+    for n, line in enumerate(text.split("\n"), 1):
+        # base64 mixes digits or +/ with letters past f; a list of sha256 hashes (hex only) is not a blob
+        run = run + 1 if (BLOB_LINE.match(line) and re.search(r"[0-9+/]", line)
+                          and re.search(r"[g-zG-Z+/]", line)) else 0
+        if run == 4:
+            hits.append((n - 3, "base64-like block (4 or more lines)", line.strip()[:30] + "..."))
     blocks, prose = extract_code(text)
     for n, line in prose:
         for m in HTML_BAD.finditer(line):
@@ -529,12 +599,17 @@ def scan_text(text, lenient=False, warnings=None, what="findings text"):
         alltext = "\n".join(t for _, t in blines)
         starts_py = [0] + [i + 1 for i, c in enumerate(py_text) if c == "\n"]
         starts_sh = [0] + [i + 1 for i, c in enumerate(sh_text) if c == "\n"]
-        for off, rule, m in _py_scan(py_text):
+        for off, rule, m in _py_scan(py_text, lang):
+            if inline and rule == "dynamic code execution" and re.fullmatch(r"\w+", py_text.strip()):
+                continue  # `eval` alone in a sentence names the function; it calls nothing
             hits.append((nums[_lineno(starts_py, off) - 1], rule, m))
         for off, rule, m in _env_scan(alltext):
             hits.append((nums[min(_lineno([0] + [i + 1 for i, c in enumerate(alltext) if c == "\n"], off), len(nums)) - 1], rule, m))
-        for off, rule, m in _sh_scan(sh_text):
-            hits.append((nums[_lineno(starts_sh, off) - 1], rule, m))
+        # As written (Windows paths keep their backslashes) and as the shell joins it (`r\m` is rm).
+        for variant in (sh_text, _sh_unquote(sh_text)):
+            starts_v = [0] + [i + 1 for i, c in enumerate(variant) if c == "\n"]
+            for off, rule, m in _sh_scan(variant):
+                hits.append((nums[_lineno(starts_v, off) - 1], rule, m))
         for n, line in blines:
             for m in SENSITIVE.finditer(line):
                 if not SENSITIVE_OK.match(line[m.start():]):
@@ -605,11 +680,13 @@ def check_findings(changes):
     added = []
     owner_pr = bool(AUTHOR) and AUTHOR.lower() == OWNER.lower()
     for status, path in changes:
-        if not path.startswith("findings/") or path.endswith("/README.md"):
+        if not path.startswith("findings/"):
             continue
         if status in ("A", "M"):  # safety scan: every author, owner included
             body = (base_file(path, "HEAD") or b"").decode("utf-8", "replace")
             report_safety(path, scan_text(body))
+        if path.endswith("/README.md"):
+            continue  # scanned, but a README is documentation, not a finding: it may change
         if status == "A":
             added.append(path)
         elif not owner_pr:
@@ -671,7 +748,7 @@ def check_manifest(changes):
             error(path, "%s: sha256 must be 64 lowercase hex characters." % where)
         source, licence, pid = row[col["source"]], row[col["licence"]], row[col["pixls_id"]]
         if source == "pixls":
-            if licence != "CC0" or not pid.isdigit():
+            if licence != "CC0" or not re.fullmatch(r"[0-9]+", pid):
                 error(path, "%s: source pixls needs licence CC0 and a numeric pixls_id." % where)
         elif source == "own":
             if licence != "not-shared" or pid != "":

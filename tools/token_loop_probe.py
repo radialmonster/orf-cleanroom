@@ -378,8 +378,10 @@ def main(argv=None):
         ap.error("measurement requires at least one --sample")
     if not 1 <= args.rows <= MAX_ROWS:
         ap.error("--rows must be between 1 and %d" % MAX_ROWS)
-    if not 1 <= args.perms <= 16:
-        ap.error("--perms must be between 1 and 16")
+    if not 1 <= args.perms <= 10:
+        # seeds are SEED_BASE + 1000*id + 10*mapping + perm: perm >= 10 would reuse the
+        # next mapping's seeds
+        ap.error("--perms must be between 1 and 10")
 
     selected = []
     for raw_id, public_name, path in args.sample:

@@ -162,6 +162,8 @@ def shift_summary(real, shifts):
 def run_file(path, rows, window, perms, seed, mapping="sum", shift_null=False):
     if rows < 2 or window < 1 or perms < 1:
         raise ValueError("require rows>=2, window>=1, perms>=1")
+    if window % 2 == 0:
+        raise ValueError("window must be odd (the centred box spans 2*(window//2)+1 tokens)")
     w, h, buf = T.locate(path)
     qa, sa = array.array("B"), array.array("B")
     T.scan(buf, rows * w, w, 0, None, qa, sa, 40, None, 32)
@@ -195,7 +197,7 @@ def run_file(path, rows, window, perms, seed, mapping="sum", shift_null=False):
         print("  shift-null: best k=%d r=%+.5f; observed rank %d/%d; "
               "shifts %+.5f +/- %.5f max %+.5f" % (
                   summary["best_shift"], summary["best"], summary["rank"],
-                  summary["shifts"], summary["mean"], summary["sd"],
+                  summary["shifts"] + 1, summary["mean"], summary["sd"],
                   summary["maximum"]))
 
 
@@ -245,6 +247,8 @@ def main():
         ap.error("no files (or use --self-test)")
     if a.rows < 2 or a.window < 1 or a.perms < 1:
         ap.error("require rows>=2, window>=1, perms>=1")
+    if a.window % 2 == 0:
+        ap.error("--window must be odd (the centred box spans 2*(window//2)+1 tokens)")
     failed = False
     for index, p in enumerate(a.files, 1):
         try:

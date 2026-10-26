@@ -98,6 +98,16 @@ class FeatureTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     report("1", "synthetic", hashlib.sha256(b"1234").hexdigest(), "unused", 1, 3)
 
+    def test_reject_multiple_dimension_values(self):
+        for tag_index in (0, 1):
+            data = bytearray(container(bytes(range(20))))
+            # Width and height tags are the first two sorted IFD entries.
+            struct.pack_into("<II", data, 10 + tag_index * 12 + 4, 2, len(data))
+            data.extend(struct.pack("<II", 5, 6))
+            with self.subTest(tag_index=tag_index), patch("builtins.open", return_value=io.BytesIO(data)):
+                with self.assertRaises(ValueError):
+                    report("1", "synthetic", hashlib.sha256(data).hexdigest(), "unused", 4, 3)
+
     def test_strip_validation_and_order(self):
         for offsets, counts in (([], []), ([0], [1, 1]), ([0], [0]),
                                 ([-1], [2]), ([0], [11]), ([0, 1], [2, 2]),

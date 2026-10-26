@@ -53,6 +53,7 @@ class ShiftTests(unittest.TestCase):
         self.assertEqual(summary["shifts"], 3)
         self.assertEqual(p.shift_summary(0.5, [(1, 0.4), (2, 0.3)])["rank"], 1)
         self.assertEqual(p.shift_summary(0.5, [(1, 0.5)])["rank"], 2)
+        self.assertEqual(p.shift_summary(0.1, [(1, 0.6), (2, 0.4), (3, 0.2)])["rank"], 4)
 
     def test_shift_scores_require_two_rows(self):
         with self.assertRaisesRegex(ValueError, "two preview rows"):
@@ -180,6 +181,22 @@ class CliStatusTests(unittest.TestCase):
             self.assertIn("rows 2", output.getvalue())
             self.assertIn("r=+0.30000", output.getvalue())
             self.assertEqual("mapping=" in output.getvalue(), mapping != "sum")
+
+    def test_shift_rank_denominator_includes_observed_alignment(self):
+        def scan(*args):
+            args[6].extend([0] * 14)
+        output = io.StringIO()
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(patch.object(p.T, "locate", return_value=(7, 2, b"")))
+            stack.enter_context(patch.object(p.T, "scan", side_effect=scan))
+            stack.enter_context(patch("builtins.open", mock_open(read_data=b"synthetic")))
+            stack.enter_context(patch.object(p.jpeg_dc, "find_preview", return_value=(None, 0)))
+            stack.enter_context(patch.object(p.jpeg_dc, "decode", return_value=(2, 2, [0, 1, 1, 0])))
+            stack.enter_context(patch.object(p, "score", side_effect=[0.3, 0.1, 0.2]))
+            stack.enter_context(patch.object(p, "preview_shift_scores", return_value=[(1, 0.5)]))
+            stack.enter_context(contextlib.redirect_stdout(output))
+            p.run_file("unused", 2, 1, 2, 1, shift_null=True)
+        self.assertIn("observed rank 2/2", output.getvalue())
 
 
 class SelfTest(unittest.TestCase):

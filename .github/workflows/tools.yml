@@ -41,3 +41,7 @@ jobs:
         run: python -I tools/test_pr_checks_safety.py
       - name: Issue and comment scan tests
         run: python -I tools/test_issue_scan.py
+      - name: Offline automerge decision tests
+        run: python -I -B tools/test_automerge_decision.py
+      - name: Offline sample tool regression tests
+        run: python -I -B tools/test_sample_tool_regressions.py

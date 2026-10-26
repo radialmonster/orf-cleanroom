@@ -107,6 +107,11 @@ def main(paths):
             imgs = olympus_tags(blob).get("image_processing", {})
             aw = imgs.get(0x0614, (0, 0, b"", None))[3]
             ah = imgs.get(0x0615, (0, 0, b"", None))[3]
+            # a SHORT count-1 tag reads as a 1-tuple; use its value like a LONG
+            aw = aw[0] if isinstance(aw, tuple) and len(aw) == 1 else aw
+            ah = ah[0] if isinstance(ah, tuple) and len(ah) == 1 else ah
+            if isinstance(aw, tuple) or isinstance(ah, tuple):
+                aw = ah = None   # more than one value: not an active width/height
             cr = imgs.get(0x0637, (0, 0, b"", None))[3]
             if aw is None or ah is None:
                 print("%s payload %dx%d  active dimensions not found" % (
