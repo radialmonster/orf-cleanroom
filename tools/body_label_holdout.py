@@ -18,6 +18,7 @@ import csv
 import hashlib
 import json
 import math
+import re
 import sys
 
 FEATURES = ('bpp', 'one_fraction', 'transition_fraction', 'byte_entropy_bits')
@@ -31,8 +32,11 @@ def finite(value):
 
 
 def cohort(report, manifest, ids):
-    if len(ids) < 3 or len(set(ids)) != len(ids):
-        raise ValueError('need at least three unique IDs')
+    if not isinstance(report, dict):
+        raise ValueError('feature report must be an object')
+    if (len(ids) < 3 or len(set(ids)) != len(ids) or
+            any(not isinstance(i, str) or not re.fullmatch(r'[0-9]+', i) for i in ids)):
+        raise ValueError('need at least three unique numeric public IDs')
     if report.get('schema') not in ('raw-bit-window-features-v1', 'raw-bit-window-features-v2'):
         raise ValueError('unsupported feature schema')
     if report.get('window_count') != 3 or report.get('window_bytes') != 65536:
@@ -53,7 +57,8 @@ def cohort(report, manifest, ids):
         if len(candidates) != 1:
             raise ValueError('missing or conflicting manifest identity')
         digest, name, make, model, licence, source = candidates.pop()
-        if (digest != sample['sha256'] or name != sample['pixls_name'] or
+        if (not re.fullmatch(r'[0-9a-f]{64}', digest) or
+                digest != sample['sha256'] or name != sample['pixls_name'] or
                 licence != 'CC0' or source != 'pixls' or not make or not model):
             raise ValueError('identity/provenance mismatch')
         if sample['size_class'] != 'variable':
