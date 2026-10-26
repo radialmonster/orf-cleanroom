@@ -21,8 +21,16 @@ def h(letter):
 
 class Tests(unittest.TestCase):
     def test_base_name(self):
-        self.assertEqual(c.base_name("dir/P1012824_01.ORF"), "P1012824")
+        self.assertEqual(c.base_name("dir/P1012824_01.ORF"), "P1012824_01")
         self.assertEqual(c.base_name("P1012824.ORI"), "P1012824")
+
+    def test_numbered_stems_do_not_alias(self):
+        dto = "2025:01:01 10:00:00"
+        high = m("IMG_0001.ORF", dto, hires=True)
+        self.assertEqual(c.classify(high, m("IMG_0002.ORI", dto), 600), "B")
+        self.assertEqual(c.classify(high, m("IMG_0001.ORI", dto), 600), "P")
+        self.assertEqual(c.classify(m("IMG_0001_01.ORF", dto, hires=True),
+                                    m("IMG_0001.ORI", dto), 600), "B")
 
     def test_classes(self):
         hr = m("P1.ORF", "2025:01:01 10:00:00", hires=True)

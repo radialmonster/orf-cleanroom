@@ -15,8 +15,8 @@ classes:
 Split held out by shooting day: sorted distinct days at even index are
 "cal", odd are "val"; cross-split pairs count only in "all". On cal, t* is
 the observed P/H score maximizing P hit rate minus H hit rate (ties: highest), then
-applied unchanged to val. Base names drop the extension and a trailing _<n>
-copy suffix. DateTimeOriginal has 1 s resolution; files without it are
+applied unchanged to val. Base names drop only the extension; numeric suffixes
+remain part of the stem. DateTimeOriginal has 1 s resolution; files without it are
 reported and left out. Calibration and validation each require at least 10 P
 and 10 H pairs; meeting this descriptive minimum does not establish statistical
 validity or independent captures.
@@ -58,7 +58,7 @@ def load_screen(path):
 
 
 def base_name(name):
-    return re.sub(r"(_\d+)?\.[A-Za-z0-9]+$", "", os.path.basename(name))
+    return os.path.splitext(os.path.basename(name))[0]
 
 
 def date_time_original(data):

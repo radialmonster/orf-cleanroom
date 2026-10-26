@@ -562,7 +562,9 @@ ISO/bpp correlation, scene content, or causality. Licence-check inputs first.
 **`capture_pair_calibration.py`** supports #295. It labels the pairs printed by
 `preview_pair_screen.py` from each file's own metadata only (EXIF
 DateTimeOriginal, payload width, file name): camera-written High Res ORF / ORI
-companions, same-second non-companions (bursts), same-session pairs within
+companions require exactly matching stems after removing the extension; numeric
+suffixes are preserved and copy suffixes are not normalized. Same-second
+non-companions (bursts), same-session pairs within
 600 s, same-day and different-day pairs. Same-session H pairs have unknown scene
 identity; their hit rate is not an established false-positive rate. It reports
 class counts alongside AUC and score ranges. A threshold is calibrated on
