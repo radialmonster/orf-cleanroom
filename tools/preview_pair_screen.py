@@ -82,7 +82,7 @@ def measure(paths):
             fp, sd = fingerprint(wb, hb, dc, width, height)
             record.update(width=width, height=height, grid_sd=sd,
                           status="ok" if fp is not None else "low_information")
-        except (ValueError, IndexError, KeyError, StopIteration) as exc:
+        except (ValueError, IndexError, KeyError, StopIteration, ZeroDivisionError) as exc:
             fp = None
             record.update(status="unsupported", error=type(exc).__name__)
         records.append((record, fp))
