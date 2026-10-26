@@ -109,6 +109,23 @@ class Tests(unittest.TestCase):
         self.assertEqual((row["payload_offset"], row["payload_bytes"], row["size_class"]),
                          ("90", "8", "packed-16"))
 
+    def test_overlapping_strip_extents_are_rejected(self):
+        # Each strip is individually in bounds, but overlapping extents double-count bytes.
+        for offsets in ((86, 86), (86, 88), (88, 86)):
+            data = bytearray(fixture())
+            offsets_at = len(data)
+            data.extend(struct.pack("<II", *offsets))
+            counts_at = len(data)
+            data.extend(struct.pack("<II", 4, 4))
+            struct.pack_into("<II", data, 10 + 4 * 12 + 4, 2, offsets_at)
+            struct.pack_into("<II", data, 10 + 5 * 12 + 4, 2, counts_at)
+            with self.subTest(offsets=offsets):
+                status, output, error = self.call(["bad.orf", "valid.orf"],
+                    {"bad.orf": bytes(data), "valid.orf": fixture()})
+                self.assertEqual(status, 1)
+                self.assertEqual([r["file"] for r in csv.DictReader(io.StringIO(output))], ["valid.orf"])
+                self.assertIn("overlap", error)
+
     def test_multiple_dimensions_are_rejected(self):
         for entry in (0, 1):
             for typ in (3, 4):
