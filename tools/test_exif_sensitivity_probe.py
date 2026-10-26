@@ -5,8 +5,10 @@ import hashlib
 import io
 import json
 import os
+from pathlib import Path
 import struct
 import sys
+import tempfile
 import unittest
 from unittest import mock
 
@@ -97,6 +99,31 @@ class SensitivityTests(unittest.TestCase):
         self.assertEqual(report["samples"], [{"pixls_id": "1"}])
         self.assertEqual(report["failures"], [{"pixls_id": "2", "error_type": "OSError"}])
         self.assertNotIn("private", out.getvalue())
+
+    def test_cli_bad_tiff_type_keeps_later_sample(self):
+        work = Path(__file__).resolve().parent.parent / "work" / "test-exif-types"
+        work.mkdir(parents=True, exist_ok=True)
+        entries = [(256, 2), (257, 2), (273, 74), (279, 8), (258, 16)]
+        valid = (struct.pack("<2sHIH", b"II", 42, 8, len(entries)) +
+                 b"".join(struct.pack("<HHII", tag, 4, 1, value) for tag, value in entries) +
+                 struct.pack("<I", 0) + bytes(8))
+        for index in (0, 1, 3):
+            with self.subTest(entry=index), tempfile.TemporaryDirectory(dir=str(work)) as folder:
+                bad = bytearray(valid)
+                struct.pack_into("<HI4s", bad, 10 + index * 12 + 2, 2, 2, b"2\0\0\0")
+                bad_path, good_path = Path(folder) / "private-bad.ORF", Path(folder) / "private-good.ORF"
+                bad_path.write_bytes(bad)
+                good_path.write_bytes(valid)
+                out, err = io.StringIO(), io.StringIO()
+                with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                    result = probe.main(["--sample", "1", "bad.ORF", str(bad_path),
+                                         "--sample", "2", "good.ORF", str(good_path)])
+                report = json.loads(out.getvalue())
+                self.assertEqual(result, 1)
+                self.assertEqual([r["pixls_id"] for r in report["samples"]], ["2"])
+                self.assertEqual(report["failures"], [{"pixls_id": "1", "error_type": "TypeError"}])
+                self.assertEqual(err.getvalue(), "")
+                self.assertNotIn(folder, out.getvalue())
 
 
 if __name__ == "__main__":
