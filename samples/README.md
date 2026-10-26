@@ -17,6 +17,18 @@ is non-CC0. Include known restricted records: the offline file cannot reveal
 catalogue entries omitted from it. `--own` still requires ownership or the
 owner's agreement and cannot override a supplied non-CC0 record.
 
+For a file that has not yet been checked, `python -I -B tools/pixls_samples.py
+check --json FILE...` checks its hash against the live catalogue and prints a
+JSON object usable as `--licence-records`. Its `files` array contains known
+identities, including non-CC0 matches; `unknown_inputs` lists unrecognized input
+positions (one-based) without local paths, and `unreadable_inputs` lists files
+that could not be read. Unknown files have no public identity or verified licence
+and need their own provenance. A non-CC0 match or unreadable input gives exit
+status 1. Save the output as UTF-8 and retain it with the original verification;
+later matching hashes can reuse that record without another catalogue check.
+For example, in PowerShell use `python -I -B tools/pixls_samples.py check --json
+FILE | Set-Content -Encoding utf8 records.json` and check the Python exit status.
+
 Use `--append` rather than shell `>>`: on Windows, `>>` can write CRLF line endings.
 
 `manifest.csv` lists the files used here, one row per file: raw.pixls.us CC0 files and contributors' own files. Raw files themselves are never committed.
