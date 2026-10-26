@@ -20,6 +20,22 @@ def synthetic_tiff():
 
 
 class MainTests(unittest.TestCase):
+    def test_missing_payload_dimension_does_not_invent_border(self):
+        image = {0x0614: (4, 1, b'', 8), 0x0615: (4, 1, b'', 6)}
+        for missing in (0x100, 0x101):
+            entries = [(tag, value) for tag, value in
+                       ((0x100, 10), (0x101, 8), (0x111, 100), (0x117, 4)) if tag != missing]
+            data = bytearray(104)
+            struct.pack_into('<2sHIH', data, 0, b'II', 0x5352, 8, len(entries))
+            for i, (tag, value) in enumerate(entries):
+                struct.pack_into('<HHII', data, 10 + i * 12, tag, 4, 1, value)
+            with self.subTest(missing=missing), patch('builtins.open', return_value=io.BytesIO(data)), \
+                 patch.object(a, 'maker_note', return_value=b'synthetic'), \
+                 patch.object(a, 'olympus_tags', return_value={'image_processing': image}), \
+                 contextlib.redirect_stdout(io.StringIO()) as output:
+                self.assertEqual(a.main(['fixture.ORF']), 0)
+                self.assertIn('border unavailable', output.getvalue())
+
     def test_payload_geometry_uses_largest_strip_ifd(self):
         for route in ('sub', 'next'):
             data = bytearray(512)

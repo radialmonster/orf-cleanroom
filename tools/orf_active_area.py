@@ -9,6 +9,7 @@ the TIFF structure only and decodes nothing.
 Payload geometry uses the image IFD with the largest total strip byte count,
 as in orf_signature.py. Without strip counts, primary IFD dimensions are
 labelled primary and no payload border is calculated.
+An absent dimension is shown as 0; either missing dimension makes the border unavailable.
 
 Standard library only, Python 3.8+. Prints aggregate metadata only.
 
@@ -126,7 +127,7 @@ def main(paths):
                 print("%s %s %dx%d  active dimensions not found" % (
                     os.path.basename(path), geometry, w, h))
                 continue
-            border = "%dx%d" % (w - aw, h - ah) if has_payload else "unavailable"
+            border = "%dx%d" % (w - aw, h - ah) if has_payload and w and h else "unavailable"
             print("%s %s %dx%d  active %dx%d  border %s  crop %s" % (
                 os.path.basename(path), geometry, w, h, aw, ah, border,
                 list(cr) if cr else "not found"))
