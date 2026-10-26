@@ -28,6 +28,7 @@ Each nonblank JSON line must be an object with unique keys.
 Each unordered pair of distinct SHA-256 hashes may occur only once; malformed,
 self, or duplicate pairs and correlations outside the finite [-1, 1] range
 are rejected. A null correlation represents an unavailable screen score.
+Unreadable or malformed input files stop the run before any report.
 
 Usage: python -I -B tools/capture_pair_calibration.py --screen SCREEN.jsonl FILE [FILE ...]
        python -I -B tools/capture_pair_calibration.py --screen SCREEN.jsonl --files-from LIST.txt
@@ -269,8 +270,11 @@ def main(argv=None):
         except (OSError, UnicodeError):
             ap.error("invalid or unreadable file list")
     meta = {}
-    for path in paths:
-        sha, m = file_meta(path)
+    for index, path in enumerate(paths, 1):
+        try:
+            sha, m = file_meta(path)
+        except (OSError, ValueError, TypeError, IndexError, KeyError, struct.error) as exc:
+            ap.error("input %d: %s" % (index, type(exc).__name__))
         meta.setdefault(sha, m)
     try:
         records = load_screen(a.screen)

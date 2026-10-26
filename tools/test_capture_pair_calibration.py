@@ -67,6 +67,36 @@ class Tests(unittest.TestCase):
                     meta.assert_called_once_with('selected.ORF')
                     report.assert_called_once()
 
+    def test_invalid_sample_fails_before_calibration_report(self):
+        work = Path(__file__).resolve().parent.parent / 'work' / 'test-calibration-input'
+        work.mkdir(parents=True, exist_ok=True)
+        entries = [(256, 2), (257, 2), (273, 74), (279, 8), (258, 16)]
+        valid = (struct.pack('<2sHIH', b'II', 42, 8, len(entries)) +
+                 b''.join(struct.pack('<HHII', tag, 4, 1, value) for tag, value in entries) +
+                 struct.pack('<I', 0) + bytes(8))
+        with tempfile.TemporaryDirectory(dir=str(work)) as folder:
+            root = Path(folder)
+            good = root / 'good.ORF'
+            good.write_bytes(valid)
+            bad = root / 'private-bad.ORF'
+            malformed = bytearray(valid)
+            struct.pack_into('<HI4s', malformed, 12, 2, 2, b'2\0\0\0')
+            bad.write_bytes(malformed)
+            for path in (bad, root / 'private-missing.ORF'):
+                with self.subTest(path=path.name), patch.object(c, 'load_screen', return_value=[]), \
+                        patch.object(c, 'report') as report, patch('sys.stdout', io.StringIO()) as out, \
+                        patch('sys.stderr', io.StringIO()) as err:
+                    with self.assertRaises(SystemExit) as raised:
+                        c.main(['--screen', 'screen', str(good), str(path)])
+                    self.assertEqual(raised.exception.code, 2)
+                    self.assertEqual(out.getvalue(), '')
+                    self.assertNotIn(str(root), err.getvalue())
+                    report.assert_not_called()
+            with patch.object(c, 'load_screen', return_value=[]), patch.object(c, 'report') as report, \
+                    patch('sys.stdout', io.StringIO()), patch('sys.stderr', io.StringIO()):
+                c.main(['--screen', 'screen', str(good)])
+                report.assert_called_once()
+
     def test_exif_pointer_requires_long_singleton(self):
         stamp = b'2022:01:01 12:00:00\0'
         for kind in (3, 4, 13):
