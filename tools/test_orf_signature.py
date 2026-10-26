@@ -109,6 +109,35 @@ class Tests(unittest.TestCase):
         self.assertEqual((row["payload_offset"], row["payload_bytes"], row["size_class"]),
                          ("90", "8", "packed-16"))
 
+    def test_multiple_dimensions_are_rejected(self):
+        for entry in (0, 1):
+            for typ in (3, 4):
+                with self.subTest(entry=entry, typ=typ):
+                    data = bytearray(fixture())
+                    pos = 10 + entry * 12
+                    if typ == 3:
+                        struct.pack_into("<HHIHH", data, pos, 256 + entry, 3, 2, 2, 4)
+                    else:
+                        struct.pack_into("<II", data, pos + 4, 2, len(data))
+                        data.extend(struct.pack("<II", 2, 4))
+                    status, output, error = self.call(
+                        ["bad.orf", "valid.orf"],
+                        {"bad.orf": bytes(data), "valid.orf": fixture()})
+                    self.assertEqual(status, 1)
+                    self.assertEqual([r["file"] for r in csv.DictReader(io.StringIO(output))],
+                                     ["valid.orf"])
+                    self.assertIn("bad.orf:", error)
+
+    def test_single_short_dimensions_remain_valid(self):
+        data = bytearray(fixture())
+        for entry in (0, 1):
+            struct.pack_into("<HHIHH", data, 10 + entry * 12, 256 + entry, 3, 1, 2, 0)
+        status, output, error = self.call(["short.orf"], {"short.orf": bytes(data)})
+        self.assertEqual((status, error), (0, ""))
+        row = next(csv.DictReader(io.StringIO(output)))
+        self.assertEqual((row["payload_w"], row["payload_h"], row["bpp"], row["size_class"]),
+                         ("2", "2", "16.000", "packed-16"))
+
     def test_help_and_no_arguments(self):
         for paths, expected in [(["--help"], 0), (["-h"], 0), ([], 2)]:
             status, output, error = self.call(paths, {})

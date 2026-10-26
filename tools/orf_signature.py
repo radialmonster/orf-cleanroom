@@ -106,6 +106,10 @@ def signature(path):
     if any(type(off) is not int or type(count) is not int or off < 0 or count <= 0 or
            off + count > len(data) for off, count in zip(offsets, counts)):
         raise ValueError("strip extent outside file or empty")
+    for tag in (0x100, 0x101):
+        values = best.get(tag)
+        if isinstance(values, list) and len(values) != 1:
+            raise ValueError("image dimensions must have one value")
     w, h = first(best, 0x100) or 0, first(best, 0x101) or 0
     nbytes = sum(counts)
     return {
