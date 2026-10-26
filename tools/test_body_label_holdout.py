@@ -2,7 +2,9 @@
 """Independent hand arithmetic and malformed aggregate controls."""
 import copy
 import contextlib
+import csv
 import io
+import json
 import os
 import sys
 import unittest
@@ -126,6 +128,49 @@ class Tests(unittest.TestCase):
             with contextlib.redirect_stderr(error):
                 self.assertEqual(probe.main(['--features', 'x', '--manifest', 'y', '--ids', '1', '2', '3']), 1)
         self.assertIn('invalid diagnostic input', error.getvalue())
+
+    def test_cli_rejects_ambiguous_manifest_headers(self):
+        report, manifest = self.fixture()
+        for field in ('make', 'model', 'payload_w', 'payload_h'):
+            stream = io.StringIO()
+            columns = list(manifest[0])
+            writer = csv.writer(stream, lineterminator='\n')
+            writer.writerow(columns + [field])
+            for row in manifest:
+                writer.writerow([row[k] for k in columns] + [row[field]])
+            output, error = io.StringIO(), io.StringIO()
+            with self.subTest(field=field), patch('builtins.open', side_effect=[
+                    io.BytesIO(json.dumps(report).encode()), io.BytesIO(stream.getvalue().encode()),
+                    io.BytesIO(b'source')]), \
+                    contextlib.redirect_stdout(output), contextlib.redirect_stderr(error):
+                self.assertEqual(probe.main(['--features', 'x', '--manifest', 'y', '--ids', '1', '2', '3']), 1)
+                self.assertEqual(output.getvalue(), '')
+                self.assertIn('invalid diagnostic input', error.getvalue())
+
+    def test_cli_accepts_legacy_geometry_and_duplicate_rows(self):
+        report, manifest = self.fixture()
+        columns = [k for k in manifest[0] if k not in ('payload_w', 'payload_h')]
+        stream = io.StringIO()
+        writer = csv.DictWriter(stream, fieldnames=columns, extrasaction='ignore', lineterminator='\n')
+        writer.writeheader()
+        writer.writerows(manifest + [manifest[0]])
+        output = io.StringIO()
+        with patch('builtins.open', side_effect=[io.BytesIO(json.dumps(report).encode()),
+                io.BytesIO(stream.getvalue().encode()), io.BytesIO(b'source')]), contextlib.redirect_stdout(output):
+            self.assertEqual(probe.main(['--features', 'x', '--manifest', 'y', '--ids', '1', '2', '3']), 0)
+        parsed = json.loads(output.getvalue())
+        self.assertEqual([row['body'] for row in parsed['cohort']], [['M', '1'], ['M', '2'], ['M', '3']])
+
+    def test_cli_rejects_missing_required_column(self):
+        report, manifest = self.fixture()
+        columns = [k for k in manifest[0] if k != 'model']
+        stream = io.StringIO()
+        writer = csv.DictWriter(stream, fieldnames=columns, extrasaction='ignore', lineterminator='\n')
+        writer.writeheader()
+        writer.writerows(manifest)
+        with patch('builtins.open', side_effect=[io.BytesIO(json.dumps(report).encode()),
+                io.BytesIO(stream.getvalue().encode())]), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(probe.main(['--features', 'x', '--manifest', 'y', '--ids', '1', '2', '3']), 1)
 
 
 if __name__ == '__main__':
