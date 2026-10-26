@@ -14,7 +14,8 @@ Usage:
   python pixls_samples.py check [--json] FILE [FILE ...] # check local hashes against the live catalogue
   python pixls_samples.py download DIR [--model M] [--max N]
                                                   # CC0 only, SHA-256 verified;
-                                                  # DIR must be outside the repo
+                                                  # DIR must be outside the repo;
+                                                  # exits 1 if any downloaded hash mismatches
 """
 import argparse
 import csv
@@ -193,6 +194,7 @@ def cmd_download(a):
     os.makedirs(dest, exist_ok=True)
     lic = by_hash(listing)
     n = 0
+    bad = False
     for r in listing:
         if lic[r["sha256"]]["licence"] != "CC0" or (a.model and model_key(r["model"]) != key):
             continue
@@ -204,11 +206,14 @@ def cmd_download(a):
             data = fetch(url)
             if hashlib.sha256(data).hexdigest() != r["sha256"]:
                 print("hash mismatch, skipped: %s" % r["name"], file=sys.stderr)
+                bad = True
                 continue
             with open(path, "wb") as f:
                 f.write(data)
         print("CC0  %s" % path)
         n += 1
+    if bad:
+        sys.exit(1)
 
 
 def model_key(name):
