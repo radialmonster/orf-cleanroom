@@ -39,6 +39,8 @@ jobs:
         run: python -I -B tools/test_capture_pair_calibration.py
       - name: Capture metadata audit tests
         run: python -I -B tools/test_capture_metadata_audit.py
+      - name: Exif sensitivity probe tests
+        run: python -I -B tools/test_exif_sensitivity_probe.py
       - name: preview pair screen tests
         run: python -I -B tools/test_preview_pair_screen.py
       - name: suffix_match_probe tests

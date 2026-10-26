@@ -34,7 +34,9 @@ errors identify the input ordinal and exception type, without local paths.
 """
 import argparse
 import array
+import itertools
 import math
+import operator
 import os
 import random
 import struct
@@ -54,46 +56,36 @@ def box_mean_rows(v, rows, w, window):
     """Centered box mean within each row, clamped at the row edges."""
     out = array.array("f", [0.0]) * (rows * w)
     half = window // 2
+    # The clamped window ends are the same in every row; the per-row work runs in
+    # accumulate/map with the same integer sums and one division per value.
+    lo = [max(0, c - half) for c in range(w)]
+    hi = [min(w, c + half + 1) for c in range(w)]
+    size = [b - a for a, b in zip(lo, hi)]
     for r in range(rows):
         base = r * w
-        prefix = [0] * (w + 1)
-        s = 0
-        for c in range(w):
-            s += v[base + c]
-            prefix[c + 1] = s
-        for c in range(w):
-            a = c - half
-            if a < 0:
-                a = 0
-            b = c + half + 1
-            if b > w:
-                b = w
-            out[base + c] = (prefix[b] - prefix[a]) / (b - a)
+        prefix = list(itertools.accumulate(v[base:base + w], initial=0))
+        get = prefix.__getitem__
+        out[base:base + w] = array.array("f", map(
+            operator.truediv, map(operator.sub, map(get, hi), map(get, lo)), size))
     return out
 
 
 def block_mean(v, rows, w, nd, wb):
     """Block-average a rows x w float sequence to nd x wb."""
     out = []
+    c0s = [c * w // wb for c in range(wb)]
+    c1s = [max(c0 + 1, (c + 1) * w // wb) for c, c0 in enumerate(c0s)]
     for r in range(nd):
         r0 = r * rows // nd
         r1 = max(r0 + 1, (r + 1) * rows // nd)
+        # Columns are summed row by row in the same order as a scalar loop.
         acc = [0.0] * w
         for tr in range(r0, min(r1, rows)):
             base = tr * w
-            for c in range(w):
-                acc[c] += v[base + c]
-        prefix = [0.0] * (w + 1)
-        s = 0.0
-        for c in range(w):
-            s += acc[c]
-            prefix[c + 1] = s
-        row = []
-        for c in range(wb):
-            c0 = c * w // wb
-            c1 = max(c0 + 1, (c + 1) * w // wb)
-            row.append((prefix[c1] - prefix[c0]) / ((r1 - r0) * (c1 - c0)))
-        out.append(row)
+            acc = list(map(operator.add, acc, v[base:base + w]))
+        prefix = list(itertools.accumulate(acc, initial=0.0))
+        out.append([(prefix[c1] - prefix[c0]) / ((r1 - r0) * (c1 - c0))
+                    for c0, c1 in zip(c0s, c1s)])
     return out
 
 
@@ -117,11 +109,14 @@ def corr_rows(a, b):
     return sab / math.sqrt(saa * sbb)
 
 
-def score(sa, rows, w, window, nd, target, mapping="sum"):
+def token_grid(sa, rows, w, window, nd, wb, mapping="sum"):
     v = sa.translate(MAPPINGS[mapping])
     boxed = box_mean_rows(v, rows, w, window)
-    grid = block_mean(boxed, rows, w, nd, len(target[0]))
-    return corr_rows(grid, target)
+    return block_mean(boxed, rows, w, nd, wb)
+
+
+def score(sa, rows, w, window, nd, target, mapping="sum"):
+    return corr_rows(token_grid(sa, rows, w, window, nd, len(target[0]), mapping), target)
 
 
 def shuffle_rows(sa, rows, w, rng):
@@ -139,8 +134,9 @@ def preview_shift_scores(sa, rows, w, window, target, mapping="sum"):
     nd = len(target)
     if nd < 2:
         raise ValueError("require at least two preview rows")
-    return [(k, score(sa, rows, w, window, nd, target[k:] + target[:k], mapping))
-            for k in range(1, nd)]
+    # Only the target rows move; the token grid is the same for every shift.
+    grid = token_grid(sa, rows, w, window, nd, len(target[0]), mapping)
+    return [(k, corr_rows(grid, target[k:] + target[:k])) for k in range(1, nd)]
 
 
 def shift_summary(real, shifts):
