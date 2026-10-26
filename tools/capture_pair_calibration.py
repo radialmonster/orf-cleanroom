@@ -27,6 +27,7 @@ counts, rates, AUC (Mann-Whitney, ties 0.5) and score ranges per class.
 Each unordered pair of distinct SHA-256 hashes may occur only once; malformed,
 self, or duplicate pairs and correlations outside the finite [-1, 1] range
 are rejected. A null correlation represents an unavailable screen score.
+Unreadable or malformed input files stop the run before any report.
 
 Usage: python -I -B tools/capture_pair_calibration.py --screen SCREEN.jsonl FILE [FILE ...]
        python -I -B tools/capture_pair_calibration.py --screen SCREEN.jsonl --files-from LIST.txt
@@ -252,8 +253,11 @@ def main(argv=None):
         with open(a.files_from, encoding="utf-8-sig") as f:
             paths += [line.strip() for line in f if line.strip()]
     meta = {}
-    for path in paths:
-        sha, m = file_meta(path)
+    for index, path in enumerate(paths, 1):
+        try:
+            sha, m = file_meta(path)
+        except (OSError, ValueError, TypeError, IndexError, KeyError, struct.error) as exc:
+            ap.error("input %d: %s" % (index, type(exc).__name__))
         meta.setdefault(sha, m)
     records = load_screen(a.screen)
     try:
