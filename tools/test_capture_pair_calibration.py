@@ -2,8 +2,10 @@
 import io
 import hashlib
 import os
+from pathlib import Path
 import struct
 import sys
+import tempfile
 import unittest
 from datetime import datetime
 from unittest.mock import patch
@@ -22,6 +24,49 @@ def h(letter):
 
 
 class Tests(unittest.TestCase):
+    def test_unreadable_and_bad_encoding_parameter_files_fail_before_report(self):
+        work = Path(__file__).resolve().parent.parent / 'work' / 'test-calibration-parameters'
+        work.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=str(work)) as folder:
+            root = Path(folder)
+            valid_screen = root / 'valid.jsonl'
+            valid_screen.write_bytes(b'{"summary":{}}\n')
+            bad = root / 'private-invalid'
+            bad.write_bytes(b'\xff')
+            missing = root / 'private-missing'
+            for option in ('--screen', '--files-from'):
+                for path in (bad, missing):
+                    args = ['--screen', str(path if option == '--screen' else valid_screen)]
+                    if option == '--files-from':
+                        args += [option, str(path)]
+                    with self.subTest(option=option, path=path.name), \
+                            patch.object(c, 'report') as report, patch('sys.stdout', io.StringIO()) as out, \
+                            patch('sys.stderr', io.StringIO()) as err:
+                        with self.assertRaises(SystemExit) as raised:
+                            c.main(args)
+                        self.assertEqual(raised.exception.code, 2)
+                        self.assertEqual(out.getvalue(), '')
+                        self.assertNotIn(str(root), err.getvalue())
+                        report.assert_not_called()
+
+    def test_utf8_bom_file_list_and_screen_encodings(self):
+        work = Path(__file__).resolve().parent.parent / 'work' / 'test-calibration-parameters'
+        work.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=str(work)) as folder:
+            root = Path(folder)
+            listing = root / 'list.txt'
+            listing.write_bytes(b'\xef\xbb\xbfselected.ORF\n')
+            for encoding in ('utf-8', 'utf-16'):
+                screen = root / 'screen.jsonl'
+                screen.write_bytes('{"summary":{}}\n'.encode(encoding))
+                with self.subTest(encoding=encoding), \
+                        patch.object(c, 'file_meta', return_value=(h('a'), m('selected.ORF', '2025:01:01 10:00:00'))) as meta, \
+                        patch.object(c, 'report') as report, patch('sys.stdout', io.StringIO()), \
+                        patch('sys.stderr', io.StringIO()):
+                    c.main(['--screen', str(screen), '--files-from', str(listing)])
+                    meta.assert_called_once_with('selected.ORF')
+                    report.assert_called_once()
+
     def test_exif_pointer_requires_long_singleton(self):
         stamp = b'2022:01:01 12:00:00\0'
         for kind in (3, 4, 13):

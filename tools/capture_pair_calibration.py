@@ -263,15 +263,18 @@ def main(argv=None):
     a = ap.parse_args(argv)
     paths = list(a.files)
     if a.files_from:
-        with open(a.files_from, encoding="utf-8-sig") as f:
-            paths += [line.strip() for line in f if line.strip()]
+        try:
+            with open(a.files_from, encoding="utf-8-sig") as f:
+                paths += [line.strip() for line in f if line.strip()]
+        except (OSError, UnicodeError):
+            ap.error("invalid or unreadable file list")
     meta = {}
     for path in paths:
         sha, m = file_meta(path)
         meta.setdefault(sha, m)
     try:
         records = load_screen(a.screen)
-    except ValueError:
+    except (OSError, ValueError):
         ap.error("invalid screen JSON")
     try:
         analysis = analyse(records, meta, a.hard_seconds)
