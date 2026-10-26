@@ -48,6 +48,7 @@ import itertools
 import math
 import operator
 import os
+import struct
 import sys
 import time
 
@@ -61,9 +62,24 @@ WIN = 12  # bytes in the read window (96 bits)
 def locate(path):
     with open(path, "rb") as f:
         data = f.read()
-    best = max(Tiff(data).all_ifds(), key=lambda d: sum(d.get(0x117) or [0]))
-    off, n = best[0x111][0], sum(best[0x117])
-    return best[0x100][0], best[0x101][0], data[off:off + n]
+    try:
+        best = max(Tiff(data).all_ifds(), key=lambda d: sum(d.get(0x117) or [0]))
+        offs, counts = best[0x111], best[0x117]
+        w, h = best[0x100][0], best[0x101][0]
+    except (struct.error, IndexError) as exc:   # truncated or corrupt IFD
+        raise ValueError("cannot read the IFDs: %s" % exc)
+    if len(offs) != len(counts):
+        raise ValueError("%d strip offsets but %d strip byte counts" % (len(offs), len(counts)))
+    if not offs or any(o < 0 or c <= 0 or o + c > len(data) for o, c in zip(offs, counts)):
+        raise ValueError("invalid strip extent")
+    extents = sorted((o, o + c) for o, c in zip(offs, counts))
+    if any(b[0] < a[1] for a, b in zip(extents, extents[1:])):
+        raise ValueError("overlapping strip extents")
+    contiguous = all(offs[i] + counts[i] == offs[i + 1] for i in range(len(offs) - 1))
+    if contiguous:
+        return w, h, data[offs[0]:offs[0] + sum(counts)]
+    # strips with gaps between them: join the strips themselves, not the gap bytes
+    return w, h, b"".join(data[o:o + c] for o, c in zip(offs, counts))
 
 
 def parse(buf, max_tokens, w, esc_extra=0, esc_pos=None):
@@ -120,6 +136,8 @@ def scan(buf, max_tokens, w, esc_extra, esc_pos, qs, ss, cap, esc_q=None, esc_ma
             qs.append(q if q < cap else cap)
             ss.append(s)
         n += 1
+    if w and n % w == 0 and len(marks) > n // w:
+        marks.pop()  # a row start was marked but no token followed it (payload ended)
     return marks, pos
 
 
@@ -156,7 +174,10 @@ def lagged(a, b, lag):
 def mi_base(a, b, lag=0):
     x, y = lagged(a, b, lag)
     v, n = mi_pairs(x, y)
-    base, _ = mi_pairs(x, y, len(y) // 2 + 12345)
+    # rotation must be shorter than the sequence or mi_pairs leaves ys unrotated; the
+    # +12345 offset is kept where it fits so long runs give the same baseline as before
+    rot = len(y) // 2 + 12345 if len(y) > 2 * 12345 else len(y) // 2
+    base, _ = mi_pairs(x, y, rot)
     return v, base, n
 
 

@@ -20,7 +20,13 @@ a full-frame reshape is not used because the token row stride can drift.
 Usage:
     python -I tools/token_luma_probe.py FILE [FILE ...] [--rows 300]
         [--window 63] [--perms 20] [--seed 1] [--map sum|b2|b4]
+        [--shift-null]
     python -I tools/token_luma_probe.py --self-test
+
+`--shift-null` also scores every circular shift of the preview rows. A rank
+above 1 means a shifted preview scores at least as well as the declared
+vertical alignment; the within-row shuffle null tests horizontal structure
+only. The shift null is a sensitivity diagnostic, not a calibrated p-value.
 
 Escape tokens (q >= 17) are treated as 0 for b2/b4; their rate is printed.
 Every requested token row must be complete. Any input failure exits nonzero;
@@ -128,9 +134,36 @@ def shuffle_rows(sa, rows, w, rng):
     return buf
 
 
-def run_file(path, rows, window, perms, seed, mapping="sum"):
+def preview_shift_scores(sa, rows, w, window, target, mapping="sum"):
+    """Score the declared target and every circular shift of its rows."""
+    nd = len(target)
+    if nd < 2:
+        raise ValueError("require at least two preview rows")
+    return [(k, score(sa, rows, w, window, nd, target[k:] + target[:k], mapping))
+            for k in range(1, nd)]
+
+
+def shift_summary(real, shifts):
+    """Summarize the observed score against the circular-shift scores."""
+    vals = [r for _, r in shifts]
+    if not vals:
+        raise ValueError("require at least one shifted score")
+    mean = sum(vals) / len(vals)
+    var = (sum((x - mean) ** 2 for x in vals) / (len(vals) - 1)
+           if len(vals) > 1 else 0.0)
+    sd = math.sqrt(var) if var > 0 else 0.0
+    best_shift, best = max(shifts, key=lambda kv: kv[1])
+    return dict(observed=real, best_shift=best_shift, best=best,
+                mean=mean, sd=sd, maximum=max(vals),
+                rank=1 + sum(1 for x in vals if x >= real),
+                shifts=len(vals))
+
+
+def run_file(path, rows, window, perms, seed, mapping="sum", shift_null=False):
     if rows < 2 or window < 1 or perms < 1:
         raise ValueError("require rows>=2, window>=1, perms>=1")
+    if window % 2 == 0:
+        raise ValueError("window must be odd (the centred box spans 2*(window//2)+1 tokens)")
     w, h, buf = T.locate(path)
     qa, sa = array.array("B"), array.array("B")
     T.scan(buf, rows * w, w, 0, None, qa, sa, 40, None, 32)
@@ -158,6 +191,14 @@ def run_file(path, rows, window, perms, seed, mapping="sum"):
         os.path.basename(path), w, h, rows, window, wb, hb, nd, wb))
     print("  r=%+.5f  shuffle=%+.5f +/- %.5f  z=%+.2f  escapes=%d (treated as 0)" % (
         real, mean, sd, z, escapes))
+    if shift_null:
+        summary = shift_summary(
+            real, preview_shift_scores(sa, rows, w, window, target, mapping))
+        print("  shift-null: best k=%d r=%+.5f; observed rank %d/%d; "
+              "shifts %+.5f +/- %.5f max %+.5f" % (
+                  summary["best_shift"], summary["best"], summary["rank"],
+                  summary["shifts"] + 1, summary["mean"], summary["sd"],
+                  summary["maximum"]))
 
 
 def self_test():
@@ -195,6 +236,8 @@ def main():
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--map", dest="mapping", choices=("sum", "b2", "b4"),
                     default="sum", help="fixed suffix map (default: sum)")
+    ap.add_argument("--shift-null", action="store_true",
+                    help="also score every circular shift of the preview rows")
     ap.add_argument("--self-test", action="store_true")
     a = ap.parse_args()
     if a.self_test:
@@ -204,10 +247,13 @@ def main():
         ap.error("no files (or use --self-test)")
     if a.rows < 2 or a.window < 1 or a.perms < 1:
         ap.error("require rows>=2, window>=1, perms>=1")
+    if a.window % 2 == 0:
+        ap.error("--window must be odd (the centred box spans 2*(window//2)+1 tokens)")
     failed = False
     for index, p in enumerate(a.files, 1):
         try:
-            run_file(p, a.rows, a.window, a.perms, a.seed, a.mapping)
+            run_file(p, a.rows, a.window, a.perms, a.seed, a.mapping,
+                     a.shift_null)
         except (ValueError, IndexError, KeyError, OSError, struct.error) as exc:
             failed = True
             print("input %d: %s" % (index, type(exc).__name__), file=sys.stderr)

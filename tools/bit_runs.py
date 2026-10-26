@@ -14,15 +14,12 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from orf_signature import Tiff  # noqa: E402
+import orf_tokens  # noqa: E402
 
 
 def payload(path):
-    with open(path, "rb") as f:
-        data = f.read()
-    best = max(Tiff(data).all_ifds(), key=lambda d: sum(d.get(0x117) or [0]))
-    off, n = best[0x111][0], sum(best[0x117])
-    return data[off:off + n]
+    # same strip handling as orf_tokens.locate (strips joined, gaps skipped)
+    return orf_tokens.locate(path)[2]
 
 
 def zero_runs(buf):

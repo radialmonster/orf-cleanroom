@@ -124,5 +124,17 @@ class RowLayout(unittest.TestCase):
                 self.assertEqual(rows, img)
 
 
+class OrderDetect(unittest.TestCase):
+    def test_packed12_row_bytes_not_multiple_of_4(self):
+        # w=20: 30 row bytes; word4-reversed does not apply, so plain is chosen
+        w, h = 20, 40
+        img = [[(400 if y % 2 == 0 else 2400) + (x * 3 + y) % 50 for x in range(w)] for y in range(h)]
+        data = b"".join(pack12(r) for r in img)
+        rb = d.row_bytes("packed-12", w)
+        self.assertEqual(rb % 4, 2)
+        got, _ = d.detect_order(None, _FakePayload(data), "packed-12", w, h, rb)
+        self.assertEqual(got, "plain")
+
+
 if __name__ == "__main__":
     unittest.main()

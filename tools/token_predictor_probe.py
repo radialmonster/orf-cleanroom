@@ -222,7 +222,8 @@ def run_file(path, rows, perms, kinds, preds):
             sd = math.sqrt(sum((v - m) ** 2 for v in null) / max(1, len(null) - 1))
             z = (real - m) / sd if sd else 0.0
             rows_out.append((abs(real), kind, pred, real, m, sd, z))
-    rows_out.sort(reverse=True)
+    # NaN |r| (constant predictor or target) sorts last instead of breaking the order
+    rows_out.sort(key=lambda t: -1.0 if t[0] != t[0] else t[0], reverse=True)
     for _, kind, pred, real, m, sd, z in rows_out:
         print("  %-7s %-6s r=%+.5f  null=%+.5f +/- %.5f  z=%+.2f" % (
             kind, pred, real, m, sd, z))
@@ -288,13 +289,16 @@ def main(argv=None):
         epilog=__doc__.split("\n\n", 1)[1])
     ap.add_argument("files", nargs="*")
     ap.add_argument("--rows", type=int, default=156)
-    ap.add_argument("--perms", type=int, default=2)
+    ap.add_argument("--perms", type=int, default=2,
+                    help="shuffles per cell (default 2: a rough screen; z is descriptive, "
+                         "not calibrated significance)")
     ap.add_argument("--kinds", default=",".join(KINDS))
     ap.add_argument("--preds", default=",".join(PREDS))
     ap.add_argument("--self-test", action="store_true")
     a = ap.parse_args(argv)
-    if a.rows <= 0 or a.perms <= 0:
-        ap.error("--rows and --perms must be positive")
+    if a.rows <= 0 or a.perms < 2:
+        # one permutation has no spread, so z would print as a meaningless +0.00
+        ap.error("--rows must be positive and --perms at least 2")
     if a.self_test:
         self_test()
         import unittest

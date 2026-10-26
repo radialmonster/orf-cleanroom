@@ -324,6 +324,25 @@ token-to-luma probe and the geometry part of lead #11.
 
     python -I tools/jpeg_dc.py path/to/file.ORF
 
+**`preview_pair_sensitivity.py`** supports the follow-up questions in leads
+#327 and #295 that the 12x12 screen left open. It reuses `jpeg_dc.py` and the
+same complete-block, area-mean, identity-aligned normalized grids as
+`preview_pair_screen.py` at 12x12, 24x24 and 32x32, with the frozen r >= 0.98
+cutoff and no alignment search. It reads standard EXIF capture time
+(DateTimeOriginal, then DateTimeDigitized, then DateTime) and groups same-model
+pairs by absolute camera-local wall-clock gap. It also compares exposure time,
+F-number, ISO, lens model and focal length for same-model pairs above and below
+the cutoff. Same-model uses the manifest `model` text matched by SHA-256. The
+metadata comparison is a descriptive negative control, not a shared-exposure or
+scene/capture classifier; time zones and wrong camera clocks are not corrected,
+and EXIF agreement does not establish a shared scene. Time bins count scored
+pairs for each grid and report unscored pairs separately; unscored pairs are
+excluded from the high/low metadata classes. Read-only, standard library CPU,
+aggregate JSON only. Verify input licences separately.
+
+    python -I -B tools/preview_pair_sensitivity.py FILE [FILE ...] > sensitivity.jsonl
+    python -I -B tools/test_preview_pair_sensitivity.py
+
 **`token_luma_probe.py`** tests a fixed token-field to low-resolution luma
 mapping against a within-row suffix permutation. The default `--map sum` takes
 `v = b2 + b4`; `--map b2` and `--map b4` select that bit alone. Every map
@@ -331,16 +350,40 @@ zeroes escape markers, box-averages `v` over `--window` tokens within each row,
 block-averages to the preview's luma DC grid, and correlates the row-centred
 grids. The target comes from `jpeg_dc.py`; the null permutes the suffix tokens
 within each row. It prints one aggregate line per file (`r`, shuffle mean and
-sd, z, escape count). The default `--rows 300` is the top token band; a
-full-frame reshape is not used because the token row stride can drift. This is
-a low-frequency luma proxy, not a full pixel decode. The camera rendering is
-a numerical sanity reference, not sensor ground truth. Marginal map rankings
-do not establish unique bit contribution or significance. Test:
+sd, z, escape count). `--shift-null` additionally scores every circular shift
+of the preview rows and prints the best shift, the observed rank among all
+alignments (including the observed alignment), and the shift
+mean, sd and maximum. A rank above 1 means a shifted preview scores at least as
+well; the within-row shuffle null tests horizontal structure only, so the shift
+null is a vertical-alignment sensitivity check, not a calibrated p-value. The
+default `--rows 300` is the top token band; a full-frame reshape is not used
+because the token row stride can drift. This is a low-frequency luma proxy, not
+a full pixel decode. The camera rendering is a numerical sanity reference, not
+sensor ground truth. Marginal map rankings do not establish unique bit
+contribution or significance. Test:
 `python -I tools/token_luma_probe.py --self-test`.
 
     python -I tools/token_luma_probe.py path/to/file.ORF --rows 300 --window 63 --perms 20
+    python -I tools/token_luma_probe.py path/to/file.ORF --rows 300 --window 63 --perms 20 --shift-null
     python -I tools/token_luma_probe.py path/to/file.ORF --map b2 --rows 300 --window 63 --perms 20
     python -I tools/token_luma_probe.py --self-test
+
+**`token_luma_stride_probe.py`** applies the same fixed b2+b4 luma map as
+`token_luma_probe.py`, but takes W tokens from each S-token candidate row
+(`--stride S`) instead of assuming a row is exactly the payload width. Optional
+`--start-row` and `--offset` select later bands and the row-internal image
+start; the null permutes the used suffix tokens within each W-token image row.
+It prints aggregate `r`, shuffle mean and sd, z and escape count per file, and
+writes nothing. A candidate stride is a periodicity of the q row-start profile,
+not a physical row length, and a positive result is a low-frequency luma
+correlate rather than a value mapping. Supports lead #149 and the row-stride
+work of lead #144 / specs/V1.md G3.
+`python -I tools/token_luma_stride_probe.py --self-test` checks the
+stride/offset extraction and preview row crop.
+
+    python -I tools/token_luma_stride_probe.py path/to/file.ORF --stride 5472 --rows 300
+    python -I tools/token_luma_stride_probe.py path/to/file.ORF --stride 5472 --start-row 1000 --rows 300
+    python -I tools/token_luma_stride_probe.py --self-test
 
 **`token_value_probe.py`** supports leads #11 and #32 with band-wise
 b2+b4 correlations, nominal versus whole-preview scale comparisons, column

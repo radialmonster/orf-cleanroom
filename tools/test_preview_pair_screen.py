@@ -1,8 +1,10 @@
 """Synthetic geometry/arithmetic controls for preview_pair_screen; no images."""
+import io
 import math
 import os
 import sys
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import preview_pair_screen as p
@@ -18,6 +20,23 @@ def reference(a, b):
 
 
 class ScreenTests(unittest.TestCase):
+    def test_malformed_scan_does_not_abort_remaining_files(self):
+        # A SOF component absent from SOS raises StopIteration in jpeg_dc.decode
+        # (reported in #347). Keep this per-file failure out of pair scores.
+        inputs = {"bad.ORF": b"bad synthetic input", "good.ORF": b"good synthetic input"}
+        dc = list(range(144))
+        with patch("builtins.open", side_effect=lambda path, mode: io.BytesIO(inputs[path])), \
+                patch.object(p.jpeg_dc, "find_preview", return_value=(9216, 0, 1, 96, 96)), \
+                patch.object(p.jpeg_dc, "decode", side_effect=[StopIteration(), (12, 12, dc)]):
+            rows = p.measure(["bad.ORF", "good.ORF"])
+        by_name = {record["name"]: (record, fp) for record, fp in rows}
+        bad, bad_fp = by_name["bad.ORF"]
+        good, good_fp = by_name["good.ORF"]
+        self.assertEqual((bad["status"], bad["error"], bad_fp),
+                         ("unsupported", "StopIteration", None))
+        self.assertEqual(good["status"], "ok")
+        self.assertIsNotNone(good_fp)
+
     def test_affine_and_inverse(self):
         a = [((i * 37) % 151) - 75 for i in range(144)]
         fa, _ = p.fingerprint(12, 12, a, 96, 96)

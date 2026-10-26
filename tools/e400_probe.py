@@ -37,7 +37,10 @@ with open(path,'rb') as f:
         if 0<=y<h: rows[y]=od.unpack_row('packed-16','le',p.read(f,y*rb,rb),w)[0]
 def nb(y,x,kind):
     try:
-        g=lambda dy,dx: rows[y+dy][x+dx]
+        def g(dy,dx):
+            # negative indices would wrap to the far end of the row: treat as missing
+            if not 0<=x+dx<w: raise IndexError
+            return rows[y+dy][x+dx]
         if kind=='H2': v=[g(0,-2),g(0,2)]
         elif kind=='V2': v=[g(-2,0),g(2,0)]
         elif kind=='4': v=[g(0,-2),g(0,2),g(-2,0),g(2,0)]
@@ -56,10 +59,10 @@ for kind in ('H2','V2','4','D4','8'):
         if s//len(n)==v: fl+=1
         if abs(s/len(n)-v)<=32: near+=1
     print(kind,'bad words tested',tot,'exact mean',ex,'floor-mean',fl,'within 32 (2 12-bit steps)',near)
-# control: nibble-zero words with random positions
+# control: random interior positions (any word, not filtered on the low nibble), as many as bad words
 import random
 r=random.Random(3);ctrl=[]
-while len(ctrl)<793:
+while len(ctrl)<len(bad):
     y=r.randrange(4,h-4);x=r.randrange(4,w-4)
     ctrl.append((y,x))
 with open(path,'rb') as f:
@@ -107,6 +110,7 @@ fam={'diag1':[(-1,-1),(-1,1),(1,-1),(1,1)],'axial1':[(-1,0),(1,0),(0,-1),(0,1)],
 for nm,offs in fam.items():
     ok=0;okfl=0;tot=0
     for y,x,v,n in um:
+        if not all(0<=x+dx<w for dy,dx in offs): continue  # no wraparound at the left edge
         try: vals=[rows[y+dy][x+dx] for dy,dx in offs]
         except (KeyError,IndexError): continue
         tot+=1;s=sum(vals)

@@ -24,7 +24,7 @@ import struct
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from orf_signature import Tiff, first, size_class
+from orf_signature import Tiff, size_class
 
 
 def features(buf):
@@ -109,9 +109,11 @@ def report(sample_id, name, expected_sha256, path, window_bytes, windows):
     offsets, lengths = best.get(0x111), best.get(0x117)
     strips = strip_extents(offsets, lengths, len(data))
     offset, count = offsets[0], sum(lengths)
-    width, height = first(best, 0x100), first(best, 0x101)
-    if not isinstance(width, int) or not isinstance(height, int) or min(width, height) < 1:
+    dimensions = [best.get(tag) for tag in (0x100, 0x101)]
+    if any(not isinstance(values, list) or len(values) != 1 or
+           type(values[0]) is not int or values[0] < 1 for values in dimensions):
         raise ValueError("invalid dimensions")
+    width, height = (values[0] for values in dimensions)
     starts = window_starts(count, window_bytes, windows)
     accepted, omitted = [], []
     for start in starts:

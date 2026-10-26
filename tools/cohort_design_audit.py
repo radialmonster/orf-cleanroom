@@ -56,12 +56,12 @@ def design(records, factors):
 
 
 def load_records(text, ids):
-    if not ids or len(set(ids)) != len(ids):
-        raise ValueError("unique explicit IDs required")
+    if not ids or len(set(ids)) != len(ids) or any(not re.fullmatch(r"[0-9]+", i) for i in ids):
+        raise ValueError("unique numeric public IDs required")
     candidates = {i: set() for i in ids}
     for row in csv.DictReader(text.splitlines()):
         if row.get("pixls_id") in candidates:
-            if any(not row.get(f) for f in FIELDS):
+            if row.get("source") != "pixls" or any(not row.get(f) for f in FIELDS):
                 raise ValueError("selected manifest row lacks required metadata")
             candidates[row["pixls_id"]].add(tuple(row[f] for f in FIELDS))
     records = []
