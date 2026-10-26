@@ -39,6 +39,7 @@ import json
 import math
 import os
 import re
+import struct
 import sys
 from datetime import datetime
 
@@ -70,6 +71,24 @@ def date_time_original(data):
                 return None
             exif, _ = t.ifd(ptr[0])
             v = exif.get(0x9003)
+            # Tiff.ifd keeps the last occurrence; conflicting timestamps must
+            # not turn an ambiguous EXIF directory into a valid capture time.
+            entries = []
+            for i in range(t.u16(ptr[0])):
+                p = ptr[0] + 2 + 12 * i
+                tag, typ, count = struct.unpack_from(t.e + "HHI", data, p)
+                if tag != 0x9003:
+                    continue
+                if typ != 2:
+                    entries.append(None)
+                    continue
+                start = p + 8 if count <= 4 else t.u32(p + 8)
+                if start + count > len(data):
+                    entries.append(None)
+                else:
+                    entries.append(data[start:start + count].split(b"\0")[0].decode("ascii", "replace").strip())
+            if len(entries) > 1 and any(value != entries[0] for value in entries[1:]):
+                return None
             return v if isinstance(v, str) and v else None
     return None
 
