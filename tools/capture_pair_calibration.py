@@ -79,15 +79,7 @@ def base_name(name):
 
 def date_time_original(data):
     t = Tiff(data)
-    todo, seen = [t.u32(4)], set()
-    while todo:
-        offset = todo.pop()
-        if offset == 0 or offset in seen or offset + 2 > len(data):
-            continue
-        seen.add(offset)
-        tags, nxt = t.ifd(offset)
-        todo.append(nxt)
-        todo.extend(tags.get(0x14A) or [])
+    for offset, tags in t.all_ifds(with_offsets=True):
         pointers = []
         for i in range(t.u16(offset)):
             tag, typ, count = struct.unpack_from(t.e + 'HHI', data, offset + 2 + 12 * i)

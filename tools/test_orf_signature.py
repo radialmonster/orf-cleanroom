@@ -25,6 +25,24 @@ def fixture(width=2):
 
 
 class Tests(unittest.TestCase):
+    def test_ifd_offsets_order_default_and_cycles(self):
+        data = bytearray(160)
+        struct.pack_into('<2sHIH', data, 0, b'II', 42, 8, 1)
+        struct.pack_into('<HHII', data, 10, 0x14a, 4, 2, 128)
+        struct.pack_into('<I', data, 22, 80)
+        struct.pack_into('<II', data, 128, 32, 56)
+        for offset, value, nxt in ((32, 1, 8), (56, 2, 0), (80, 3, 32)):
+            struct.pack_into('<H', data, offset, 1)
+            struct.pack_into('<HHII', data, offset + 2, 0x100, 4, 1, value)
+            struct.pack_into('<I', data, offset + 14, nxt)
+        tiff = S.Tiff(data)
+        with_offsets = list(tiff.all_ifds(with_offsets=True))
+        self.assertEqual([offset for offset, _ in with_offsets], [8, 56, 32, 80])
+        default = list(tiff.all_ifds())
+        self.assertTrue(all(isinstance(tags, dict) for tags in default))
+        self.assertEqual(default, [tags for _, tags in with_offsets])
+        self.assertEqual([tags[0x100][0] for tags in default[1:]], [2, 1, 3])
+
     def call(self, paths, blobs):
         def opening(path, mode):
             self.assertEqual(mode, "rb")

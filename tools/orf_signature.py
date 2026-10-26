@@ -70,8 +70,8 @@ class Tiff:
                 tags[tag] = None  # type not needed for the signature
         return tags, self.u32(off + 2 + 12 * n)
 
-    def all_ifds(self):
-        """Walk the IFD chain and SubIFDs (tag 0x14A); yield tag dicts."""
+    def all_ifds(self, with_offsets=False):
+        """Walk IFDs and SubIFDs; yield dicts or (offset, dict) when requested."""
         seen = set()
         todo = [self.u32(4)]
         while todo:
@@ -80,7 +80,7 @@ class Tiff:
                 continue
             seen.add(off)
             tags, nxt = self.ifd(off)
-            yield tags
+            yield (off, tags) if with_offsets else tags
             todo.append(nxt)
             todo.extend(tags.get(0x14A) or [])
 
