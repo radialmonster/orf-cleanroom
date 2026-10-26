@@ -106,6 +106,9 @@ def signature(path):
     if any(type(off) is not int or type(count) is not int or off < 0 or count <= 0 or
            off + count > len(data) for off, count in zip(offsets, counts)):
         raise ValueError("strip extent outside file or empty")
+    extents = sorted((off, off + count) for off, count in zip(offsets, counts))
+    if any(right[0] < left[1] for left, right in zip(extents, extents[1:])):
+        raise ValueError("overlapping strip extents")
     for tag in (0x100, 0x101):
         values = best.get(tag)
         if isinstance(values, list) and len(values) != 1:
