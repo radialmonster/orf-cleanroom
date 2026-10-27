@@ -268,6 +268,9 @@ def decode_file(path, order=None, layout=None):
         # F_FIG8 (Partial for #196) tests the literal Figure 8 category+extend
         # table; it stops at the unused code on E-M1 Mark II High Res files and
         # specifies no decoder step or value mapping.
+        # 2026-10-27--radialmonster--figure8-highres-height-correction (#527)
+        # corrects its preview correlations for the actual payload height;
+        # this candidate test still specifies no codec (V1 S2.3).
         # 2026-10-27--radialmonster--figure8-normal-count-reproduction (Partial
         # for #196) repeats normal-file candidate counts; a separate OM-5 file
         # has higher completed correlations. No codec follows (V1 S2.3).
