@@ -38,6 +38,31 @@ def container(payload, endian='<'):
 
 
 class BridgeTests(unittest.TestCase):
+    def test_id_conversion_failure_is_argument_error_before_measurement(self):
+        limit = getattr(sys, 'get_int_max_str_digits', lambda: 0)()
+        cases = [('2', True)]
+        if limit:
+            cases.append(('9' * (limit + 1), False))
+        for sid, simulated in cases:
+            args = ['--sample', '1', 'public', 'unused', '--sample', sid, 'public', 'unused']
+            out, err = io.StringIO(), io.StringIO()
+            conversion = patch.object(probe, 'int', side_effect=ValueError('private detail'), create=True) if simulated else contextlib.nullcontext()
+            with self.subTest(simulated=simulated), patch.object(probe, 'report') as measured, conversion, contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                with self.assertRaises(SystemExit) as caught:
+                    probe.main(args)
+                self.assertEqual(caught.exception.code, 2)
+                measured.assert_not_called()
+                self.assertEqual(out.getvalue(), '')
+                self.assertNotIn('private detail', err.getvalue())
+
+    def test_leading_zero_id_passes_as_canonical_integer(self):
+        output = io.StringIO()
+        with patch.object(probe, 'report', return_value={'pixls_id': 1}) as measured, contextlib.redirect_stdout(output):
+            self.assertEqual(probe.main(['--sample', '01', 'public', 'unused']), 0)
+        self.assertEqual(measured.call_args.args[0], 1)
+        self.assertEqual(type(measured.call_args.args[0]), int)
+
+
     def test_exact_oracle_and_permutation_null(self):
         for xs in ([0, 1], [-1, 0, 2], [-2, -2, 1, 3], [0, 0, 0, 1], [9], [7, 7, 7]):
             n = len(xs)

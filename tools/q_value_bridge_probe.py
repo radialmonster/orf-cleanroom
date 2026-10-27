@@ -19,6 +19,7 @@ framing. Detrending removes drift; low ratios establish neither a bounded
 reconstruction, significance nor historical private numerical replication.
 Stdlib only; reads inputs and prints aggregates, never token/pixel arrays.
 Incomplete fixed prefixes produce diagnostic failures without bridge statistics.
+IDs that cannot be converted to integers are argument errors.
 """
 import argparse
 from fractions import Fraction
@@ -168,11 +169,14 @@ def main(argv=None):
     args = parser.parse_args(argv)
     ids = []
     for sample_id, name, _ in args.sample:
-        if (not sample_id.isascii() or not sample_id.isdigit() or int(sample_id) <= 0
-                or int(sample_id) in ids or not name or not name.isprintable()
+        try:
+            numeric_id = int(sample_id) if sample_id.isascii() and sample_id.isdigit() else 0
+        except ValueError:
+            parser.error("invalid sample")
+        if (numeric_id <= 0 or numeric_id in ids or not name or not name.isprintable()
                 or any(c in name for c in "/\\")):
             parser.error("invalid sample")
-        ids.append(int(sample_id))
+        ids.append(numeric_id)
     samples, failures = [], []
     for sample_id, name, path in args.sample:
         try:
