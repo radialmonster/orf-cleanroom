@@ -119,9 +119,12 @@ jobs:
                       if not line.startswith("+"):
                           continue
                       try:
-                          last = next(csv.reader([line[1:]]), [""])[-1]
+                          row = next(csv.reader([line[1:]]), [""])
                       except csv.Error:
                           return "a new manifest row is not valid CSV", []
+                      if row[0] == "public-cc0":
+                          return "public-cc0 provenance requires maintainer review", []
+                      last = row[-1]
                       if not last.lower().startswith("@" + author.lower() + " "):
                           return "a new manifest row has a measured_by that does not start with @" + author, []
               return "", leads

@@ -60,6 +60,15 @@ class AutoMergeDecision(unittest.TestCase):
         entry["patch"] = '+pixls,"Model, @tester measured",@other measured\n'
         self.assertIn("measured_by", self.decide([entry], 1)[0])
 
+    def test_public_cc0_requires_review_even_with_finding(self):
+        entry = {"status": "modified", "filename": "samples/manifest.csv",
+                 "patch": '+public-cc0,,capture.ORF,abc,CC0,@tester measured\n'}
+        self.assertIn('provenance requires maintainer review', self.decide([entry], 1)[0])
+        self.assertIn('provenance requires maintainer review', self.decide([self.finding, entry], 2)[0])
+        for source in ('pixls', 'own'):
+            entry['patch'] = '+' + source + ',,capture.ORF,abc,CC0,@tester measured\n'
+            self.assertEqual(self.decide([entry], 1)[0], '')
+
     def test_partial_links(self):
         for part in ("raw.pixls.us", "rows 1/2: V0"):
             self.body = "Author: @finder\nVerified by: @tester\nLead: #1\nPartial: " + part + "\n"

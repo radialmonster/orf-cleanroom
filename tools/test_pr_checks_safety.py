@@ -15,6 +15,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _spec = importlib.util.spec_from_file_location("pr_checks", os.path.join(ROOT, ".github", "scripts", "pr_checks.py"))
@@ -405,6 +406,24 @@ class ManifestRows(unittest.TestCase):
         for line in bad:
             with self.subTest(line=ascii(line)):
                 self.assertTrue(pc.scan_manifest_row(line))
+
+    def test_public_cc0_manifest_schema_and_legacy_sources(self):
+        header = b'source,pixls_id,pixls_name,sha256,licence,measured_by\n'
+        digest = 'a' * 64
+        cases = [('public-cc0', '', 'capture.ORF', 'CC0', True),
+                 ('public-cc0', '1', 'capture.ORF', 'CC0', False),
+                 ('public-cc0', '', '', 'CC0', False),
+                 ('public-cc0', '', 'capture.ORF', 'not-shared', False),
+                 ('pixls', '1', 'capture.ORF', 'CC0', True),
+                 ('own', '', '', 'not-shared', True)]
+        for source, pid, name, licence, valid in cases:
+            with self.subTest(source=source, pid=pid, name=name, licence=licence):
+                line = ('%s,%s,%s,%s,%s,@someone measured\n' % (source,pid,name,digest,licence)).encode()
+                pc.errors[:] = []
+                with mock.patch.object(pc, 'base_file', side_effect=lambda path, rev=None: header + line if rev else header):
+                    pc.check_manifest([('M', 'samples/manifest.csv')])
+                self.assertEqual(not pc.errors, valid)
+        pc.errors[:] = []
 
 
 if __name__ == "__main__":

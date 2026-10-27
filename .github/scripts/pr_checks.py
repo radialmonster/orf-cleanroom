@@ -753,8 +753,11 @@ def check_manifest(changes):
         elif source == "own":
             if licence != "not-shared" or pid != "":
                 error(path, "%s: source own needs licence not-shared and an empty pixls_id." % where)
+        elif source == "public-cc0":
+            if licence != "CC0" or pid != "" or not row[col["pixls_name"]]:
+                error(path, "%s: source public-cc0 needs CC0, a public name and an empty pixls_id." % where)
         else:
-            error(path, "%s: source must be pixls or own." % where)
+            error(path, "%s: source must be pixls, own or public-cc0." % where)
         by = row[col["measured_by"]]
         if not HANDLE.match(by):
             error(path, "%s: measured_by must start with '@handle '." % where)

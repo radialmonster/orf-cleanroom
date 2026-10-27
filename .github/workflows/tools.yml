@@ -86,7 +86,9 @@ jobs:
       - name: Offline sample tool regression tests
         run: python -I -B tools/test_sample_tool_regressions.py
       - name: Offline manifest licence record tests
-        run: python -I -B tools/test_manifest_offline.py
+        run: |
+          python -I -B tools/test_manifest_offline.py
+          python -I -B tools/test_public_cc0_manifest.py
       - name: Metadata cohort design audit tests
         run: python -I -B tools/test_cohort_design_audit.py
       - name: Body label holdout tests

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Print samples/manifest.csv rows for local raw.pixls.us files.
+"""Print samples/manifest.csv rows for verified local sample files.
 
 Supports: samples/manifest.csv, issue "Fill the sample manifest".
 Standard library only. Combines the site's licence listing (pixls_samples.py)
@@ -10,6 +10,8 @@ recorded with source=own and licence=not-shared. Bitstream columns are left
 blank; fill them only from a tools/ script you ran. Invalid or unreadable
 inputs are reported by ordinal; valid rows still append and the command exits 1.
 Use --header when appending to a new or empty destination.
+--public-cc0-records accepts caller-verified public CC0 provenance outside
+raw.pixls.us; its links are retained records, not an online licence check.
 
 Usage: python manifest_rows.py --by '@yourhandle' [--own] [--licence-records JSON]
                               --append samples/manifest.csv FILE [FILE ...]
@@ -23,6 +25,7 @@ import re
 import subprocess
 import struct
 import sys
+from urllib.parse import urlsplit
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from orf_signature import signature  # noqa: E402
@@ -100,6 +103,37 @@ def licence_records(path):
         yield dict(r, id=rid)
 
 
+def public_cc0_records(path):
+    """Read caller-verified public identities and retained owner/source links."""
+    with open(path, encoding='utf-8-sig') as stream:
+        data = json.load(stream, object_pairs_hook=unique_object)
+    if not isinstance(data, list) or not data:
+        raise ValueError('public records must be a nonempty list')
+    result = {}
+    for record in data:
+        if not isinstance(record, dict):
+            raise ValueError('invalid public record')
+        name, digest = record.get('name'), record.get('sha256')
+        if (not isinstance(name, str) or not name or not name.isprintable()
+                or any(c in name for c in '/\\') or not name.lower().endswith(('.orf', '.ori'))):
+            raise ValueError('invalid public name')
+        if not isinstance(digest, str) or not re.fullmatch(r'[0-9a-f]{64}', digest):
+            raise ValueError('invalid digest')
+        if record.get('licence') != 'CC0':
+            raise ValueError('public record must be CC0')
+        for key in ('owner_declaration_url', 'public_source_url'):
+            url = record.get(key)
+            if not isinstance(url, str) or not url.isascii() or not url.isprintable():
+                raise ValueError('invalid provenance URL')
+            parsed = urlsplit(url)
+            if parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password:
+                raise ValueError('invalid provenance URL')
+        if digest in result and result[digest] != record:
+            raise ValueError('conflicting public records')
+        result[digest] = record
+    return result
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--by", required=True, help="your own GitHub handle, e.g. @you")
@@ -108,12 +142,16 @@ def main():
     ap.add_argument("--header", action="store_true", help="also print the header line")
     ap.add_argument("--licence-records", metavar="JSON",
                     help="use previously verified local licence records instead of the live catalogue")
+    ap.add_argument('--public-cc0-records', metavar='JSON',
+                    help='use caller-verified public CC0 identities and owner/source links')
     ap.add_argument("--append", metavar="CSV",
                     help="append rows with LF endings; a new or empty file requires --header")
     ap.add_argument("files", nargs="+")
     a = ap.parse_args()
     if not re.fullmatch(r"@[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*", a.by):
         ap.error("--by must be a single GitHub @login")
+    if a.public_cc0_records is not None and (a.own or a.licence_records is not None):
+        ap.error('--public-cc0-records cannot be combined with --own or --licence-records')
     # Appending to a row without a terminating LF would join two CSV rows.
     fresh = not a.append or not os.path.exists(a.append) or os.path.getsize(a.append) == 0
     if a.append and fresh and not a.header:
@@ -130,7 +168,12 @@ def main():
                 ap.error("--append destination has an invalid manifest header")
             if header != COLUMNS:
                 ap.error("--append destination has an invalid manifest header")
-    if a.licence_records is not None:
+    if a.public_cc0_records is not None:
+        try:
+            listing = public_cc0_records(a.public_cc0_records)
+        except (OSError, UnicodeError, ValueError):
+            ap.error('invalid or unreadable public CC0 records')
+    elif a.licence_records is not None:
         try:
             listing = by_hash(licence_records(a.licence_records))
         except (OSError, UnicodeError, ValueError):
@@ -154,6 +197,10 @@ def main():
                 failed = True
                 continue
             r = listing.get(s["sha256"])
+            if a.public_cc0_records is not None and r is None:
+                print('input %d: hash absent from public CC0 records' % index, file=sys.stderr)
+                failed = True
+                continue
             if r is not None and r["licence"] != "CC0":
                 print("skipped (raw.pixls.us file under %s, not CC0): %s" % (r["licence"], p), file=sys.stderr)
                 continue
@@ -161,13 +208,14 @@ def main():
                 print("skipped (not on raw.pixls.us; pass --own if it's yours): %s" % p, file=sys.stderr)
                 continue
             own = r is None
+            public = a.public_cc0_records is not None
             # A missing dimension is represented as zero by signature().  Without
             # both dimensions the fixed-size test cannot classify the payload.
             width, height = s["payload_w"] or "", s["payload_h"] or ""
             size_class = s["size_class"] if width and height else ""
             out.writerow({
-                "source": "own" if own else "pixls",
-                "pixls_id": "" if own else r["id"], "pixls_name": "" if own else r["name"],
+                "source": "public-cc0" if public else ("own" if own else "pixls"),
+                "pixls_id": "" if own or public else r["id"], "pixls_name": "" if own else r["name"],
                 "sha256": s["sha256"], "licence": "not-shared" if own else "CC0",
                 "make": clean(s["make"]), "model": clean(s["model"]), "mode": mode(width),
                 "payload_w": width, "payload_h": height, "bpp": s["bpp"],
