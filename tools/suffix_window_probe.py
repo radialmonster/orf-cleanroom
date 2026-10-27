@@ -20,6 +20,7 @@ Stdlib Python 3.8+; reads inputs and prints aggregate JSON only. Reuse retained
 CC0 verification only after matching the input SHA256; no preview access.
 Incomplete requested windows and input failures produce a nonzero exit;
 available aggregate reports are retained.
+Sample IDs must be distinct positive ASCII decimals and names printable basenames.
 """
 import argparse
 import hashlib
@@ -120,8 +121,14 @@ def main():
     if args.window_stride < WINDOW:
         parser.error("window stride must be at least %d" % WINDOW)
     ids = [s[0] for s in args.sample]
-    if any(not i.isascii() or not i.isdecimal() or int(i) <= 0 for i in ids) or len({int(i) for i in ids}) != len(ids):
+    try:
+        invalid_ids = any(not i.isascii() or not i.isdecimal() or int(i) <= 0 for i in ids) or len({int(i) for i in ids}) != len(ids)
+    except ValueError:
+        invalid_ids = True
+    if invalid_ids:
         parser.error("sample IDs must be distinct positive ASCII decimals")
+    if any(not name or not name.isprintable() or any(c in name for c in '/\\') for _, name, _ in args.sample):
+        parser.error("sample public name must be a printable basename")
     reports, failures = [], []
     for sample_id, name, path in args.sample:
         try:
