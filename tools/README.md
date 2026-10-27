@@ -754,6 +754,21 @@ tokens, including q>=17, contribute; there is no fitted offset or escape skip.
 
     python -I -B tools/suffix_width_probe.py --block-tokens 262144 --sample ID PUBLIC_NAME path/to/file.ORF
 
+**`token_count_closure.py`** supports specs/V1.md G3/G8 and lead #339. It parses
+each whole payload from bit 0 under 25 suffix-width rules fixed in its docstring
+before any cohort results: fixed k=4..7 and 21 causal adaptive rules
+(JPEG-LS-style accumulators, previous-value bit length) with k chosen before each
+token, and reports complete tokens minus W x H, the residual bits, escapes and
+mean k. `--table` adds the k=5 joint count of min(q,17) x suffix. `--summarize`
+reads the JSON lines back and prints per-rule closure counts by odd/even id, the
+Spearman correlation of bpp with the k=5 excess (overall and within each public
+name) and, for declared token predicates, the range of count / excess. A count
+near W x H does not prove a syntax; these are descriptive statistics only.
+
+    python -I -B tools/token_count_closure.py --sample ID PUBLIC_NAME path/to/file.ORF [--table]
+    python -I -B tools/token_count_closure.py --summarize results.jsonl
+    python -I -B tools/test_token_count_closure.py
+
 **`token_affine_probe.py`** supports the untested GF(2) part of lead #29
 item 4, building on #11 and #166/#169. It tests exact affine prediction of
 current b2 and b4 from both bits at lags 1..12, with an intercept. All six
