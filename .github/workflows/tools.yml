@@ -168,6 +168,7 @@ jobs:
       - name: Synthetic token predictor and loop tests
         run: |
           python -I -B tools/test_token_predictor_probe.py
+          python -I -B tools/test_flat_predictor_screen.py
           python -I -B tools/test_token_loop_probe.py
       - name: Synthetic suffix window and width tests
         run: |

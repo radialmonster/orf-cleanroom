@@ -259,6 +259,17 @@ private figures. Stdlib only, aggregates only; no images or raw values.
 
     python -I -B tools/token_loop_probe.py --sample ID PUBLIC_NAME path/to/file.ORF
     python -I -B tools/test_token_loop_probe.py
+
+**`flat_predictor_screen.py`** reproduces the bounded #31 flat-capture candidate
+search. The raster, channel, value and 254 dark anchor are assumptions, not a
+codec or established per-channel calibration. Results report incomplete
+candidates separately; the 5.7–6.3 bits/site subset was a post-hoc amendment.
+The shuffled control permutes the first 300000 payload bytes, seed 20261022.
+The optional cross screen uses unshuffled inputs and a 200000-byte prefix.
+
+    python -I -B tools/flat_predictor_screen.py --dark FILE --dark-sha256 HASH
+    python -I -B tools/test_flat_predictor_screen.py
+
 **`code_family_screen.py`** supports lead #339. It screens a payload for standard containers
 (magic counts; zlib, raw DEFLATE, gzip, bzip2 and lzma/xz decompression at the first byte offsets,
 output capped, each hit marked complete or partial from the decompressor's end-of-stream state),
