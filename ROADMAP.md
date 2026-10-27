@@ -25,6 +25,8 @@ Shared unassigned Rice stop-1 k=5 counts reproduce on public ids 1993 and 7804, 
 
 The original three public OM-3 controlled white/dark files' 4MB zlib, bzip2 and LZMA real/shuffled ratios reproduce, with a separate E-M5 Mark II dark extension (`2026-10-27--mtakemoto--controlled-flat-recompression`, Partial for #339). The sizes do not establish a codec or the broader efficient-coder interpretation.
 
+The remaining original public 1993 and 7804 prefix recompression ratios reproduce, with predeclared 6344 as a separate extension (`2026-10-27--mtakemoto--remaining-public-recompression`, Partial for #339). These sizes do not establish a codec or the broader efficient-coder interpretation.
+
 The shared unassigned bounded decompression screen reproduces 25/22 complete raw-DEFLATE hits for 7804 real/shuffled; predeclared 6344 gives 13/18, with no partial or other-format complete hits (finding `2026-10-27--mtakemoto--public-container-screen-reproduction`, Partial for #339; V1 S1.8). This does not exclude other framing or offsets.
 
 The original three public OM-3 controlled files and public 1993 reproduce their bounded raw-DEFLATE hit counts, with P1010009 as a separate extension (`2026-10-27--mtakemoto--controlled-container-screen`, Partial for #339). On 1993 the zlib 789c signature counts are 21 real versus 288 shuffled; no equivalence or codec claim follows.
