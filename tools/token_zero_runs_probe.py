@@ -19,6 +19,7 @@ Each window censors both edges independently, even inside an ongoing run.
 These windows alone do not establish stationarity or representativeness.
 The CLI prints all available reports, then exits 1 if any input failed or any
 requested start/window was incomplete; complete error-free reports exit 0.
+Public names must be printable basenames; licence verification remains separate.
 """
 import argparse
 from collections import Counter
@@ -160,6 +161,9 @@ def main():
     ids = [sample[0] for sample in args.sample]
     if any(not x.isascii() or not x.isdecimal() or int(x) <= 0 for x in ids) or len(set(ids)) != len(ids):
         parser.error("sample IDs must be distinct positive ASCII decimal integers")
+    if any(not name or not name.isprintable() or any(c in name for c in "/\\")
+           for _, name, _ in args.sample):
+        parser.error("sample public name must be a printable basename")
     reports, failures = [], []
     for sample_id, name, path in args.sample:
         try:
