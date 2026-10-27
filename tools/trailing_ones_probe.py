@@ -4,6 +4,7 @@
 Match the frozen cohort by input SHA-256, reuse the original signature and
 contiguous payload locator, and emit only public metadata and aggregate counts.
 Standard library only; Python 3.8+.
+Ambiguous duplicate JSON object keys invalidate the frozen cohort.
 """
 
 import argparse
@@ -63,6 +64,15 @@ def trailing_ones_from_bytes(data):
     if last_byte != min(full, 8) or last_eight != min(full, 64):
         raise AssertionError("independent tail windows disagree with their caps")
     return last_byte, last_eight, full
+
+
+def unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError('duplicate JSON object key')
+        result[key] = value
+    return result
 
 
 def validate_cohort(cohort):
@@ -222,7 +232,7 @@ def run_measurement(cohort_path, sample_dir, measured_by):
         return result
     result["cohort_sha256"] = hashlib.sha256(cohort_bytes).hexdigest()
     try:
-        cohort = json.loads(cohort_bytes)
+        cohort = json.loads(cohort_bytes, object_pairs_hook=unique_object)
     except (ValueError, RecursionError):
         result["failures"].append({"sample_id": None, "category": "cohort_invalid"})
         return result
