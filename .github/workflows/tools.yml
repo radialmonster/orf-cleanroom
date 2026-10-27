@@ -154,3 +154,8 @@ jobs:
         run: |
           python -I -B tools/test_e400_high12_probe.py
           python -I -B tools/test_e400_zero_low4_probe.py
+      - name: Synthetic packed-16 boundary and exception tests
+        run: |
+          python -I -B tools/test_e400_boundary_probe.py
+          python -I -B tools/test_e400_exception_probe.py
+          python -I -B tools/test_e400_single_pass_probe.py
