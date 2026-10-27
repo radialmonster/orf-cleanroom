@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """Synthetic checks for token_count_closure.py; no real samples needed."""
 import contextlib
+import hashlib
 import io
 import json
 import os
 import random
+import struct
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import token_count_closure as C
@@ -87,6 +90,23 @@ def encode(rule, values):
 
 
 class Tests(unittest.TestCase):
+    def test_report_uses_one_file_snapshot_for_hash_and_payload(self):
+        tags = [(256, 2), (257, 2), (273, 62), (279, 8)]
+        first = (struct.pack('<2sHIH', b'II', 42, 8, len(tags)) +
+                 b''.join(struct.pack('<HHII', tag, 4, 1, value) for tag, value in tags) +
+                 struct.pack('<I', 0) + b'\xff' * 8)
+        second = first[:-8] + bytes(8)
+        for with_hash in (False, True):
+            with self.subTest(with_hash=with_hash), \
+                    mock.patch('builtins.open', side_effect=[io.BytesIO(first), io.BytesIO(second)]) as opened:
+                result = C.report('1', 'public.ORF', 'sample.ORF', ['F5'], False, with_hash)
+            self.assertEqual(opened.call_count, 1)
+            self.assertEqual(result['rules']['F5']['tokens'], C.run(b'\xff' * 8, 'F5')[0])
+            if with_hash:
+                self.assertEqual(result['sha256'], hashlib.sha256(first).hexdigest())
+            else:
+                self.assertNotIn('sha256', result)
+
     def test_rules_match_reference(self):
         rng = random.Random(20261026)
         cases = [b"", b"\0", b"\xff", bytes(20) + b"\x80\xff", bytes([0x80]) * 9]

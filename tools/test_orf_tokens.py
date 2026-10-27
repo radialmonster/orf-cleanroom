@@ -24,13 +24,16 @@ def token(q, suffix):
 class ParseTests(unittest.TestCase):
     def test_locate_multistrip_table_order_and_length_mismatch(self):
         data = bytes(range(20))
-        for offsets, counts, expected in (([2, 12], [3, 4], data[2:5] + data[12:16]),
+        for offsets, counts, expected in (([2, 5], [3, 4], data[2:9]),
+                                          ([2, 12], [3, 4], data[2:5] + data[12:16]),
                                           ([12, 2], [4, 3], data[12:16] + data[2:5])):
             tags = {0x100: [5], 0x101: [4], 0x111: offsets, 0x117: counts}
             with self.subTest(offsets=offsets), patch("builtins.open", return_value=io.BytesIO(data)), \
                     patch.object(t, "Tiff") as reader:
                 reader.return_value.all_ifds.return_value = [tags]
-                self.assertEqual(t.locate("synthetic")[2], expected)
+                located = t.locate("synthetic")
+                self.assertEqual(located[2], expected)
+                self.assertEqual(t.locate_data(data), located)
         tags = {0x100: [5], 0x101: [4], 0x111: [2, 12], 0x117: [3]}
         with patch("builtins.open", return_value=io.BytesIO(data)), patch.object(t, "Tiff") as reader:
             reader.return_value.all_ifds.return_value = [tags]

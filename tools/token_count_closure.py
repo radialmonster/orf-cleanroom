@@ -164,14 +164,15 @@ def joint_table(buf):
 
 
 def report(sample_id, name, path, rules, table, with_hash):
-    w, h, buf = T.locate(path)
+    with open(path, "rb") as handle:
+        data = handle.read()
+    w, h, buf = T.locate_data(data)
     if w <= 0 or h <= 0:
         raise ValueError("bad payload geometry")
     out = {"pixls_id": sample_id, "pixls_name": name, "payload_w": w, "payload_h": h,
            "payload_bytes": len(buf), "bpp": 8 * len(buf) / (w * h), "rules": {}}
     if with_hash:
-        with open(path, "rb") as handle:
-            out["sha256"] = hashlib.sha256(handle.read()).hexdigest()
+        out["sha256"] = hashlib.sha256(data).hexdigest()
     for rule in rules:
         n, used, esc, ksum = run(buf, rule)
         out["rules"][rule] = {"tokens": n, "d": n - w * h, "rel": (n - w * h) / (w * h),
