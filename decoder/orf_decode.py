@@ -364,6 +364,9 @@ def decode_file(path, order=None, layout=None):
         # 2026-10-27--mtakemoto--controlled-container-screen (Partial for
         # #339): bounded hit counts reproduce on controlled files and 1993;
         # signature counts are descriptive, not codec evidence (V1 S1.8).
+        # 2026-10-27--mtakemoto--remaining-public-recompression (Partial for
+        # #339): public prefix ratios reproduce; sizes do not identify a codec
+        # (V1 S1.8).
         # 2026-10-27--mtakemoto--controlled-flat-recompression (Partial for
         # #339): controlled-file prefix ratios reproduce; sizes do not identify
         # a codec (V1 S1.8).
