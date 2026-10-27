@@ -11,7 +11,8 @@ Usage:
   python pixls_samples.py list [--all-licences] [--missing MANIFEST]
                                                   # CC0 ORF/ORI files by default;
                                                   # --missing: only those not in MANIFEST
-  python pixls_samples.py check [--json] FILE [FILE ...] # check local hashes against the live catalogue
+  python pixls_samples.py check [--json] FILE [FILE ...] # check local hashes against the live catalogue;
+                                                  # exit 1 for unreadable or non-CC0 inputs
   python pixls_samples.py download DIR [--model M] [--max N]
                                                   # CC0 only, SHA-256 verified;
                                                   # DIR must be outside the repo;
@@ -160,10 +161,11 @@ def cmd_check(a):
     for index, p in enumerate(a.files, 1):
         try:
             digest = sha256_file(p)
-        except OSError:
-            if not a.json:
-                raise
-            unreadable.append(index)
+        except OSError as exc:
+            if a.json:
+                unreadable.append(index)
+            else:
+                print("input %d: %s" % (index, type(exc).__name__), file=sys.stderr)
             bad += 1
             continue
         r = lic.get(digest)

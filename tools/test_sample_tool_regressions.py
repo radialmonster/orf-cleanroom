@@ -128,6 +128,25 @@ class SampleTools(unittest.TestCase):
             self.assertNotIn(folder, output.getvalue())
             self.assertEqual(error.getvalue(), '')
 
+    def test_check_default_continues_after_unreadable_input(self):
+        data = b'public synthetic'
+        record = dict(id='1', name='public.ORF', sha256=hashlib.sha256(data).hexdigest(), licence='CC0')
+        with tempfile.TemporaryDirectory(dir=str(WORK)) as folder:
+            good, missing, unknown = (Path(folder) / n for n in ('good.ORF', 'missing.ORF', 'unknown.ORF'))
+            good.write_bytes(data)
+            unknown.write_bytes(b'unlisted synthetic')
+            output, error = io.StringIO(), io.StringIO()
+            with mock.patch.object(pixls, 'rows', return_value=[record]), \
+                    mock.patch.object(sys, 'argv', ['pixls_samples', 'check', str(missing), str(good), str(unknown)]), \
+                    mock.patch.object(sys, 'stdout', output), mock.patch.object(sys, 'stderr', error):
+                with self.assertRaises(SystemExit) as result:
+                    pixls.main()
+            self.assertEqual(result.exception.code, 1)
+            self.assertIn('CC0         %s  = public.ORF' % good, output.getvalue())
+            self.assertIn('NOT LISTED  %s' % unknown, output.getvalue())
+            self.assertIn('input 1: FileNotFoundError', error.getvalue())
+            self.assertNotIn(folder, error.getvalue())
+
     def test_check_default_remains_human_readable(self):
         data = b'public synthetic'
         record = dict(id='1', name='public.ORF', sha256=hashlib.sha256(data).hexdigest(), licence='CC0')
