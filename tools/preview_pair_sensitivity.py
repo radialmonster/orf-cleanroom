@@ -22,6 +22,8 @@ or pixel array.
 Same-model grouping uses the `model` text in samples/manifest.csv, matched by
 SHA-256, because that is the grouping used by #327. Inputs without a manifest
 row fall back to the EXIF Model tag and are labelled in the sample record.
+The default or requested manifest must be readable; pass --manifest '' to
+explicitly use EXIF fallback for all inputs.
 Input licence verification is the caller's responsibility. Read-only, standard
 library CPU; all output is aggregate numbers and public file identities.
 """
@@ -191,7 +193,7 @@ def correlation(a, b):
 
 def read_manifest(path):
     models = {}
-    if not path or not os.path.exists(path):
+    if not path:
         return models
     with open(path, "r", encoding="utf-8", newline="") as stream:
         for row in csv.DictReader(stream):
@@ -251,7 +253,7 @@ def main():
     parser.add_argument("files", nargs="+",
                         help="public ORF/ORI files with licence already verified")
     parser.add_argument("--manifest", default=DEFAULT_MANIFEST,
-                        help="CSV mapping SHA-256 to model (default: %(default)s)")
+                        help="readable CSV mapping SHA-256 to model (default: %(default)s); empty disables")
     parser.add_argument("--grids", default=",".join(str(g) for g in DEFAULT_GRIDS),
                         help="comma-separated grid sizes (default: %(default)s)")
     args = parser.parse_args()
@@ -262,7 +264,11 @@ def main():
     if not grids or grids[0] < 2 or grids[-1] > 128:
         parser.error("grid sizes must be between 2 and 128")
     start = time.perf_counter()
-    records = measure(args.files, read_manifest(args.manifest), grids)
+    try:
+        manifest = read_manifest(args.manifest)
+    except (OSError, UnicodeError, csv.Error, KeyError):
+        parser.error("invalid or unreadable manifest")
+    records = measure(args.files, manifest, grids)
     for record, _ in records:
         print(json.dumps({"sample": record}, sort_keys=True))
     by_sha = {record["sha256"]: record for record, _ in records}

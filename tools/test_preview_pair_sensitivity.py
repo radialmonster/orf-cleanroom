@@ -7,7 +7,9 @@ import math
 import os
 import struct
 import sys
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -104,6 +106,39 @@ class GridTests(unittest.TestCase):
 
 
 class AggregationTests(unittest.TestCase):
+    def test_missing_manifest_is_not_an_empty_manifest(self):
+        work = Path(__file__).resolve().parent.parent / 'work' / 'test-preview-manifest'
+        work.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=str(work)) as folder:
+            root = Path(folder)
+            missing = root / 'private-missing.csv'
+            with self.assertRaises(OSError):
+                sensitivity.read_manifest(str(missing))
+            manifest = root / 'manifest.csv'
+            manifest.write_text('sha256,pixls_id,model\n' + 'a' * 64 + ',1,TestModel\n', encoding='utf-8')
+            self.assertEqual(sensitivity.read_manifest(str(manifest))['a' * 64]['model'], 'TestModel')
+            self.assertEqual(sensitivity.read_manifest(''), {})
+
+    def test_cli_manifest_errors_stop_before_measurement(self):
+        work = Path(__file__).resolve().parent.parent / 'work' / 'test-preview-manifest'
+        work.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=str(work)) as folder:
+            root = Path(folder)
+            bad = root / 'private-invalid.csv'
+            bad.write_bytes(b'\xff')
+            for path in (root / 'private-missing.csv', bad):
+                output, error = io.StringIO(), io.StringIO()
+                with self.subTest(path=path.name), \
+                     patch.object(sys, 'argv', ['probe', 'sample.ORF', '--manifest', str(path)]), \
+                     patch.object(sensitivity, 'measure') as measure, \
+                     contextlib.redirect_stdout(output), contextlib.redirect_stderr(error):
+                    with self.assertRaises(SystemExit) as raised:
+                        sensitivity.main()
+                    self.assertEqual(raised.exception.code, 2)
+                    self.assertEqual(output.getvalue(), '')
+                    self.assertNotIn('private', error.getvalue())
+                    measure.assert_not_called()
+
     def test_unscored_pairs_stay_out_of_low_and_time_denominators(self):
         def record(sha, status):
             return {"sha256": sha, "name": sha[:6] + ".ORF", "pixls_id": "1",
