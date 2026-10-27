@@ -12,6 +12,7 @@ Reads only input files and prints aggregate JSON; stdlib, Python 3.8+.
 Check CC0 licences separately. Repeat --sample ID PUBLIC_NAME FILE.
 The CLI returns 1 if any requested prefix is incomplete or an input fails;
 all available aggregate reports and sanitized errors are still printed.
+IDs that cannot be converted to integers are argument errors.
 """
 import argparse
 import hashlib
@@ -79,9 +80,14 @@ def main():
                         metavar=("ID", "PUBLIC_NAME", "FILE"))
     args = parser.parse_args()
     ids = [sample[0] for sample in args.sample]
-    if any(not i.isascii() or not i.isdigit() or int(i) <= 0 for i in ids):
+    try:
+        invalid_ids = any(not i.isascii() or not i.isdigit() or int(i) <= 0 for i in ids)
+        distinct = len(set(map(int, ids))) == len(ids) if not invalid_ids else True
+    except ValueError:
+        invalid_ids = True
+    if invalid_ids:
         parser.error("sample IDs must be positive ASCII decimals")
-    if len(set(map(int, ids))) != len(ids):
+    if not distinct:
         parser.error("sample IDs must be distinct")
     reports, failures = [], []
     for sample_id, name, path in args.sample:

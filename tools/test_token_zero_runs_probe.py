@@ -31,6 +31,23 @@ def synthetic_tiff(payload):
 
 
 class CliTests(unittest.TestCase):
+    def test_id_conversion_failure_is_an_argument_error(self):
+        limit = getattr(sys, 'get_int_max_str_digits', lambda: 0)()
+        for sample_id, simulated in [('42', True), ('9' * (limit + 1), False)]:
+            if not simulated and not limit:
+                continue
+            out, err = io.StringIO(), io.StringIO()
+            convert = patch.object(probe, 'int', side_effect=ValueError('private detail'), create=True) if simulated else contextlib.nullcontext()
+            with self.subTest(simulated=simulated), patch.object(sys, 'argv', ['probe', '--sample', sample_id, 'a.ORF', 'unused']), \
+                 patch.object(probe, 'report') as report, convert, contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                with self.assertRaises(SystemExit) as raised:
+                    probe.main()
+                self.assertEqual(raised.exception.code, 2)
+                report.assert_not_called()
+                self.assertEqual(out.getvalue(), '')
+                self.assertNotIn('private detail', err.getvalue())
+                self.assertIn('sample IDs', err.getvalue())
+
     def test_numeric_id_aliases_are_rejected_before_measurement(self):
         argv = [probe.__file__, '--sample', '1', 'a.ORF', 'first',
                 '--sample', '01', 'b.ORF', 'second']
