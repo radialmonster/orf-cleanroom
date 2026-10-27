@@ -358,6 +358,8 @@ def decode_file(path, order=None, layout=None):
         # 2026-10-27--mtakemoto--public-container-screen-reproduction (Partial
         # for #339): bounded unassigned format hits do not establish framing
         # or a decode step (V1 S1.8).
+        # 2026-10-27--mtakemoto--public-code-family-counts (Partial for #339):
+        # unassigned candidate counts establish no codec or pixel mapping (V1 S1.8).
         # 2026-10-27--radialmonster--body-label-holdout-reproduction (#329):
         # a file-cohort label diagnostic is not variant, capture-independent
         # validation or a decode step (V1 S1.22, G6).
