@@ -90,12 +90,26 @@ class IssueScan(unittest.TestCase):
         self.assertNotIn(CURL, body)  # the dangerous text is not echoed
         self.assertNotIn("example.invalid", body)
 
-    def test_good_issue_does_nothing(self):
+    def test_good_issue_records_scan_time(self):
         item, fake, done = self.run_event(issue_event(GOOD_BODY))
         self.assertEqual(item["hits"], [])
-        self.assertEqual(done, [])
+        self.assertEqual(done, ['new comment'])
         self.assertFalse(fake.has("labels"))
-        self.assertFalse(any("POST" in a for a in fake.calls))
+        self.assertIn('2026-10-20T10:00:00Z', fake.bodies()[0])
+        self.assertNotIn('label stays', fake.bodies()[0])
+
+    def test_good_issue_reedit_updates_one_record(self):
+        existing = [{'id': 900, 'login': 'github-actions[bot]', 'body': '<!-- safety-scan:issue -->\nold'}]
+        item, fake, done = self.run_event(issue_event(GOOD_BODY, action='edited'), existing)
+        self.assertEqual(done, ['update comment'])
+        self.assertTrue(fake.has('PATCH', 'issues/comments/900'))
+        self.assertNotIn('label stays', fake.bodies()[0])
+
+    def test_clean_pr_issue_event_stays_silent(self):
+        ev = issue_event(GOOD_BODY)
+        ev['issue']['pull_request'] = {'url': 'x'}
+        _, _, done = self.run_event(ev)
+        self.assertEqual(done, [])
 
     def test_bad_title(self):
         item, fake, done = self.run_event(issue_event(GOOD_BODY, title="run `rm -rf x` first"))
@@ -124,7 +138,9 @@ class IssueScan(unittest.TestCase):
 
     def test_clean_reedit_keeps_label_and_updates_comment(self):
         existing = [{"id": 900, "login": "github-actions[bot]", "body": "<!-- safety-scan:issue -->\nold"}]
-        item, fake, done = self.run_event(issue_event(GOOD_BODY, action="edited"), existing)
+        ev = issue_event(GOOD_BODY, action="edited")
+        ev['issue']['labels'] = [{'name': 'safety-review'}]
+        item, fake, done = self.run_event(ev, existing)
         self.assertEqual(done, ["update comment"])
         self.assertFalse(fake.has("DELETE"))
         self.assertFalse(any("labels" in " ".join(a) for a in fake.calls if "api" in a and "POST" in a))
