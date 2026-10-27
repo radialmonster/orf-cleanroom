@@ -14,6 +14,7 @@ W tokens per row. These descriptive tables cannot establish serpentine or
 other spatial layout, significance, or reproduce #30's unspecified private
 donor metric. No images or decode. Reuse retained CC0 verification after
 matching local hashes. All input errors and prefix shortfalls fail the CLI.
+Sample IDs must be distinct positive ASCII decimals and names printable basenames.
 """
 import argparse
 import hashlib
@@ -85,8 +86,14 @@ def main():
     parser.add_argument("--sample", nargs=3, action="append", metavar=("ID", "PUBLIC_NAME", "FILE"), required=True)
     args = parser.parse_args()
     ids = [sample[0] for sample in args.sample]
-    if any(not x.isascii() or not x.isdecimal() or int(x) <= 0 for x in ids) or len(set(ids)) != len(ids):
+    try:
+        invalid_ids = any(not x.isascii() or not x.isdecimal() or int(x) <= 0 for x in ids) or len(set(map(int, ids))) != len(ids)
+    except ValueError:
+        invalid_ids = True
+    if invalid_ids:
         parser.error("sample IDs must be distinct positive ASCII decimal integers")
+    if any(not name or not name.isprintable() or any(c in name for c in '/\\') for _, name, _ in args.sample):
+        parser.error("sample public name must be a printable basename")
     reports, failures = [], []
     for sample_id, name, path in args.sample:
         try:
