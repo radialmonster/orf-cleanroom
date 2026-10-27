@@ -10,6 +10,8 @@ rational predictions round by floor(x+1/2). Row-wise rotations rerun selection
 and fitting. References are descriptive, not calibrated p-values. No decoding,
 preview access, significance threshold, stride selection or physical-row claim.
 Reads samples and prints aggregates only; original stdlib Python3.8+ code.
+Sample IDs must be distinct positive ASCII decimals and names printable basenames;
+invalid identities are argument errors before any sample is measured.
 """
 import argparse
 import array
@@ -182,14 +184,21 @@ def main(argv=None):
             or args.rows < 2 or not args.stride > args.head >= 1 or args.replicates < 1
             or any(b - a <= args.rows for a, b in zip(args.starts, args.starts[1:]))):
         ap.error('require >=4 ordered separated bands, rows>=2, stride>head>=1, replicates>=1')
-    if len({s[0] for s in args.sample}) != len(args.sample):
-        ap.error('duplicate public IDs')
+    ids = [sample[0] for sample in args.sample]
+    try:
+        invalid_ids = any(not sid.isascii() or not sid.isdecimal() or int(sid) < 1 for sid in ids) or len(set(map(int, ids))) != len(ids)
+    except ValueError:
+        invalid_ids = True
+    if invalid_ids:
+        ap.error('sample IDs must be distinct positive ASCII decimals')
+    if any(not name or not name.isprintable() or any(c in name for c in '/\\') for _, name, _, _ in args.sample):
+        ap.error('sample public name must be a printable basename')
     samples = []
     for sid, name, digest, path in args.sample:
         out = dict(pixls_id=sid, pixls_name=name)
         try:
-            if not sid.isascii() or not sid.isdecimal() or int(sid) < 1 or len(digest) != 64 or any(c not in '0123456789abcdefABCDEF' for c in digest):
-                raise ValueError('invalid public ID or hash')
+            if len(digest) != 64 or any(c not in '0123456789abcdefABCDEF' for c in digest):
+                raise ValueError('invalid hash')
             out.update(measure(path, digest, args.stride, args.starts, args.rows, args.head, args.replicates, args.seed))
             out['ok'] = out['bands_complete']
         except (OSError, ValueError, KeyError, IndexError, TypeError, struct.error) as exc:
