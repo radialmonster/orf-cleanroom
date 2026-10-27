@@ -196,7 +196,13 @@ def read_manifest(path):
     if not path:
         return models
     with open(path, "r", encoding="utf-8", newline="") as stream:
-        for row in csv.DictReader(stream):
+        reader = csv.DictReader(stream, strict=True)
+        required = ("sha256", "pixls_id", "model")
+        if any((reader.fieldnames or []).count(field) != 1 for field in required):
+            raise ValueError("missing or duplicate consumed manifest column")
+        for row in reader:
+            if any(row[field] is None for field in required):
+                raise ValueError("truncated manifest row")
             models[row["sha256"].lower()] = row
     return models
 
@@ -266,7 +272,7 @@ def main():
     start = time.perf_counter()
     try:
         manifest = read_manifest(args.manifest)
-    except (OSError, UnicodeError, csv.Error, KeyError):
+    except (OSError, UnicodeError, ValueError, csv.Error, KeyError):
         parser.error("invalid or unreadable manifest")
     records = measure(args.files, manifest, grids)
     for record, _ in records:
