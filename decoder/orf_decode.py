@@ -307,6 +307,9 @@ def decode_file(path, order=None, layout=None):
         # selected unassigned-file candidate-token
         # phase/period contrasts give mixed gains; no physical rows, period
         # change, variant assignment or decode follows (V1 S1.10, G3).
+        # 2026-10-27--radialmonster--common-interval-phase-reproduction (#508):
+        # the common-interval comparison preserves those signs on four
+        # unassigned files; it specifies no physical rows or decode (V1 S1.10, G3).
         # F_NULL_BPP and F_NULL_BPP_2 (Partial for #106) measure only the k=5
         # tokens-per-pixel distance from a Bernoulli null and its bpp/body relation;
         # they specify no value assembly or compressed decode step (V2 S1.1).
