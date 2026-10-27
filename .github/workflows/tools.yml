@@ -117,6 +117,10 @@ jobs:
         run: |
           python -I -B tools/test_token_phase_context_probe.py
           python -I -B tools/test_token_phase_surrogate_probe.py
+      - name: Synthetic group phase and drift tests
+        run: |
+          python -I -B tools/test_token_group_phase_probe.py
+          python -I -B tools/test_token_phase_drift.py
       - name: Synthetic fixed-band and stride tests
         run: |
           python -I -B tools/test_token_band_profile.py
