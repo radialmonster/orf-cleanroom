@@ -96,3 +96,7 @@ jobs:
         run: |
           python -I -B tools/test_token_cyclic_phase_probe.py
           python -I -B tools/test_token_phase_holdout_probe.py
+      - name: Synthetic fixed-band and stride tests
+        run: |
+          python -I -B tools/test_token_band_profile.py
+          python -I -B tools/test_token_row_stride.py
