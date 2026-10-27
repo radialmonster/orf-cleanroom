@@ -253,7 +253,7 @@ def measure(paths, manifest, grids, failures=None):
                 record["status"] = "low_information"
             else:
                 record["status"] = "ok"
-        except (ValueError, IndexError, KeyError, struct.error) as exc:
+        except (ValueError, IndexError, KeyError, ZeroDivisionError, struct.error) as exc:
             record["status"] = "unsupported"
             record["error"] = type(exc).__name__
             fingerprints = {grid: None for grid in grids}

@@ -108,6 +108,39 @@ class GridTests(unittest.TestCase):
 
 
 class AggregationTests(unittest.TestCase):
+    def test_invalid_jpeg_sampling_preserves_later_sample(self):
+        work = Path(__file__).resolve().parent.parent / 'work' / 'test-sensitivity-batch'
+        work.mkdir(parents=True, exist_ok=True)
+        scan = b'\xff\xda\x00\x0c\x03\x01\x00\x02\x00\x03\x00\x00\x3f\x00'
+        def jpeg(sampling):
+            frame = (b'\xff\xc0\x00\x11\x08\x03\xe8\x03\xe8\x03' +
+                     bytes([1, sampling, 0, 2, sampling, 0, 3, sampling, 0]))
+            return b'\xff\xd8' + frame + scan
+        with tempfile.TemporaryDirectory(dir=str(work)) as folder:
+            root = Path(folder)
+            good = root / 'good.ORF'
+            good.write_bytes(synthetic_tiff() + jpeg(0x11))
+            original = sensitivity.jpeg_dc.decode
+            for sampling in (0x01, 0x10):
+                bad = root / 'bad.ORF'
+                bad.write_bytes(synthetic_tiff() + jpeg(sampling))
+                def decode(data, offset):
+                    if data == bad.read_bytes():
+                        return original(data, offset)
+                    return (125, 125, list(range(125 * 125)))
+                output = io.StringIO()
+                with self.subTest(sampling=sampling), \
+                     patch.object(sensitivity.jpeg_dc, 'decode', side_effect=decode), \
+                     patch.object(sys, 'argv', ['probe', str(bad), str(good), '--manifest', '', '--grids', '12']), \
+                     contextlib.redirect_stdout(output):
+                    self.assertEqual(sensitivity.main(), 1)
+                    rows = [json.loads(line) for line in output.getvalue().splitlines()]
+                    samples = {r['sample']['name']: r['sample'] for r in rows if 'sample' in r}
+                    self.assertEqual((samples['bad.ORF']['status'], samples['bad.ORF']['error']),
+                                     ('unsupported', 'ZeroDivisionError'))
+                    self.assertEqual(samples['good.ORF']['status'], 'ok')
+                    self.assertEqual(rows[-1]['summary']['samples'], 2)
+
     def test_duplicate_content_decodes_once_and_direct_call_raises(self):
         work = Path(__file__).resolve().parent.parent / 'work' / 'test-sensitivity-batch'
         work.mkdir(parents=True, exist_ok=True)
