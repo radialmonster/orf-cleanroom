@@ -134,6 +134,10 @@ jobs:
         run: |
           python -I -B tools/test_token_lag_probe.py
           python -I -B tools/test_token_position_probe.py
+      - name: Synthetic suffix window and width tests
+        run: |
+          python -I -B tools/test_suffix_window_probe.py
+          python -I -B tools/test_suffix_width_probe.py
       - name: Synthetic packed-16 neighbour arithmetic tests
         run: |
           python -I -B tools/test_e400_high12_probe.py
