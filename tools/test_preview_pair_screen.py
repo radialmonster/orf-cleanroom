@@ -1,7 +1,10 @@
 """Synthetic geometry/arithmetic controls for preview_pair_screen; no images."""
 import io
+import contextlib
+import json
 import math
 import os
+import runpy
 import sys
 import unittest
 from unittest.mock import patch
@@ -20,6 +23,93 @@ def reference(a, b):
 
 
 class ScreenTests(unittest.TestCase):
+    def test_all_unreadable_reports_empty_summary_and_private_safe_error(self):
+        out, err = io.StringIO(), io.StringIO()
+        with patch('builtins.open', side_effect=FileNotFoundError('private path')), \
+                patch.object(sys, 'argv', ['preview_pair_screen', 'private-one.ORF', 'private-two.ORF']), \
+                contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            self.assertEqual(p.main(), 1)
+        lines = [json.loads(line) for line in out.getvalue().splitlines()]
+        self.assertEqual(len(lines), 1)
+        self.assertEqual((lines[0]['summary']['samples'], lines[0]['summary']['pairs']), (0, 0))
+        self.assertEqual(err.getvalue().splitlines(), ['input 1: FileNotFoundError', 'input 2: FileNotFoundError'])
+        self.assertNotIn('private', out.getvalue() + err.getvalue())
+
+    def test_valid_sample_cli_succeeds(self):
+        out = io.StringIO()
+        with patch('builtins.open', return_value=io.BytesIO(b'synthetic')), \
+                patch.object(p.jpeg_dc, 'find_preview', return_value=(9216, 0, 1, 96, 96)), \
+                patch.object(p.jpeg_dc, 'decode', return_value=(12, 12, list(range(144)))), \
+                patch.object(sys, 'argv', ['preview_pair_screen', 'valid.ORF']), \
+                contextlib.redirect_stdout(out):
+            self.assertEqual(p.main(), 0)
+        lines = [json.loads(line) for line in out.getvalue().splitlines()]
+        self.assertEqual(lines[0]['sample']['status'], 'ok')
+        self.assertEqual(lines[-1]['summary']['samples'], 1)
+
+    def test_cli_reports_unreadable_and_unsupported_but_keeps_valid(self):
+        inputs = {'bad.ORF': b'bad', 'good.ORF': b'good'}
+        def opening(path, mode):
+            if path not in inputs:
+                raise FileNotFoundError('private path')
+            return io.BytesIO(inputs[path])
+        def preview(data):
+            return None if data == b'bad' else (9216, 0, 1, 96, 96)
+        out, err = io.StringIO(), io.StringIO()
+        args = ['preview_pair_screen', 'missing.ORF', 'bad.ORF', 'good.ORF']
+        with patch('builtins.open', side_effect=opening), \
+                patch.object(p.jpeg_dc, 'find_preview', side_effect=preview), \
+                patch.object(p.jpeg_dc, 'decode', return_value=(12, 12, list(range(144)))), \
+                patch.object(sys, 'argv', args), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            self.assertEqual(p.main(), 1)
+        lines = [json.loads(line) for line in out.getvalue().splitlines()]
+        samples = {line['sample']['name']: line['sample']['status'] for line in lines if 'sample' in line}
+        self.assertEqual(samples, {'bad.ORF': 'unsupported', 'good.ORF': 'ok'})
+        self.assertEqual(lines[-1]['summary']['samples'], 2)
+        self.assertIn('input 1: FileNotFoundError', err.getvalue())
+        self.assertNotIn('private path', err.getvalue())
+
+    def test_all_unsupported_is_failure_and_low_information_is_not(self):
+        for preview, dc, expected in ((None, [], 1), ((9216, 0, 1, 96, 96), [0] * 144, 0)):
+            out = io.StringIO()
+            with self.subTest(expected=expected), patch('builtins.open', return_value=io.BytesIO(b'synthetic')), \
+                    patch.object(p.jpeg_dc, 'find_preview', return_value=preview), \
+                    patch.object(p.jpeg_dc, 'decode', return_value=(12, 12, dc)), \
+                    patch.object(sys, 'argv', ['preview_pair_screen', 'sample.ORF']), \
+                    contextlib.redirect_stdout(out):
+                self.assertEqual(p.main(), expected)
+            self.assertEqual(json.loads(out.getvalue().splitlines()[0])['sample']['status'],
+                             'unsupported' if expected else 'low_information')
+
+    def test_entrypoint_returns_failure_status(self):
+        script = os.path.join(os.path.dirname(__file__), 'preview_pair_screen.py')
+        with patch.object(sys, 'argv', [script, 'missing.ORF']), \
+                patch('builtins.open', side_effect=FileNotFoundError('private path')), \
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit) as raised:
+                runpy.run_path(script, run_name='__main__')
+        self.assertEqual(raised.exception.code, 1)
+
+    def test_entrypoint_status_for_supported_and_unsupported(self):
+        script = os.path.join(os.path.dirname(__file__), 'preview_pair_screen.py')
+        for preview, dc, expected in ((None, [], 1),
+                ((9216, 0, 1, 96, 96), list(range(144)), 0),
+                ((9216, 0, 1, 96, 96), [0] * 144, 0)):
+            with self.subTest(expected=expected, dc=dc[:2]), \
+                    patch.object(sys, 'argv', [script, 'sample.ORF']), \
+                    patch('builtins.open', return_value=io.BytesIO(b'synthetic')), \
+                    patch.object(p.jpeg_dc, 'find_preview', return_value=preview), \
+                    patch.object(p.jpeg_dc, 'decode', return_value=(12, 12, dc)), \
+                    contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit) as raised:
+                    runpy.run_path(script, run_name='__main__')
+                self.assertEqual(raised.exception.code, expected)
+
+    def test_direct_measure_still_raises_for_unreadable_file(self):
+        with patch('builtins.open', side_effect=FileNotFoundError('private path')):
+            with self.assertRaises(FileNotFoundError):
+                p.measure(['missing.ORF'])
+
     def test_bad_jpeg_sampling_does_not_abort_remaining_files(self):
         scan = b"\xff\xda\x00\x0c\x03\x01\x00\x02\x00\x03\x00\x00\x3f\x00"
         dc = list(range(144))
