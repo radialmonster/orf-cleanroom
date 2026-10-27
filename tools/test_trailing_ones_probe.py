@@ -2,11 +2,14 @@
 """Independent literal-bit and synthetic CLI checks for trailing_ones_probe."""
 
 import hashlib
+import contextlib
+import io
 import json
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from collections import Counter
 from pathlib import Path
 
@@ -17,6 +20,7 @@ if str(TOOLS_DIR) not in sys.path:
 
 from test_v0_spec_check import make_orf
 from trailing_ones_probe import trailing_ones_from_bytes
+import trailing_ones_probe as probe
 
 
 HISTOGRAMS = (
@@ -57,6 +61,26 @@ class CounterTests(unittest.TestCase):
 
 
 class CliTests(unittest.TestCase):
+    def test_duplicate_json_keys_are_rejected_before_indexing(self):
+        sample = self.sample('generic-id', b'\x03\xff', 'fixture.data')
+        text = json.dumps(self.cohort([sample]))
+        cases = [text.replace('"cohort_id":', '"cohort_id": "ambiguous", "cohort_id":'),
+                 text.replace('"id":', '"id": "other", "id":'),
+                 text.replace('"sha256":', '"sha256": "' + 'a' * 64 + '", "sha256":'),
+                 text.replace('"samples":', '"samples": [], "samples":')]
+        for case in cases:
+            with self.subTest(case=cases.index(case)):
+                result, output = self.run_probe(case)
+                self.assertEqual(result.returncode, 1)
+                self.assertEqual(output['failures'], [{'sample_id': None, 'category': 'cohort_invalid'}])
+                self.assertEqual(output['samples'], [])
+                self.cohort_path.write_text(case, encoding='utf-8')
+                with mock.patch.object(probe, 'index_inputs') as index, mock.patch.object(probe, 'measure_sample') as measure:
+                    report = probe.run_measurement(str(self.cohort_path), str(self.cache), 'tester')
+                index.assert_not_called()
+                measure.assert_not_called()
+                self.assertEqual(report['failures'], [{'sample_id': None, 'category': 'cohort_invalid'}])
+
     def setUp(self):
         temporary = tempfile.TemporaryDirectory(prefix="private-trailing-ones-")
         self.addCleanup(temporary.cleanup)
