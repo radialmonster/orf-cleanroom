@@ -635,6 +635,19 @@ ISO/bpp correlation, scene content, or causality. Licence-check inputs first.
     python -I -B tools/exif_sensitivity_probe.py --sample ID PUBLIC_NAME path/to/file.ORF
     python -I -B tools/test_exif_sensitivity_probe.py
 
+**`preview_date_stratification.py`** supports #347. It joins a complete
+12x12 preview pair screen to hash-matched EXIF metadata and fixed public cohort
+model/group labels. It reports same-second, same-day within/beyond 600 seconds,
+different-day and unavailable timestamp buckets for all and same-model pairs,
+including unscored and extension pair counts. Recorded times and model text do
+not establish scene identity, physical camera identity or capture independence.
+Cohort JSON is an array of objects with `sha256`, `model` and `group` (original
+or extension); the UTF-8 files list contains one local path per line. Licence
+verification is separate; no dates, previews or local paths are printed.
+
+    python -I -B tools/preview_date_stratification.py --screen screen.jsonl --cohort cohort.json --files-from files.txt
+    python -I -B tools/test_preview_date_stratification.py
+
 **`capture_pair_calibration.py`** supports #295. It labels the pairs printed by
 `preview_pair_screen.py` from each file's own metadata only (EXIF
 DateTimeOriginal, payload width, file name): camera-written High Res ORF / ORI

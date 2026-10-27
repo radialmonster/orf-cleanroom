@@ -1,0 +1,93 @@
+[
+  {
+    "name": "PA200010.ORF",
+    "sha256": "b038504aa569ad1db70628617ebcc6aac56de58ce34a6b00ab39d9fe0e905ed4",
+    "licence": "CC0",
+    "model": "OM-3",
+    "group": "extension"
+  },
+  {
+    "name": "PA200011.ORF",
+    "sha256": "a861c2434e7dc5cba74739d452391ec28ac2bf975aa6cb0d49492dc82c5983a3",
+    "licence": "CC0",
+    "model": "OM-3",
+    "group": "extension"
+  },
+  {
+    "name": "PA200012.ORF",
+    "sha256": "c30fc560831b1d9f1ece4cfd29020bf13ee523a50fa9b43dc05e562d2c6364c7",
+    "licence": "CC0",
+    "model": "OM-3",
+    "group": "extension"
+  },
+  {
+    "name": "PA200013.ORF",
+    "sha256": "b714b28697a94081b83d7dd6127ed295f3ffbf6045b098a93381e373f8e3b946",
+    "licence": "CC0",
+    "model": "OM-3",
+    "group": "extension"
+  },
+  {
+    "name": "PA200014.ORF",
+    "sha256": "49d1719d4120da07911488060c35f8d47dd76b9fc03c328d3cea8a190e298fca",
+    "licence": "CC0",
+    "model": "OM-3",
+    "group": "extension"
+  },
+  {
+    "name": "PA200015.ORF",
+    "sha256": "84c484c11a8f4be00a9e93f8ae55787e134e3a0efa2424b0416925c42b67a278",
+    "licence": "CC0",
+    "model": "OM-3",
+    "group": "extension"
+  },
+  {
+    "name": "PA210010.ORF",
+    "sha256": "d055b08cbb23d34cbfeacd9321d1cb9ba1f968c9e0252c8d69aa311946cabc1e",
+    "licence": "CC0",
+    "model": "OM-3",
+    "group": "extension"
+  },
+  {
+    "name": "P1010009.ORF",
+    "sha256": "ce4e204f1df7064076a2fffdfb32284a6a1bf05d9a04c571178710a25f137b8c",
+    "licence": "CC0",
+    "model": "E-M5MarkII",
+    "group": "extension"
+  },
+  {
+    "name": "P1010011.ORF",
+    "sha256": "d34532152c79ef24b22c60c6cf743cef41fe28196b40fe16b557c16b7a7ea03d",
+    "licence": "CC0",
+    "model": "E-M5MarkII",
+    "group": "extension"
+  },
+  {
+    "name": "P1010013.ORF",
+    "sha256": "81acdd3675c329b351a634cfb4e22228f2db8df94f36480690e04416ded0817d",
+    "licence": "CC0",
+    "model": "E-M5MarkII",
+    "group": "extension"
+  },
+  {
+    "name": "P1010017.ORF",
+    "sha256": "431b03c21b743f13006be4ed9eb18f17e04d4a7ad50281eec3d2f7668d02a2c5",
+    "licence": "CC0",
+    "model": "E-M5MarkII",
+    "group": "extension"
+  },
+  {
+    "name": "P1010018.ORF",
+    "sha256": "e39afef52d22200798ea4367da3b6b1178dc44fdababc5dfb9e816ea5b931e3f",
+    "licence": "CC0",
+    "model": "E-M5MarkII",
+    "group": "extension"
+  },
+  {
+    "name": "P1010019.ORF",
+    "sha256": "5d8234f321aa9d89fe539c1e4ead24e09696c9bff7ecfcef45a7f1571426ec75",
+    "licence": "CC0",
+    "model": "E-M5MarkII",
+    "group": "extension"
+  }
+]

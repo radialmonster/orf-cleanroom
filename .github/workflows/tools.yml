@@ -89,6 +89,8 @@ jobs:
         run: |
           python -I -B tools/test_manifest_offline.py
           python -I -B tools/test_public_cc0_manifest.py
+      - name: Preview date stratification tests
+        run: python -I -B tools/test_preview_date_stratification.py
       - name: Metadata cohort design audit tests
         run: python -I -B tools/test_cohort_design_audit.py
       - name: Body label holdout tests
