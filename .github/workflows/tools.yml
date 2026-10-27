@@ -81,3 +81,5 @@ jobs:
         run: python -I -B tools/test_body_label_holdout.py
       - name: Payload feature probe tests
         run: python -I -B tools/test_payload_feature_probe.py
+      - name: Synthetic search calibration tests
+        run: python -I -B tools/test_framing_search_calibration.py
