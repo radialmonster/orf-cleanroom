@@ -240,7 +240,7 @@ class SampleTools(unittest.TestCase):
              mock.patch.object(manifest, "commit", return_value="test"), \
              mock.patch.object(manifest, "signature", side_effect=RuntimeError("synthetic failure")), \
              mock.patch("builtins.open", return_value=stream), \
-             mock.patch.object(sys, "argv", ["manifest_rows", "--by", "@tester", "--append", "unused", "synthetic"]):
+             mock.patch.object(sys, "argv", ["manifest_rows", "--by", "@tester", "--header", "--append", "unused", "synthetic"]):
             with self.assertRaises(RuntimeError):
                 manifest.main()
         self.assertTrue(stream.closed)
