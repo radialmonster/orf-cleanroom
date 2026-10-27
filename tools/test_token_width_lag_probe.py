@@ -6,6 +6,7 @@ import json
 import math
 import os
 import random
+import struct
 import sys
 import unittest
 from unittest.mock import patch
@@ -16,6 +17,37 @@ import token_width_lag_probe as probe
 
 
 class WidthLagTests(unittest.TestCase):
+    def test_cli_prefix_status_and_preserved_reports(self):
+        def fixture(payload):
+            tags = ((256, 25), (257, 1), (273, 62), (279, len(payload)))
+            return (b'II' + struct.pack('<HIH', 42, 8, len(tags))
+                    + b''.join(struct.pack('<HHII', tag, 4, 1, value) for tag, value in tags)
+                    + struct.pack('<I', 0) + payload)
+        fixtures = {'complete': fixture(b'\xff\xff'), 'short': fixture(b'\xff')}
+        original_open = open
+        def open_fixture(path, *args, **kwargs):
+            if path in fixtures:
+                return io.BytesIO(fixtures[path])
+            if path == 'missing':
+                raise OSError('private diagnostic')
+            return original_open(path, *args, **kwargs)
+        for names, expected, shortfalls in ((('complete',), 0, [0]), (('short',), 1, [1]),
+                                            (('complete', 'short'), 1, [0, 1]),
+                                            (('complete', 'short', 'missing'), 1, [0, 1]),
+                                            (('missing',), 1, [])):
+            args = []
+            for i, name in enumerate(names, 1):
+                args += ['--sample', str(i), 'public', name]
+            output = io.StringIO()
+            with self.subTest(names=names), patch.object(probe, 'LIMIT', 2), \
+                 patch('builtins.open', side_effect=open_fixture), contextlib.redirect_stdout(output):
+                status = probe.main(args)
+                result = json.loads(output.getvalue())
+                self.assertEqual(status, expected)
+                self.assertEqual([r['shortfall_tokens'] for r in result['samples']], shortfalls)
+                self.assertEqual(len(result['failures']), int('missing' in names))
+                self.assertNotIn('private diagnostic', output.getvalue())
+
     def test_independent_enumeration_all_cells(self):
         rng = random.Random(7)
         tokens = [(17 if t in (9, 38, 43) else rng.randrange(4), rng.randrange(32)) for t in range(79)]
