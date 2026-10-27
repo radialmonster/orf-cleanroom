@@ -26,6 +26,90 @@ def sample():
 
 
 class Tests(unittest.TestCase):
+    def test_append_accepts_bom_and_crlf_headers_preserving_bytes(self):
+        work = ROOT / 'work' / 'test-manifest-offline'
+        work.mkdir(parents=True, exist_ok=True)
+        header = ','.join(manifest.COLUMNS).encode('utf-8')
+        for prefix in (b'\xef\xbb\xbf' + header + b'\n', header + b'\r\n'):
+            with self.subTest(prefix=prefix), tempfile.TemporaryDirectory(dir=str(work)) as folder:
+                root = Path(folder)
+                path, dest = root / 'sample.ORF', root / 'manifest.csv'
+                path.write_bytes(sample())
+                record = dict(id='42', name='sample.ORF', sha256=hashlib.sha256(sample()).hexdigest(), licence='CC0')
+                dest.write_bytes(prefix)
+                args = ['manifest_rows', '--by', '@tester', '--append', str(dest), str(path)]
+                with mock.patch.object(manifest, 'rows', return_value=[record]), \
+                        mock.patch.object(manifest, 'commit', return_value='test'), \
+                        mock.patch.object(sys, 'argv', args):
+                    self.assertEqual(manifest.main(), 0)
+                written = dest.read_bytes()
+                self.assertTrue(written.startswith(prefix))
+                row = next(csv.DictReader(io.StringIO(written.decode('utf-8-sig'))))
+                self.assertEqual((row['source'], row['pixls_id'], row['pixls_name']), ('pixls', '42', 'sample.ORF'))
+
+    def test_append_rejects_malformed_header_before_catalogue(self):
+        work = ROOT / 'work' / 'test-manifest-offline'
+        work.mkdir(parents=True, exist_ok=True)
+        for original in (b'\xff\n', b'"unterminated\n'):
+            with self.subTest(header=original), tempfile.TemporaryDirectory(dir=str(work)) as folder:
+                dest = Path(folder) / 'manifest.csv'
+                dest.write_bytes(original)
+                args = ['manifest_rows', '--by', '@tester', '--append', str(dest), 'sample']
+                with mock.patch.object(manifest, 'rows') as catalogue, \
+                        mock.patch.object(manifest, 'signature') as measure, \
+                        mock.patch.object(sys, 'argv', args), contextlib.redirect_stderr(io.StringIO()):
+                    with self.assertRaises(SystemExit) as raised:
+                        manifest.main()
+                    self.assertEqual(raised.exception.code, 2)
+                    catalogue.assert_not_called()
+                    measure.assert_not_called()
+                self.assertEqual(dest.read_bytes(), original)
+
+    def test_reordered_header_rejects_real_sample_before_append(self):
+        work = ROOT / 'work' / 'test-manifest-offline'
+        work.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=str(work)) as folder:
+            root = Path(folder)
+            path, dest = root / 'sample.ORF', root / 'manifest.csv'
+            path.write_bytes(sample())
+            record = dict(id='42', name='sample.ORF', sha256=hashlib.sha256(sample()).hexdigest(), licence='CC0')
+            header = list(manifest.COLUMNS)
+            header[0], header[1] = header[1], header[0]
+            original = (','.join(header) + '\n').encode('utf-8')
+            dest.write_bytes(original)
+            args = ['manifest_rows', '--by', '@tester', '--append', str(dest), str(path)]
+            with mock.patch.object(manifest, 'rows', return_value=[record]) as catalogue, \
+                    mock.patch.object(manifest, 'commit', return_value='test'), \
+                    mock.patch.object(sys, 'argv', args), contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit) as raised:
+                    manifest.main()
+                self.assertEqual(raised.exception.code, 2)
+                catalogue.assert_not_called()
+            self.assertEqual(dest.read_bytes(), original)
+
+    def test_append_rejects_incompatible_headers_before_catalogue(self):
+        work = ROOT / 'work' / 'test-manifest-offline'
+        work.mkdir(parents=True, exist_ok=True)
+        changed = list(manifest.COLUMNS)
+        changed[0], changed[1] = changed[1], changed[0]
+        duplicate = list(manifest.COLUMNS)
+        duplicate[1] = duplicate[0]
+        for header in (changed, duplicate, manifest.COLUMNS[:-1]):
+            with self.subTest(header=header), tempfile.TemporaryDirectory(dir=str(work)) as folder:
+                dest = Path(folder) / 'dest.csv'
+                original = (','.join(header) + '\n').encode('utf-8')
+                dest.write_bytes(original)
+                with mock.patch.object(manifest, 'rows', return_value=[]) as catalogue, \
+                        mock.patch.object(manifest, 'signature') as measure, \
+                        mock.patch.object(sys, 'argv', ['manifest_rows', '--by', '@tester', '--own', '--append', str(dest), 'sample']), \
+                        contextlib.redirect_stderr(io.StringIO()):
+                    with self.assertRaises(SystemExit) as raised:
+                        manifest.main()
+                    self.assertEqual(raised.exception.code, 2)
+                    catalogue.assert_not_called()
+                    measure.assert_not_called()
+                self.assertEqual(dest.read_bytes(), original)
+
     def test_missing_dimensions_do_not_invent_mode_or_size_class(self):
         work = ROOT / 'work' / 'test-manifest-offline'
         work.mkdir(parents=True, exist_ok=True)
@@ -62,7 +146,7 @@ class Tests(unittest.TestCase):
             records = [dict(id=str(i), name=name, sha256=hashlib.sha256(path.read_bytes()).hexdigest(), licence='CC0')
                        for i, name, path in ((1, 'first.ORF', first), (2, 'last.ORF', last))]
             dest = root / 'out.csv'
-            prefix = b'existing,row\n'
+            prefix = (','.join(manifest.COLUMNS) + '\n').encode('utf-8')
             dest.write_bytes(prefix)
             args = ['manifest_rows', '--by', '@tester', '--append', str(dest)] + [str(p) for p in (first, bad, missing, last)]
             out, err = io.StringIO(), io.StringIO()
@@ -122,7 +206,8 @@ class Tests(unittest.TestCase):
                         records = root / 'records.json'
                         records.write_text(payload, encoding='utf-8')
                         dest = root / 'out.csv'
-                        dest.write_bytes(b'existing,row\n')
+                        original = (','.join(manifest.COLUMNS) + '\n').encode('utf-8')
+                        dest.write_bytes(original)
                         args = ['manifest_rows', '--by', '@tester', '--header', '--licence-records', str(records)]
                         if append:
                             args += ['--append', str(dest)]
@@ -136,7 +221,7 @@ class Tests(unittest.TestCase):
                                 manifest.main()
                         self.assertEqual(raised.exception.code, 2)
                         self.assertEqual(out.getvalue(), '')
-                        self.assertEqual(dest.read_bytes(), b'existing,row\n')
+                        self.assertEqual(dest.read_bytes(), original)
                         self.assertIn('invalid or unreadable licence records', err.getvalue())
                         self.assertNotIn(str(records), err.getvalue())
 
@@ -169,7 +254,8 @@ class Tests(unittest.TestCase):
                        '@tester-', '@test--er', '@test_er'):
             with self.subTest(handle=handle), tempfile.TemporaryDirectory(dir=str(work)) as folder:
                 dest = Path(folder) / 'output.csv'
-                dest.write_bytes(b'existing,row\n')
+                original = (','.join(manifest.COLUMNS) + '\n').encode('utf-8')
+                dest.write_bytes(original)
                 args = ['manifest_rows', '--by', handle, '--append', str(dest), 'sample']
                 out, err = io.StringIO(), io.StringIO()
                 with mock.patch.object(manifest, 'rows', return_value=[]) as catalogue, \
@@ -181,7 +267,7 @@ class Tests(unittest.TestCase):
                 self.assertEqual(raised.exception.code, 2)
                 catalogue.assert_not_called()
                 signature.assert_not_called()
-                self.assertEqual(dest.read_bytes(), b'existing,row\n')
+                self.assertEqual(dest.read_bytes(), original)
                 self.assertEqual(out.getvalue(), '')
 
     def test_valid_handles_work_with_live_listing(self):
@@ -310,7 +396,7 @@ class Tests(unittest.TestCase):
                        dict(id='2', name='b.ORF', sha256='bad', licence='CC0')]
             path, dest = root / 'records.json', root / 'output.csv'
             path.write_text(json.dumps(records), encoding='utf-8')
-            original = b'existing,row\n'
+            original = (','.join(manifest.COLUMNS) + '\n').encode('utf-8')
             dest.write_bytes(original)
             err = io.StringIO()
             args = ['manifest_rows', '--by', '@tester', '--append', str(dest), '--licence-records', str(path), 'sample']
