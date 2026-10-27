@@ -28,7 +28,10 @@ jobs:
       - name: Conformance CLI tests
         run: python -I -B tools/test_conformance.py
       - name: value_map_probe tests
-        run: python tools/test_value_map_probe.py
+        run: |
+          mkdir -p work/ci-tmp
+          TMPDIR="$PWD/work/ci-tmp" python -I -B tools/test_value_map_probe.py
+          TMPDIR="$PWD/work/ci-tmp" python -I -B tools/test_value_map_window_probe.py
       - name: orf_tokens tests
         run: python tools/test_orf_tokens.py
       - name: Token luma probe tests
