@@ -41,6 +41,7 @@ same-token within-row null, not significance tests.
 The tool reads files, prints JSON to stdout and writes nothing. Standard
 library only, Python 3.8+.
 IDs that cannot be converted to integers are argument errors.
+Payload bytes are checked against the signature hash before measurement.
 
 Usage:
   python -I -B tools/token_loop_probe.py --self-test
@@ -266,14 +267,16 @@ def measure_sample(sample_id, public_name, path, rows, perms):
     if sig["payload_bytes"] <= 0 or sig["payload_offset"] == "":
         raise ProbeError("invalid payload bounds")
 
-    w, h, payload = orf_tokens.locate(path)
+    with open(path, "rb") as f:
+        data = f.read()
+    if hashlib.sha256(data).hexdigest() != sig["sha256"]:
+        raise ProbeError("sample changed while being read")
+    w, h, payload = orf_tokens.locate_data(data)
+    del data
     if (w, h) != (sig["payload_w"], sig["payload_h"]):
         raise ProbeError("locators disagree on dimensions")
     if len(payload) != sig["payload_bytes"]:
         raise ProbeError("locators disagree on payload length")
-    if sha256_file(path) != sig["sha256"]:
-        raise ProbeError("sample changed while being read")
-
     token_count = rows * w
     if token_count > 100000000:
         raise ProbeError("requested token prefix is too large")

@@ -9,6 +9,7 @@ import contextlib
 import io
 import json
 import random
+import struct
 import sys
 import unittest
 from unittest.mock import patch
@@ -18,6 +19,25 @@ import token_loop_probe as probe
 
 
 class MappingTests(unittest.TestCase):
+    def test_measure_binds_payload_to_signature_snapshot(self):
+        def tiff(payload):
+            tags = ((256, 4), (257, 4), (259, 1), (273, 74), (279, len(payload)))
+            return (b'II' + struct.pack('<HIH', 42, 8, len(tags))
+                    + b''.join(struct.pack('<HHII', tag, 4, 1, value) for tag, value in tags)
+                    + bytes(4) + payload)
+        first, second = tiff(b'\xff' * 6), tiff(b'\x82\x08\x20' * 2)
+        for changed in (False, True):
+            snapshots = [io.BytesIO(first), io.BytesIO(second if changed else first), io.BytesIO(first)]
+            with self.subTest(changed=changed), patch('builtins.open', side_effect=snapshots) as opened:
+                if changed:
+                    with self.assertRaisesRegex(probe.ProbeError, 'sample changed while being read'):
+                        probe.measure_sample(1, 'public', 'unused', 1, 1)
+                else:
+                    result = probe.measure_sample(1, 'public', 'unused', 1, 1)
+                    self.assertEqual(result['sha256'], probe.hashlib.sha256(first).hexdigest())
+                    self.assertEqual(result['tokens_parsed'], 4)
+                self.assertEqual(opened.call_count, 2)
+
     def test_id_conversion_failure_is_argument_error_before_measurement(self):
         limit = getattr(sys, 'get_int_max_str_digits', lambda: 0)()
         cases = [('2', True)]
