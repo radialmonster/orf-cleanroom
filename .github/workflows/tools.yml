@@ -134,6 +134,10 @@ jobs:
         run: |
           python -I -B tools/test_token_bit_chain_probe.py
           python -I -B tools/test_token_context_probe.py
+      - name: Synthetic affine and bit gate tests
+        run: |
+          python -I -B tools/test_token_affine_probe.py
+          python -I -B tools/test_token_b4_gate_probe.py
       - name: Synthetic token lag and position tests
         run: |
           python -I -B tools/test_token_lag_probe.py
