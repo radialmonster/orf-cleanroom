@@ -13,6 +13,8 @@ These new explicit fields cannot reproduce #29's unspecified historical
 row boundaries. Escape omission cannot repair unknown framing. No elevation
 criterion, null model, significance, decoder or finding follows. Aggregate
 JSON only; no preview access. Check public CC0 licences separately first.
+Incomplete requested prefixes and input failures produce a nonzero exit;
+available aggregate reports are retained.
 """
 import argparse
 import hashlib
@@ -126,7 +128,7 @@ def main():
     print(json.dumps({"source_sha256": sources, "python_version": sys.version.split()[0],
                       "escape_extra_bits": 0, "requested_prefix_tokens": LIMIT,
                       "samples": reports, "failures": failures}, indent=2, allow_nan=False))
-    return 1 if failures else 0
+    return 1 if failures or any(r["prefix_shortfall"] for r in reports) else 0
 
 
 if __name__ == "__main__":
