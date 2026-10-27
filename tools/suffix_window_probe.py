@@ -18,6 +18,8 @@ comparison, significance test, stationarity test, physical row/CFA inference,
 or proof of initial/escape framing. Local token windows are not sensor rows.
 Stdlib Python 3.8+; reads inputs and prints aggregate JSON only. Reuse retained
 CC0 verification only after matching the input SHA256; no preview access.
+Incomplete requested windows and input failures produce a nonzero exit;
+available aggregate reports are retained.
 """
 import argparse
 import hashlib
@@ -134,7 +136,7 @@ def main():
                       "window_tokens": WINDOW, "window_count": COUNT,
                       "window_stride_tokens": args.window_stride, "escape_extra_bits": 0,
                       "samples": reports, "failures": failures}, indent=2, allow_nan=False))
-    return 1 if failures else 0
+    return 1 if failures or any(w['shortfall_tokens'] for r in reports for w in r['windows']) else 0
 
 
 if __name__ == "__main__":
