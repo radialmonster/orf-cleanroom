@@ -281,6 +281,9 @@ def decode_file(path, order=None, layout=None):
         # 2026-10-27--radialmonster--om5-phase-band-reproduction (Partial for
         # #356): unassigned OM-5 candidate phases differ across two bands; this
         # specifies no physical row origin or decode step (V1 S1.15).
+        # 2026-10-27--radialmonster--phase-cpu-table-reproduction (#356): the
+        # unassigned CPU search table reproduces within its coarse/refined family;
+        # it establishes no physical row origin or decode step (V1 S1.15, G3/G4).
         # 2026-10-27--mszyndel--om1-topband-luma-reproduction (#368) measures
         # unassigned OM-1 top-band scores at fixed width stride and phase 0;
         # it specifies no physical rows, values or decode (V1 S1.15, G4).
