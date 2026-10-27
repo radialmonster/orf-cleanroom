@@ -180,6 +180,7 @@ jobs:
       - name: Synthetic grid and packed-word boundary tests
         run: |
           python -I -B tools/test_bayer_grid_probe.py
+          python -I -B tools/test_flat_parity_profile.py
           python -I -B tools/test_orf_v0_unpack.py
       - name: Synthetic unit order and trailing-bit tests
         run: |
