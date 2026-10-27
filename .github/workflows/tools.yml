@@ -88,6 +88,10 @@ jobs:
         run: python -I -B tools/test_payload_feature_probe.py
       - name: Synthetic search calibration tests
         run: python -I -B tools/test_framing_search_calibration.py
+      - name: Synthetic frozen model and coding controls
+        run: |
+          python -I -B tools/test_frozen_bit_context.py
+          python -I -B tools/test_bounded_codec_controls.py
       - name: Synthetic framing and anchor synchronization tests
         run: |
           python -I -B tools/test_token_framing_probe.py
