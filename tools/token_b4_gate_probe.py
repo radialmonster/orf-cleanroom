@@ -19,6 +19,7 @@ independence, significance-gate semantics, physical rows or decoder follows.
 Escape omission is selective and cannot repair unknown post-escape framing.
 No previews accessed. Read-only stdlib Python 3.8+; aggregate JSON only.
 Licence-check public files separately before measurement.
+Sample IDs must be distinct positive ASCII decimals and names printable basenames.
 """
 import argparse
 from fractions import Fraction
@@ -151,10 +152,14 @@ def main(argv=None):
                         help="add exact within-q contrasts and per-file equal-weight summary")
     args = parser.parse_args(argv)
     ids = [row[0] for row in args.sample]
-    if any(not i.isascii() or not i.isdecimal() or int(i) <= 0 for i in ids):
-        parser.error("sample IDs must be positive ASCII decimals")
-    if len(set(map(int, ids))) != len(ids):
-        parser.error("sample IDs must be distinct")
+    try:
+        invalid_ids = any(not i.isascii() or not i.isdecimal() or int(i) <= 0 for i in ids) or len(set(map(int, ids))) != len(ids)
+    except ValueError:
+        invalid_ids = True
+    if invalid_ids:
+        parser.error("sample IDs must be distinct positive ASCII decimals")
+    if any(not name or not name.isprintable() or any(c in name for c in '/\\') for _, name, _ in args.sample):
+        parser.error("sample public name must be a printable basename")
     reports, failures = [], []
     for sample_id, name, path in args.sample:
         try:
