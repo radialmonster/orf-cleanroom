@@ -31,6 +31,31 @@ def synthetic_tiff(payload):
 
 
 class CliTests(unittest.TestCase):
+    def test_invalid_public_names_fail_before_any_report(self):
+        for name in ('', 'private/path.ORF', 'private\\path.ORF', 'bad\nname.ORF', 'bad\x00name'):
+            argv = [probe.__file__, '--sample', '1', 'valid.ORF', 'first', '--sample', '2', name, 'second']
+            out, err = io.StringIO(), io.StringIO()
+            fake = {'start_shortfall': 0, 'token_shortfall': 0}
+            with self.subTest(name=name), patch.object(sys, 'argv', argv), \
+                    patch.object(probe, 'report', return_value=fake) as report, \
+                    contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                with self.assertRaises(SystemExit) as raised:
+                    probe.main()
+                self.assertEqual(raised.exception.code, 2)
+                report.assert_not_called()
+                self.assertEqual(out.getvalue(), '')
+                self.assertNotIn('private', err.getvalue())
+
+    def test_printable_public_name_is_preserved(self):
+        name = 'Olympus - Modèle "test" (4:3).ORF'
+        argv = [probe.__file__, '--sample', '1', name, 'synthetic']
+        out = io.StringIO()
+        def fake_report(sample_id, public_name, path, start, count):
+            return {'pixls_name': public_name, 'start_shortfall': 0, 'token_shortfall': 0}
+        with patch.object(sys, 'argv', argv), patch.object(probe, 'report', side_effect=fake_report), \
+                contextlib.redirect_stdout(out):
+            self.assertEqual(probe.main(), 0)
+        self.assertEqual(json.loads(out.getvalue())['samples'][0]['pixls_name'], name)
     def test_numeric_id_aliases_are_rejected_before_measurement(self):
         argv = [probe.__file__, '--sample', '1', 'a.ORF', 'first',
                 '--sample', '01', 'b.ORF', 'second']
