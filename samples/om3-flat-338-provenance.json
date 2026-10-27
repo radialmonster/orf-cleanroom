@@ -1,0 +1,58 @@
+[
+    {
+        "name":  "PA200010.ORF",
+        "sha256":  "b038504aa569ad1db70628617ebcc6aac56de58ce34a6b00ab39d9fe0e905ed4",
+        "licence":  "CC0",
+        "owner_declaration_url":  "https://github.com/radialmonster/orf-cleanroom/issues/338",
+        "public_source_url":  "https://drive.google.com/file/d/1sOUVkLU-rlN30t5bCCcH3kxT6_4YXbFM/view",
+        "declared_conditions":  "dark ISO 200"
+    },
+    {
+        "name":  "PA200011.ORF",
+        "sha256":  "a861c2434e7dc5cba74739d452391ec28ac2bf975aa6cb0d49492dc82c5983a3",
+        "licence":  "CC0",
+        "owner_declaration_url":  "https://github.com/radialmonster/orf-cleanroom/issues/338",
+        "public_source_url":  "https://drive.google.com/file/d/1VWLnqx0QbjFe6X027zmgcBmuECdHHK5e/view",
+        "declared_conditions":  "dark ISO 200"
+    },
+    {
+        "name":  "PA200012.ORF",
+        "sha256":  "c30fc560831b1d9f1ece4cfd29020bf13ee523a50fa9b43dc05e562d2c6364c7",
+        "licence":  "CC0",
+        "owner_declaration_url":  "https://github.com/radialmonster/orf-cleanroom/issues/338",
+        "public_source_url":  "https://drive.google.com/file/d/1LYdNqOflhuatXKtC7torUqUcRZZD1C2P/view",
+        "declared_conditions":  "dark ISO 800"
+    },
+    {
+        "name":  "PA200013.ORF",
+        "sha256":  "b714b28697a94081b83d7dd6127ed295f3ffbf6045b098a93381e373f8e3b946",
+        "licence":  "CC0",
+        "owner_declaration_url":  "https://github.com/radialmonster/orf-cleanroom/issues/338",
+        "public_source_url":  "https://drive.google.com/file/d/16l0c4Rae1mUMjh6gSLtPtXl4S0C2hU8L/view",
+        "declared_conditions":  "dark ISO 800"
+    },
+    {
+        "name":  "PA200014.ORF",
+        "sha256":  "49d1719d4120da07911488060c35f8d47dd76b9fc03c328d3cea8a190e298fca",
+        "licence":  "CC0",
+        "owner_declaration_url":  "https://github.com/radialmonster/orf-cleanroom/issues/338",
+        "public_source_url":  "https://drive.google.com/file/d/1g3RlJLKCOZ3AY_dOBQJDLqqc2F3IdF6C/view",
+        "declared_conditions":  "dark ISO 800"
+    },
+    {
+        "name":  "PA200015.ORF",
+        "sha256":  "84c484c11a8f4be00a9e93f8ae55787e134e3a0efa2424b0416925c42b67a278",
+        "licence":  "CC0",
+        "owner_declaration_url":  "https://github.com/radialmonster/orf-cleanroom/issues/338",
+        "public_source_url":  "https://drive.google.com/file/d/1otrUjMgz54YYYw_Var0jH-W6TWfCBMp9/view",
+        "declared_conditions":  "dark ISO 800"
+    },
+    {
+        "name":  "PA210010.ORF",
+        "sha256":  "d055b08cbb23d34cbfeacd9321d1cb9ba1f968c9e0252c8d69aa311946cabc1e",
+        "licence":  "CC0",
+        "owner_declaration_url":  "https://github.com/radialmonster/orf-cleanroom/issues/338",
+        "public_source_url":  "https://drive.google.com/file/d/1SiadEBIfigQskS0dvMSGe9m7sYT2qJN2/view",
+        "declared_conditions":  "saturated white ISO 200"
+    }
+]
