@@ -76,8 +76,10 @@ class Tiff:
         todo = [self.u32(4)]
         while todo:
             off = todo.pop()
-            if off == 0 or off in seen or off + 2 > len(self.data):
+            if off == 0 or off in seen:
                 continue
+            if off + 2 > len(self.data):
+                raise ValueError("IFD offset outside file")
             seen.add(off)
             tags, nxt = self.ifd(off)
             yield (off, tags) if with_offsets else tags

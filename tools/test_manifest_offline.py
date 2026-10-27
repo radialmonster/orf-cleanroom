@@ -26,6 +26,45 @@ def sample():
 
 
 class Tests(unittest.TestCase):
+    def test_fresh_append_requires_header_and_then_appends_once(self):
+        work = ROOT / 'work' / 'test-manifest-offline'
+        work.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=str(work)) as folder:
+            root = Path(folder)
+            path, records = root / 'sample.ORF', root / 'records.json'
+            path.write_bytes(sample())
+            records.write_text(json.dumps([dict(id='42', name='sample.ORF',
+                sha256=hashlib.sha256(sample()).hexdigest(), licence='CC0')]), encoding='utf-8')
+            for initial in ('absent', 'empty'):
+                dest = root / (initial + '.csv')
+                if initial == 'empty':
+                    dest.write_bytes(b'')
+                args = ['manifest_rows', '--by', '@tester', '--licence-records', str(records),
+                        '--append', str(dest), str(path)]
+                error = io.StringIO()
+                with self.subTest(initial=initial), \
+                        mock.patch.object(manifest, 'rows', side_effect=AssertionError('network')), \
+                        mock.patch.object(manifest, 'signature', wraps=manifest.signature) as measure, \
+                        mock.patch.object(manifest, 'commit', return_value='test'), \
+                        mock.patch.object(sys, 'argv', args), contextlib.redirect_stderr(error):
+                    with self.assertRaises(SystemExit) as raised:
+                        manifest.main()
+                    self.assertEqual(raised.exception.code, 2)
+                    self.assertIn('--header', error.getvalue())
+                    measure.assert_not_called()
+                    self.assertEqual(dest.exists(), initial == 'empty')
+                    if dest.exists():
+                        self.assertEqual(dest.read_bytes(), b'')
+                    args.insert(1, '--header')
+                    self.assertEqual(manifest.main(), 0)
+                    self.assertEqual(manifest.main(), 0)
+                    with dest.open(encoding='utf-8', newline='') as stream:
+                        reader = csv.DictReader(stream)
+                        self.assertEqual(reader.fieldnames, manifest.COLUMNS)
+                        rows = list(reader)
+                    self.assertEqual([r['pixls_id'] for r in rows], ['42', '42'])
+                    self.assertTrue(all(r['source'] == 'pixls' and r['pixls_name'] == 'sample.ORF' for r in rows))
+
     def test_append_accepts_bom_and_crlf_headers_preserving_bytes(self):
         work = ROOT / 'work' / 'test-manifest-offline'
         work.mkdir(parents=True, exist_ok=True)

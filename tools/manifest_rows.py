@@ -9,6 +9,7 @@ files are always skipped. Files not on raw.pixls.us are skipped unless you pass
 recorded with source=own and licence=not-shared. Bitstream columns are left
 blank; fill them only from a tools/ script you ran. Invalid or unreadable
 inputs are reported by ordinal; valid rows still append and the command exits 1.
+Use --header when appending to a new or empty destination.
 
 Usage: python manifest_rows.py --by '@yourhandle' [--own] [--licence-records JSON]
                               --append samples/manifest.csv FILE [FILE ...]
@@ -108,13 +109,15 @@ def main():
     ap.add_argument("--licence-records", metavar="JSON",
                     help="use previously verified local licence records instead of the live catalogue")
     ap.add_argument("--append", metavar="CSV",
-                    help="append the rows to this file (e.g. samples/manifest.csv) with LF endings, instead of printing them")
+                    help="append rows with LF endings; a new or empty file requires --header")
     ap.add_argument("files", nargs="+")
     a = ap.parse_args()
     if not re.fullmatch(r"@[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*", a.by):
         ap.error("--by must be a single GitHub @login")
     # Appending to a row without a terminating LF would join two CSV rows.
     fresh = not a.append or not os.path.exists(a.append) or os.path.getsize(a.append) == 0
+    if a.append and fresh and not a.header:
+        ap.error("--append to a new or empty file requires --header")
     if a.append and not fresh:
         with open(a.append, "rb") as existing:
             existing.seek(-1, os.SEEK_END)
