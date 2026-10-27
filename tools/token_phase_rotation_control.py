@@ -15,6 +15,7 @@ import random
 import struct
 import sys
 import os
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import token_band_profile as B
@@ -132,6 +133,7 @@ def main(argv=None):
             not name.isprintable() or any(c in name for c in '/\\') or len(digest) != 64 or
             any(c not in '0123456789abcdef' for c in digest) or a.replicates < 1):
         ap.error('invalid public identity, hash or replicate count')
+    started = time.perf_counter()
     try:
         with open(path, 'rb') as f:
             data = f.read()
@@ -148,7 +150,8 @@ def main(argv=None):
         qs, bits = B.scan_q(data[offsets[0]:offsets[0] + sizes[0]], end)
         result = control(qs, ANCHOR, CENTER, RADIUS, ROWS, HEAD, a.replicates)
         result.update(pixls_id=sid, pixls_name=name, sha256=digest, parsed_tokens=len(qs),
-                      consumed_bits=bits, python_version=sys.version.split()[0])
+                      consumed_bits=bits, python_version=sys.version.split()[0],
+                      elapsed_seconds=time.perf_counter() - started)
     except (OSError, ValueError, KeyError, IndexError, TypeError, struct.error) as exc:
         print(json.dumps({'pixls_id': sid, 'complete': False, 'error': type(exc).__name__}))
         return 1

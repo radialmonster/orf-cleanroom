@@ -1,7 +1,12 @@
 """Direct synthetic checks for the conditional phase/period control."""
 from array import array
 from fractions import Fraction
+import contextlib
+import hashlib
+import io
+import json
 import os
+import struct
 import sys
 import unittest
 from unittest.mock import patch
@@ -109,6 +114,34 @@ class Tests(unittest.TestCase):
             result = C.control(array('B', range(100)), 0, 4, 1, 3, 1, 3)
         self.assertEqual([r['comparison'] for r in result['replicates']], ['equal', 'greater', None])
         self.assertEqual((result['greater_equal_count'], result['equal_count'], result['undefined_count']), (2, 1, 1))
+
+    def test_synthetic_tiff_cli_pipeline(self):
+        def fixture(payload):
+            tags = ((256, 8), (257, 8), (273, 62), (279, len(payload)))
+            return (b'II' + struct.pack('<HIH', 42, 8, len(tags))
+                    + b''.join(struct.pack('<HHII', tag, 4, 1, value) for tag, value in tags)
+                    + bytes(4) + payload)
+        data = fixture(b'\xff' * 100)
+        digest = hashlib.sha256(data).hexdigest()
+        for supplied, anchor, expected in ((digest, 0, 0), ('0' * 64, 0, 1), (digest, 1000, 1)):
+            output = io.StringIO()
+            with self.subTest(anchor=anchor, valid=supplied == digest), \
+                 patch.object(C, 'ANCHOR', anchor), patch.object(C, 'CENTER', 4), \
+                 patch.object(C, 'RADIUS', 1), patch.object(C, 'ROWS', 3), patch.object(C, 'HEAD', 1), \
+                 patch('builtins.open', return_value=io.BytesIO(data)), contextlib.redirect_stdout(output):
+                status = C.main(['--sample', '42', 'public name', supplied, 'private-path', '--replicates', '2'])
+            self.assertEqual(status, expected)
+            result = json.loads(output.getvalue())
+            self.assertEqual(result['complete'], expected == 0)
+            self.assertNotIn('private-path', output.getvalue())
+            if not expected:
+                self.assertEqual((result['pixls_id'], result['pixls_name'], result['sha256']), ('42', 'public name', digest))
+                self.assertEqual(result['observed']['difference'], {'numerator': 0, 'denominator': 1})
+                self.assertEqual((result['equal_count'], result['greater_equal_count']), (2, 2))
+                self.assertEqual(result['parsed_tokens'], result['end_exclusive'])
+                self.assertGreaterEqual(result['elapsed_seconds'], 0)
+            else:
+                self.assertEqual(result['error'], 'ValueError')
 
 
 if __name__ == '__main__':

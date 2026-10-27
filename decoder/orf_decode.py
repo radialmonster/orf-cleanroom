@@ -42,6 +42,7 @@ F_QXS_TABLE = "2026-10-21--radialmonster--suffix-qxs-table-and-reverse-direction
 F_STRIDE = "2026-10-21--radialmonster--wide-row-stride-new-bodies"
 F_EXTRA = "2026-10-22--radialmonster--extra-token-fields-not-fixed"
 F_STRIDE_LATER = "2026-10-22--radialmonster--later-band-row-stride-drift"
+F_PHASE = "2026-10-26--radialmonster--row-phase-reproduces-two-files"
 F_FIG8 = "2026-10-21--radialmonster--figure8-negative-highres-e-m1-mark-ii"
 F_PACKED12 = "2026-10-19--radialmonster--packed-12-msb-two-values-per-three-bytes"
 F_PACKED128 = "2026-10-20--radialmonster--packed-12-8-groups-of-ten-values"
@@ -274,6 +275,9 @@ def decode_file(path, order=None, layout=None):
         # correlate from b2/b4; they specify no sensor values or decode step
         # (V1 S1.15). F_SHIFT (Partial for #351) shows the normal-mode score is
         # not specific to preview row alignment; it also specifies no decode step.
+        # F_PHASE (Partial for #356) finds a file-specific row-phase dependence of
+        # the same top-band score on two further E-M1 Mark II files; it establishes
+        # no phase law, physical row origin, values or decode step.
         # finding F_FIXED: a payload that is not an exact 12 / 12.8 / 16 bit packing is compressed
         # Tail counts: finding 2026-10-21--radialmonster--compressed-tail-full-cohort-reproduction
         # and terminal endpoint: finding F_ENDPOINT (both Partial, unassigned 87-file cohort)

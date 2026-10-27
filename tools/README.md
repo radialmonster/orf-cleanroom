@@ -398,6 +398,20 @@ stride/offset extraction and preview row crop.
     python -I tools/token_luma_stride_probe.py path/to/file.ORF --stride 5472 --start-row 1000 --rows 300
     python -I tools/token_luma_stride_probe.py --self-test
 
+**`token_luma_phase_probe.py`** keeps the fixed b2+b4 map and candidate stride
+but scans the absolute row phase: row `r` is the W-token window at token
+`r*S + phase`. A phase above `S-W` overlaps the next candidate row, so the phase
+is an alignment hypothesis, not a physical row origin. The tool scans phases at
+`--step`, refines the best over `--refine` phases, and can repeat the whole
+search after `--perms` global suffix permutations; it prints phase 0, the best
+phase and r, the top phases, null maxima and escape count, and writes nothing.
+Supports the #296 stride/phase landscape and the phase-sensitivity question of
+lead #149. `--self-test` checks a synthetic inserted phase.
+
+    python -I tools/token_luma_phase_probe.py path/to/file.ORF --stride 5472 --rows 300
+    python -I tools/token_luma_phase_probe.py path/to/file.ORF --stride 5472 --rows 300 --perms 1
+    python -I tools/token_luma_phase_probe.py --self-test
+
 **`token_value_probe.py`** supports leads #11 and #32 with band-wise
 b2+b4 correlations, nominal versus whole-preview scale comparisons, column
 statistics and fixed suffix-table transfer against numeric embedded-preview
