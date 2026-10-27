@@ -56,6 +56,11 @@ jobs:
         run: python -I -B tools/test_exif_sensitivity_probe.py
       - name: preview pair screen tests
         run: python -I -B tools/test_preview_pair_screen.py
+      - name: Synthetic preview sensitivity and Figure 8 tests
+        run: |
+          mkdir -p work/ci-tmp
+          TMPDIR="$PWD/work/ci-tmp" python -I -B tools/test_preview_pair_sensitivity.py
+          TMPDIR="$PWD/work/ci-tmp" python -I -B tools/test_huffman_figure8_probe.py
       - name: JPEG preview reader tests
         run: python -I -B tools/test_jpeg_dc.py
       - name: suffix_match_probe tests
@@ -112,3 +117,8 @@ jobs:
         run: |
           python -I -B tools/test_token_band_profile.py
           python -I -B tools/test_token_row_stride.py
+      - name: Synthetic stride, width context, and tail distribution tests
+        run: |
+          python -I -B tools/test_token_head_stride_probe.py
+          python -I -B tools/test_token_width_context_probe.py
+          python -I -B tools/test_token_tail_distribution_probe.py

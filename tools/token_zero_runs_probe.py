@@ -20,6 +20,7 @@ These windows alone do not establish stationarity or representativeness.
 The CLI prints all available reports, then exits 1 if any input failed or any
 requested start/window was incomplete; complete error-free reports exit 0.
 IDs that cannot be converted to integers are argument errors.
+Public names must be printable basenames; licence verification remains separate.
 Public sample IDs must be distinct numerically; leading-zero aliases count as
 the same ID. Licence verification remains separate from this identity check.
 """
@@ -167,6 +168,9 @@ def main():
         invalid_ids = True
     if invalid_ids:
         parser.error("sample IDs must be distinct positive ASCII decimal integers")
+    if any(not name or not name.isprintable() or any(c in name for c in "/\\")
+           for _, name, _ in args.sample):
+        parser.error("sample public name must be a printable basename")
     reports, failures = [], []
     for sample_id, name, path in args.sample:
         try:
