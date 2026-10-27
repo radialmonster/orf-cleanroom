@@ -341,6 +341,9 @@ def decode_file(path, order=None, layout=None):
         # 83 variable-size CC0 files and q=47/suffix 0 on four large-sensor files;
         # it specifies no value assembly, decode step or variant assignment
         # (V1 S1.13, V2 S1.2).
+        # F_FLAT_PRED31 (Partial for #31): bounded controlled-flat grids have
+        # zero passes under assumed raster/value/anchor, with range stops
+        # reported separately; this is not a physical predictor (V1 G2).
         # F_PRED31 (Partial for #31): a fixed 11-reading x 9-predictor probe
         # finds no cross-file preview-luma transfer on E-M1 Mark III 3800/3801
         # and OM-5 6343; it specifies no predictor, values or decode step (V1 G2).
