@@ -112,3 +112,8 @@ jobs:
         run: |
           python -I -B tools/test_token_band_profile.py
           python -I -B tools/test_token_row_stride.py
+      - name: Synthetic stride, width context, and tail distribution tests
+        run: |
+          python -I -B tools/test_token_head_stride_probe.py
+          python -I -B tools/test_token_width_context_probe.py
+          python -I -B tools/test_token_tail_distribution_probe.py
