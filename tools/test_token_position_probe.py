@@ -4,6 +4,7 @@ import contextlib
 import io
 import json
 import os
+import struct
 import sys
 import unittest
 from unittest.mock import patch
@@ -13,6 +14,38 @@ import token_position_probe as probe
 
 
 class PositionTests(unittest.TestCase):
+    def test_cli_prefix_status_and_preserved_reports(self):
+        def fixture(payload):
+            tags = ((256, 25), (257, 1), (273, 62), (279, len(payload)))
+            return (b'II' + struct.pack('<HIH', 42, 8, len(tags))
+                    + b''.join(struct.pack('<HHII', tag, 4, 1, value) for tag, value in tags)
+                    + struct.pack('<I', 0) + payload)
+        fixtures = {'complete': fixture(b'\xff\xff'), 'short': fixture(b'\xff')}
+        original_open = open
+        def open_fixture(path, *args, **kwargs):
+            if path in fixtures:
+                return io.BytesIO(fixtures[path])
+            if path == 'missing':
+                raise OSError('private diagnostic')
+            return original_open(path, *args, **kwargs)
+        for names, expected, shortfalls in ((('complete',), 0, [0]), (('short',), 1, [1]),
+                                            (('complete', 'short'), 1, [0, 1]),
+                                            (('complete', 'short', 'missing'), 1, [0, 1]),
+                                            (('missing',), 1, [])):
+            argv = ['probe']
+            for i, name in enumerate(names, 1):
+                argv += ['--sample', str(i), 'public', name]
+            output = io.StringIO()
+            with self.subTest(names=names), patch.object(sys, 'argv', argv), \
+                 patch.object(probe, 'LIMIT', 2), patch('builtins.open', side_effect=open_fixture), \
+                 contextlib.redirect_stdout(output):
+                status = probe.main()
+                result = json.loads(output.getvalue())
+                self.assertEqual(status, expected)
+                self.assertEqual([r['prefix_shortfall'] for r in result['samples']], shortfalls)
+                self.assertEqual(len(result['failures']), int('missing' in names))
+                self.assertNotIn('private diagnostic', output.getvalue())
+
     def test_independent_histograms(self):
         tokens = [(i % 19, (7 * i) % 32) for i in range(112)]
         for width in (25, 27, 32):

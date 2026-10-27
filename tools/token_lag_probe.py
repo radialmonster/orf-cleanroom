@@ -17,6 +17,8 @@ log-magnitude and physical interpretation are not reproduced by this metric.
 
 Usage: python -I -B tools/token_lag_probe.py --sample ID PUBLIC_NAME FILE
 Repeat --sample. Licence-check downloaded samples separately before use.
+Incomplete requested prefixes and input failures produce a nonzero exit;
+available aggregate reports are retained.
 """
 import argparse
 import hashlib
@@ -141,7 +143,7 @@ def main():
                       "block_tokens": BLOCK, "lags": LAGS, "replicates": REPLICATES,
                       "seed": SEED, "samples": reports, "failures": failures},
                      indent=2, allow_nan=False))
-    return 1 if failures else 0
+    return 1 if failures or any(r["prefix_shortfall"] for r in reports) else 0
 
 
 if __name__ == "__main__":
