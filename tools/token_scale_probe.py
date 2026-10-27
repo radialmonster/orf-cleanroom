@@ -28,6 +28,7 @@ no codec, causal, stationarity or historical private-number inference follows.
 
 Usage: python -I -B tools/token_scale_probe.py --sample ID PUBLIC_NAME FILE
 Repeat --sample; check public licences separately before measurement.
+Sample IDs must be distinct positive ASCII decimals and names printable basenames.
 """
 import argparse
 import hashlib
@@ -166,10 +167,14 @@ def main(argv=None):
                         metavar=("ID", "PUBLIC_NAME", "FILE"))
     args = parser.parse_args(argv)
     ids = [sid for sid, _, _ in args.sample]
-    if any(not sid.isascii() or not sid.isdecimal() or int(sid) <= 0 for sid in ids):
-        parser.error("sample IDs must be positive ASCII decimal integers")
-    if len(set(map(int, ids))) != len(ids):
-        parser.error("sample IDs must be distinct")
+    try:
+        invalid_ids = any(not sid.isascii() or not sid.isdecimal() or int(sid) <= 0 for sid in ids) or len(set(map(int, ids))) != len(ids)
+    except ValueError:
+        invalid_ids = True
+    if invalid_ids:
+        parser.error("sample IDs must be distinct positive ASCII decimals")
+    if any(not name or not name.isprintable() or any(c in name for c in '/\\') for _, name, _ in args.sample):
+        parser.error("sample public name must be a printable basename")
     reports, errors = [], []
     for sid, name, path in args.sample:
         try:
