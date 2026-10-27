@@ -1,5 +1,6 @@
 """Synthetic controls for preview_pair_sensitivity; no images or raw files."""
 import contextlib
+import csv
 import datetime
 import io
 import json
@@ -106,6 +107,40 @@ class GridTests(unittest.TestCase):
 
 
 class AggregationTests(unittest.TestCase):
+    def test_manifest_structural_errors_and_valid_empty_model(self):
+        work = Path(__file__).resolve().parent.parent / 'work' / 'test-preview-csv'
+        work.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=str(work)) as folder:
+            path = Path(folder) / 'fixture.csv'
+            digest = 'a' * 64
+            for text in ('sha256,model,pixls_id,model\n%s,Good,1,Wrong\n' % digest,
+                         'sha256,pixls_id\n%s,1\n' % digest,
+                         'sha256,pixls_id,model\n%s,1\n' % digest,
+                         'sha256,pixls_id,model\n%s,1,"unterminated\n' % digest):
+                path.write_text(text, encoding='utf-8')
+                with self.subTest(text=text), self.assertRaises((ValueError, csv.Error)):
+                    sensitivity.read_manifest(str(path))
+            path.write_text('sha256,pixls_id,model\n%s,1,Old\n%s,2,\n' % (digest, digest), encoding='utf-8')
+            result = sensitivity.read_manifest(str(path))
+            self.assertEqual((result[digest]['pixls_id'], result[digest]['model']), ('2', ''))
+
+    def test_invalid_manifest_stops_cli_before_sample_reads(self):
+        work = Path(__file__).resolve().parent.parent / 'work' / 'test-preview-csv'
+        work.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=str(work)) as folder:
+            manifest = Path(folder) / 'fixture.csv'
+            manifest.write_text('sha256,pixls_id,model,model\n' + 'a' * 64 + ',1,One,Two\n', encoding='utf-8')
+            out, err = io.StringIO(), io.StringIO()
+            with patch.object(sys, 'argv', ['probe', 'sample.ORF', '--manifest', str(manifest)]), \
+                 patch.object(sensitivity, 'measure') as measure, \
+                 contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                with self.assertRaises(SystemExit) as raised:
+                    sensitivity.main()
+            self.assertEqual(raised.exception.code, 2)
+            self.assertEqual(out.getvalue(), '')
+            self.assertIn('invalid or unreadable manifest', err.getvalue())
+            measure.assert_not_called()
+
     def test_missing_manifest_is_not_an_empty_manifest(self):
         work = Path(__file__).resolve().parent.parent / 'work' / 'test-preview-manifest'
         work.mkdir(parents=True, exist_ok=True)
