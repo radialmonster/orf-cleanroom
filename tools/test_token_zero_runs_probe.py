@@ -56,6 +56,22 @@ class CliTests(unittest.TestCase):
                 contextlib.redirect_stdout(out):
             self.assertEqual(probe.main(), 0)
         self.assertEqual(json.loads(out.getvalue())['samples'][0]['pixls_name'], name)
+    def test_numeric_id_aliases_are_rejected_before_measurement(self):
+        argv = [probe.__file__, '--sample', '1', 'a.ORF', 'first',
+                '--sample', '01', 'b.ORF', 'second']
+        out, err = io.StringIO(), io.StringIO()
+        with patch.object(sys, 'argv', argv), patch.object(probe, 'report', return_value={'start_shortfall': 0, 'token_shortfall': 0}) as report, \
+                contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            with self.assertRaises(SystemExit) as raised:
+                probe.main()
+        self.assertEqual(raised.exception.code, 2)
+        report.assert_not_called()
+        self.assertEqual(out.getvalue(), '')
+
+    def test_single_leading_zero_id_preserves_existing_output(self):
+        status, result = self.run_cli([('01', 'complete.orf')])
+        self.assertEqual(status, 0)
+        self.assertEqual(result['samples'][0]['pixls_id'], '01')
 
     def run_cli(self, samples, start=0, count=4):
         # Each token is q=0 plus five suffix bits. Full input has b2=1001;
