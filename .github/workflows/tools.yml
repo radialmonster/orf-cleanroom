@@ -138,6 +138,10 @@ jobs:
         run: |
           python -I -B tools/test_token_affine_probe.py
           python -I -B tools/test_token_b4_gate_probe.py
+      - name: Synthetic token scale and bridge tests
+        run: |
+          python -I -B tools/test_token_scale_probe.py
+          python -I -B tools/test_q_value_bridge_probe.py
       - name: Synthetic token lag and position tests
         run: |
           python -I -B tools/test_token_lag_probe.py
