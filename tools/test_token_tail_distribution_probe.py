@@ -21,6 +21,37 @@ def encode(tokens):
 
 
 class TailDistributionTests(unittest.TestCase):
+    def test_public_identity_before_measurement(self):
+        def args(pairs):
+            return sum((["--sample", sid, name, "0" * 64, "unused"] for sid, name in pairs), []) + ["--stride", "8"]
+        for pairs in ([('1', 'ok'), ('01', 'ok')], [('0', 'ok')], [('\u0661', 'ok')],
+                      [('-1', 'ok')], [('1', 'ok'), ('2', '')],
+                      [('1', 'ok'), ('2', 'private/name')], [('1', 'ok'), ('2', 'private\\name')],
+                      [('1', 'ok'), ('2', 'private\nname')]):
+            with self.subTest(pairs=pairs):
+                output, error = io.StringIO(), io.StringIO()
+                with mock.patch.object(probe, 'measure') as measure, contextlib.redirect_stdout(output), \
+                        contextlib.redirect_stderr(error), self.assertRaises(SystemExit) as raised:
+                    probe.main(args(pairs))
+                self.assertEqual(raised.exception.code, 2)
+                measure.assert_not_called()
+                self.assertEqual(output.getvalue(), '')
+                self.assertNotIn('private', error.getvalue())
+        with mock.patch.object(probe, 'int', side_effect=ValueError('private detail'), create=True), \
+                mock.patch.object(probe, 'measure') as measure, contextlib.redirect_stderr(io.StringIO()) as error, \
+                self.assertRaises(SystemExit) as raised:
+            probe.main(args([('1', 'ok')]))
+        self.assertEqual(raised.exception.code, 2)
+        self.assertNotIn('private detail', error.getvalue())
+        measure.assert_not_called()
+        output = io.StringIO()
+        with mock.patch.object(probe, 'measure', return_value={'token_shortfall': 0}), \
+                contextlib.redirect_stdout(output):
+            self.assertEqual(probe.main(args([('01', 'Camera "é" (4:3), +.ORF')])), 0)
+        self.assertEqual((json.loads(output.getvalue())['samples'][0]['pixls_id'],
+                          json.loads(output.getvalue())['samples'][0]['pixls_name']),
+                         ('01', 'Camera "é" (4:3), +.ORF'))
+
     def test_parser_complete_and_truncated(self):
         tokens = [(q, (q * 3) % 32) for q in (0, 1, 7, 17, 96, 2)]
         payload, nbits = encode(tokens)
