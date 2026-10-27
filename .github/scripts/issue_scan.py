@@ -66,6 +66,7 @@ def evaluate(event, repo, pc):
                                               what="%s %s" % (kind, name)):
             hits.append((name, n, rule))
     return {"kind": kind, "number": issue["number"], "is_pr": "pull_request" in issue, "link": link,
+            "flagged": any(x.get('name') == LABEL for x in issue.get('labels', []) if isinstance(x, dict)),
             "marker": marker, "updated": str(updated), "hits": hits, "warnings": warnings}
 
 
@@ -90,9 +91,13 @@ def render(item):
     else:
         lines.append("**Safety scan: the latest edit of %s scanned clean.**" % where)
         lines.append("")
-        lines.append("An earlier version was flagged, so the `%s` label stays until a maintainer has checked "
-                     "it. Do not run code from this %s until then. Scanned the text as last edited at %s."
-                     % (LABEL, what, item["updated"] or "an unknown time"))
+        if item['flagged']:
+            lines.append("An earlier version was flagged, so the `%s` label stays until a maintainer has checked "
+                         "it. Do not run code from this %s until then. Scanned the text as last edited at %s."
+                         % (LABEL, what, item["updated"] or "an unknown time"))
+        else:
+            lines.append("Scanned the text as last edited at %s." % (item["updated"] or "an unknown time"))
+            lines.append("If `safety-review` is present, do not run code until a maintainer has checked it.")
     lines.append("")
     lines.append("Automated check; a false alarm only costs a maintainer look.")
     return "\n".join(lines)
@@ -111,7 +116,7 @@ def apply(item, repo, gh, existing=None):
         if existing is None:
             existing = fetch_comments(item, repo, gh)
     mine = [c for c in existing if c.get("login") == BOT and item["marker"] in (c.get("body") or "")]
-    if not item["hits"] and not mine:
+    if not item["hits"] and not mine and (item['kind'] != 'issue' or item['is_pr']):
         return done
     body = render(item)
     if mine:
