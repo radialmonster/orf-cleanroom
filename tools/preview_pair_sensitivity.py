@@ -26,6 +26,8 @@ The default or requested manifest must be readable; pass --manifest '' to
 explicitly use EXIF fallback for all inputs.
 Input licence verification is the caller's responsibility. Read-only, standard
 library CPU; all output is aggregate numbers and public file identities.
+Unreadable or unsupported inputs exit nonzero after reporting the readable batch;
+low-information previews are reported without making the batch fail.
 """
 import argparse
 import csv
@@ -207,12 +209,18 @@ def read_manifest(path):
     return models
 
 
-def measure(paths, manifest, grids):
+def measure(paths, manifest, grids, failures=None):
     records = []
     seen = set()
-    for path in paths:
-        with open(path, "rb") as stream:
-            data = stream.read()
+    for index, path in enumerate(paths, 1):
+        try:
+            with open(path, "rb") as stream:
+                data = stream.read()
+        except OSError as exc:
+            if failures is None:
+                raise
+            failures.append((index, type(exc).__name__))
+            continue
         sha = hashlib.sha256(data).hexdigest()
         if sha in seen:
             continue
@@ -274,7 +282,11 @@ def main():
         manifest = read_manifest(args.manifest)
     except (OSError, UnicodeError, ValueError, csv.Error, KeyError):
         parser.error("invalid or unreadable manifest")
-    records = measure(args.files, manifest, grids)
+    failures = []
+    records = measure(args.files, manifest, grids, failures=failures)
+    for index, name in failures:
+        print("input %d: %s" % (index, name), file=sys.stderr)
+    failed = bool(failures) or any(record['status'] == 'unsupported' for record, _ in records)
     for record, _ in records:
         print(json.dumps({"sample": record}, sort_keys=True))
     by_sha = {record["sha256"]: record for record, _ in records}
@@ -416,7 +428,8 @@ def main():
         "interpretation": ("uncalibrated screening and descriptive metadata; "
                            "scene, capture and exposure identity not established"),
     }}, sort_keys=True))
+    return int(failed)
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

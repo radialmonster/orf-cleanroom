@@ -6,6 +6,7 @@ import io
 import json
 import math
 import os
+import runpy
 import struct
 import sys
 import tempfile
@@ -107,6 +108,94 @@ class GridTests(unittest.TestCase):
 
 
 class AggregationTests(unittest.TestCase):
+    def test_duplicate_content_decodes_once_and_direct_call_raises(self):
+        work = Path(__file__).resolve().parent.parent / 'work' / 'test-sensitivity-batch'
+        work.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=str(work)) as folder:
+            root = Path(folder)
+            first, duplicate = root / 'first.ORF', root / 'duplicate.ORF'
+            first.write_bytes(synthetic_tiff())
+            duplicate.write_bytes(synthetic_tiff())
+            with patch.object(sensitivity.jpeg_dc, 'find_preview', return_value=(9216, 0, 1, 96, 96)), \
+                 patch.object(sensitivity.jpeg_dc, 'decode', return_value=(12, 12, list(range(144)))) as decode:
+                records = sensitivity.measure([str(first), str(duplicate)], {}, (12,))
+            self.assertEqual(len(records), 1)
+            decode.assert_called_once()
+            output = io.StringIO()
+            with patch.object(sys, 'argv', ['probe', str(first), str(duplicate), '--manifest', '', '--grids', '12']), \
+                 patch.object(sensitivity.jpeg_dc, 'find_preview', return_value=(9216, 0, 1, 96, 96)), \
+                 patch.object(sensitivity.jpeg_dc, 'decode', return_value=(12, 12, list(range(144)))) as decode, \
+                 contextlib.redirect_stdout(output):
+                self.assertEqual(sensitivity.main(), 0)
+            decode.assert_called_once()
+            summary = json.loads(output.getvalue().splitlines()[-1])['summary']
+            self.assertEqual((summary['samples'], summary['pairs']), (1, 0))
+            with self.assertRaises(OSError):
+                sensitivity.measure([str(root / 'missing.ORF')], {}, (12,))
+
+    def test_cli_entrypoint_status_and_all_unreadable(self):
+        work = Path(__file__).resolve().parent.parent / 'work' / 'test-sensitivity-batch'
+        work.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=str(work)) as folder:
+            root = Path(folder)
+            valid = root / 'fixture.ORF'
+            valid.write_bytes(synthetic_tiff())
+            for case, preview, dc, expected in (
+                    ('unsupported', None, [0] * 144, 1),
+                    ('low', (9216, 0, 1, 96, 96), [0] * 144, 0),
+                    ('valid', (9216, 0, 1, 96, 96), list(range(144)), 0),
+                    ('unreadable', None, [], 1)):
+                path = root / 'missing.ORF' if case == 'unreadable' else valid
+                out, err = io.StringIO(), io.StringIO()
+                with self.subTest(case=case), \
+                     patch.object(sys, 'argv', ['probe', str(path), '--manifest', '', '--grids', '12']), \
+                     patch.object(sensitivity.jpeg_dc, 'find_preview', return_value=preview), \
+                     patch.object(sensitivity.jpeg_dc, 'decode', return_value=(12, 12, dc)), \
+                     contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                    with self.assertRaises(SystemExit) as raised:
+                        runpy.run_path(str(Path(sensitivity.__file__)), run_name='__main__')
+                    self.assertEqual(raised.exception.code, expected)
+                rows = [json.loads(line) for line in out.getvalue().splitlines()]
+                self.assertEqual(rows[-1]['summary']['samples'], 0 if case == 'unreadable' else 1)
+                self.assertNotIn(str(root), err.getvalue())
+
+    def test_cli_read_failure_preserves_later_records_and_pairs(self):
+        work = Path(__file__).resolve().parent.parent / 'work' / 'test-sensitivity-batch'
+        work.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=str(work)) as folder:
+            root = Path(folder)
+            first, last = root / 'first.ORF', root / 'last.ORF'
+            first.write_bytes(synthetic_tiff())
+            last.write_bytes(synthetic_tiff() + b'extra')
+            missing = root / 'private-missing.ORF'
+            out, err = io.StringIO(), io.StringIO()
+            with patch.object(sys, 'argv', ['probe', str(first), str(missing), str(last), '--manifest', '', '--grids', '12']), \
+                 patch.object(sensitivity.jpeg_dc, 'find_preview', return_value=(9216, 0, 1, 96, 96)), \
+                 patch.object(sensitivity.jpeg_dc, 'decode', return_value=(12, 12, list(range(144)))), \
+                 contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                status = sensitivity.main()
+            rows = [json.loads(line) for line in out.getvalue().splitlines()]
+            self.assertEqual(status, 1)
+            self.assertEqual(sum('sample' in row for row in rows), 2)
+            self.assertEqual(sum('pair' in row for row in rows), 1)
+            self.assertEqual(rows[-1]['summary']['samples'], 2)
+            self.assertNotIn(str(root), err.getvalue())
+
+    def test_cli_unsupported_fails_but_low_information_succeeds(self):
+        work = Path(__file__).resolve().parent.parent / 'work' / 'test-sensitivity-batch'
+        work.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=str(work)) as folder:
+            path = Path(folder) / 'fixture.ORF'
+            path.write_bytes(synthetic_tiff())
+            for preview, expected in ((None, 1), ((9216, 0, 1, 96, 96), 0)):
+                with self.subTest(expected=expected), \
+                     patch.object(sys, 'argv', ['probe', str(path), '--manifest', '', '--grids', '12']), \
+                     patch.object(sensitivity.jpeg_dc, 'find_preview', return_value=preview), \
+                     patch.object(sensitivity.jpeg_dc, 'decode', return_value=(12, 12, [0] * 144)), \
+                     contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(sensitivity.main(), expected)
+
+
     def test_manifest_structural_errors_and_valid_empty_model(self):
         work = Path(__file__).resolve().parent.parent / 'work' / 'test-preview-csv'
         work.mkdir(parents=True, exist_ok=True)
