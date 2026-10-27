@@ -101,6 +101,7 @@ jobs:
         run: |
           python -I -B tools/test_code_family_screen.py
           python -I -B tools/test_whole_family_null.py
+          python -I -B tools/test_q_parity_covariance.py
           python -I -B tools/test_rice_boundary_compare.py
           python -I -B tools/test_run_reorder_search.py
       - name: Synthetic terminal and byte-boundary tests

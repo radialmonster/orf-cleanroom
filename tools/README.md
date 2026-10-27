@@ -281,6 +281,15 @@ The screen is bounded and descriptive: it cannot exclude other framings, paramet
     python -I -B tools/code_family_screen.py path/to/file.ORF [--shuffle]
     python -I -B tools/test_code_family_screen.py
 
+**`q_parity_covariance.py`** addresses V2 G0 by decomposing pooled lag-1 and
+lag-2 Pearson covariance of capped candidate q values into within- and
+between-token-index parity components. It retains escapes and token order,
+requires the full requested prefix, and reports undefined cases explicitly.
+The parity classes are token indices, not physical rows or CFA labels.
+
+    python -I -B tools/q_parity_covariance.py path/to/file.ORF --tokens 1000000
+    python -I -B tools/test_q_parity_covariance.py
+
 **`whole_family_null.py`** supports V2 G0. It counts nine literal candidate
 families over a whole payload and a single same-length Bernoulli control fitted
 to its full-payload ones fraction. It retains packed bytes rather than a bit
