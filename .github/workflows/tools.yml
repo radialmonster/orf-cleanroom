@@ -132,6 +132,7 @@ jobs:
       - name: Synthetic stride, width context, and tail distribution tests
         run: |
           python -I -B tools/test_token_head_stride_probe.py
+          python -I -B tools/test_token_phase_stride_compare.py
           python -I -B tools/test_token_width_context_probe.py
           python -I -B tools/test_token_tail_distribution_probe.py
       - name: Synthetic width and suffix lag tests
