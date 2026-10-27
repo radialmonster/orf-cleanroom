@@ -15,6 +15,7 @@ criterion, null model, significance, decoder or finding follows. Aggregate
 JSON only; no preview access. Check public CC0 licences separately first.
 Incomplete requested prefixes and input failures produce a nonzero exit;
 available aggregate reports are retained.
+Sample IDs must be distinct positive ASCII decimals and names printable basenames.
 """
 import argparse
 import hashlib
@@ -113,8 +114,14 @@ def main():
     parser.add_argument("--sample", nargs=3, action="append", metavar=("ID", "PUBLIC_NAME", "FILE"), required=True)
     args = parser.parse_args()
     ids = [s[0] for s in args.sample]
-    if any(not x.isascii() or not x.isdecimal() or int(x) <= 0 for x in ids) or len(set(ids)) != len(ids):
+    try:
+        invalid_ids = any(not x.isascii() or not x.isdecimal() or int(x) <= 0 for x in ids) or len(set(map(int, ids))) != len(ids)
+    except ValueError:
+        invalid_ids = True
+    if invalid_ids:
         parser.error("sample IDs must be distinct positive ASCII decimal integers")
+    if any(not name or not name.isprintable() or any(c in name for c in '/\\') for _, name, _ in args.sample):
+        parser.error("sample public name must be a printable basename")
     reports, failures = [], []
     for sample_id, name, path in args.sample:
         try:
