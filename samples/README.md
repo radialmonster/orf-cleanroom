@@ -30,6 +30,7 @@ For example, in PowerShell use `python -I -B tools/pixls_samples.py check --json
 FILE | Set-Content -Encoding utf8 records.json` and check the Python exit status.
 
 Use `--append` rather than shell `>>`: on Windows, `>>` can write CRLF line endings.
+When the append destination is new or empty, add `--header` to create its column header.
 
 `manifest.csv` lists the files used here, one row per file: raw.pixls.us CC0 files and contributors' own files. Raw files themselves are never committed.
 

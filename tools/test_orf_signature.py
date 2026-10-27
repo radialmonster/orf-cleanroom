@@ -25,6 +25,24 @@ def fixture(width=2):
 
 
 class Tests(unittest.TestCase):
+    def test_out_of_bounds_ifd_links_fail_batch_and_preserve_valid_rows(self):
+        for link in ('next', 'subifd'):
+            data = bytearray(fixture())
+            if link == 'next':
+                struct.pack_into('<I', data, 82, len(data) + 100)
+            else:
+                # Add a numeric SubIFD tag as an extra IFD entry.
+                data = bytearray(fixture())
+                data[82:82] = struct.pack('<HHII', 0x14a, 4, 1, len(data) + 112)
+                struct.pack_into('<H', data, 8, 7)
+                struct.pack_into('<I', data, 10 + 4 * 12 + 8, 98)
+            with self.subTest(link=link):
+                status, output, error = self.call(['bad.orf', 'valid.orf'],
+                    {'bad.orf': bytes(data), 'valid.orf': fixture()})
+                self.assertEqual(status, 1)
+                self.assertEqual([r['file'] for r in csv.DictReader(io.StringIO(output))], ['valid.orf'])
+                self.assertIn('bad.orf:', error)
+
     def test_ifd_offsets_order_default_and_cycles(self):
         data = bytearray(160)
         struct.pack_into('<2sHIH', data, 0, b'II', 42, 8, 1)
