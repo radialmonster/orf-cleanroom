@@ -96,6 +96,10 @@ jobs:
         run: |
           python -I -B tools/test_token_framing_probe.py
           python -I -B tools/test_token_anchor_sync_probe.py
+      - name: Synthetic escape and run accounting tests
+        run: |
+          python -I -B tools/test_escape_balance_probe.py
+          python -I -B tools/test_token_zero_runs_probe.py
       - name: Synthetic cyclic phase and holdout tests
         run: |
           python -I -B tools/test_token_cyclic_phase_probe.py
