@@ -90,6 +90,67 @@ def encode(rule, values):
 
 
 class Tests(unittest.TestCase):
+    def test_summary_rejects_path_and_control_names_before_output(self):
+        good = {'pixls_id': '1', 'pixls_name': 'Olympus - Model (4:3).ORF',
+                'bpp': 2.0, 'rules': {'F5': {'d': -1, 'rel': -0.01}}}
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, 'private.jsonl')
+            for name in ('private/path.ORF', 'private\\path.ORF', 'bad\nname.ORF', ''):
+                records = [dict(good, pixls_id=str(i), pixls_name=name, bpp=i + 1)
+                           for i in (1, 2, 3)]
+                with self.subTest(name=name), open(path, 'w', encoding='utf-8') as stream:
+                    stream.write(''.join(json.dumps(r) + '\n' for r in records))
+                out, err = io.StringIO(), io.StringIO()
+                with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                    self.assertEqual(C.main(['--summarize', path]), 1)
+                self.assertEqual(out.getvalue(), '')
+                self.assertNotIn(folder, err.getvalue())
+            with open(path, 'w', encoding='utf-8') as stream:
+                stream.write(''.join(json.dumps(dict(good, pixls_id=str(i), bpp=i + 1)) + '\n'
+                                     for i in (1, 2, 3)))
+            output = C.summarize([path])
+            self.assertIn('Olympus - Model (4:3)', output['f5_vs_bpp']['within_name'])
+
+    def test_summary_validation_preserves_partial_rules(self):
+        rec = {'pixls_id': '1', 'pixls_name': 'sample.ORF', 'bpp': 2.0,
+               'rules': {'F6': {'rel': -0.01}}}
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, 'in.jsonl')
+            with open(path, 'w', encoding='utf-8') as stream:
+                stream.write(json.dumps(rec) + '\n')
+            out = C.summarize([path])
+        self.assertEqual(out, {'files': 1, 'rules': {'F6': {'odd': {'n': 1,
+                         'lt_1e-4': 0, 'lt_1e-3': 0, 'median_abs_rel': 0.01},
+                         'all': {'n': 1, 'lt_1e-4': 0, 'lt_1e-3': 0, 'median_abs_rel': 0.01}}}})
+
+    def test_summary_rejects_ambiguous_or_invalid_records(self):
+        good = {'pixls_id': '1', 'pixls_name': 'sample.ORF', 'bpp': 2.0,
+                'rules': {'F5': {'d': 1000, 'rel': 0.01}}, 'f5_table': [0] * 576}
+        bad = [dict(good, f5_table=table) for table in
+               ([0] * 575, [0] * 577, [-1] + [0] * 575, [True] + [0] * 575,
+                [10 ** 400] + [0] * 575)]
+        bad.extend([dict(good, bpp=True), dict(good, bpp=0), dict(good, bpp=-1),
+                    dict(good, bpp=float('nan')),
+                    dict(good, rules={'F5': {'d': True, 'rel': 0.01}}),
+                    dict(good, rules={'F5': {'d': 1000, 'rel': float('inf')}}),
+                    dict(good, rules={'F9': {'d': 1000, 'rel': 0.01}})])
+        encoded = json.dumps(good)
+        payloads = [json.dumps(r) for r in bad]
+        payloads += [encoded.replace('"bpp": 2.0', '"bpp": 8.0, "bpp": 2.0'),
+                     encoded.replace('"d": 1000', '"d": -7, "d": 1000'),
+                     encoded + '\n' + json.dumps(dict(good, pixls_id='01'))]
+        with tempfile.TemporaryDirectory() as folder:
+            path = os.path.join(folder, 'private.jsonl')
+            for i, payload in enumerate(payloads):
+                with self.subTest(case=i):
+                    with open(path, 'w', encoding='utf-8') as stream:
+                        stream.write(payload + '\n')
+                    out, err = io.StringIO(), io.StringIO()
+                    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                        self.assertEqual(C.main(['--summarize', path]), 1)
+                    self.assertEqual(out.getvalue(), '')
+                    self.assertNotIn(folder, err.getvalue())
+
     def test_identity_rejected_before_any_sample_read(self):
         for samples in ((('1', 'good.ORF'), ('01', 'good.ORF')),
                         (('1', 'good.ORF'), ('2', 'private/path.ORF')),
@@ -226,7 +287,7 @@ class Tests(unittest.TestCase):
                 handle.write(json.dumps(rec) + chr(10))
             with contextlib.redirect_stderr(err), contextlib.redirect_stdout(out):
                 self.assertEqual(C.main(["--summarize", short]), 1)
-            self.assertIn("summarize: IndexError", err.getvalue())
+            self.assertIn("summarize: ValueError", err.getvalue())
             self.assertNotIn(tmp, err.getvalue())
 
 
