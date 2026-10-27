@@ -134,7 +134,7 @@ def main(argv=None):
         return 1
     result.update(pixls_id=sid, pixls_name=name, anchor=ANCHOR, center=CENTER,
                   radius=RADIUS, rows_per_split=ROWS, head=HEAD,
-                  cpu_seconds=time.perf_counter() - start)
+                  elapsed_seconds=time.perf_counter() - start)
     print(json.dumps(result, indent=2, allow_nan=False))
     return int(not result['complete'])
 
