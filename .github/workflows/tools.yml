@@ -154,6 +154,10 @@ jobs:
         run: |
           python -I -B tools/test_token_lag_probe.py
           python -I -B tools/test_token_position_probe.py
+      - name: Synthetic payload-band and donor-lag tests
+        run: |
+          python -I -B tools/test_payload_band_lag.py
+          python -I -B tools/test_token_donor_comb_probe.py
       - name: Synthetic token predictor and loop tests
         run: |
           python -I -B tools/test_token_predictor_probe.py

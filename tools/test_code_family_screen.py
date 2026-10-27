@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 """Lead #339 code_family_screen tests: synthetic bytes only."""
 import bz2
+import contextlib
 import gzip
+import hashlib
+import io
+import json
 import os
+import struct
 import sys
 import unittest
+from unittest.mock import patch
 import zlib
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -16,6 +22,28 @@ def pack(bits):
 
 
 class Codes(unittest.TestCase):
+    def test_cli_hash_and_payload_share_one_input_snapshot(self):
+        def tiff(payload):
+            tags = ((256, 8), (257, 8), (273, 62), (279, len(payload)))
+            return (b'II' + struct.pack('<HIH', 42, 8, 4)
+                    + b''.join(struct.pack('<HHII', tag, 4, 1, value) for tag, value in tags)
+                    + bytes(4) + payload)
+        first, second = tiff(b'\xff\xff'), tiff(b'\x80\x00')
+        original_open, reads = open, []
+        def open_input(path, *args, **kwargs):
+            if path == 'synthetic':
+                reads.append(path)
+                return io.BytesIO(first if len(reads) == 1 else second)
+            return original_open(path, *args, **kwargs)
+        output = io.StringIO()
+        with patch.object(sys, 'argv', ['probe', 'synthetic', '--offsets', '0']), \
+             patch('builtins.open', side_effect=open_input), contextlib.redirect_stdout(output):
+            self.assertEqual(screen.main(), 0)
+        result = json.loads(output.getvalue())['results'][0]
+        self.assertEqual(len(reads), 1)
+        self.assertEqual(result['sha256'], hashlib.sha256(first).hexdigest())
+        self.assertEqual(result['codes'], screen.codes(b'\xff\xff', 64, 3000000))
+
     def counts(self, bits, family, k, prefix_bits=10 ** 9):
         return screen.count_family(bits, family, k, prefix_bits)
 
