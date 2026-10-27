@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 """Independent finite oracles for run_reorder_search; stdlib, synthetic only."""
 import fractions
+import contextlib
 import hashlib
+import io
+import json
 import struct
 import itertools
 import os
 import random
 import sys
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import run_reorder_search as probe
@@ -27,6 +31,42 @@ def oracle(bits):
 
 
 class TestRunSearch(unittest.TestCase):
+    def test_invalid_sample_precedes_all_work(self):
+        limit = getattr(sys, 'get_int_max_str_digits', lambda: 0)()
+        cases = [('0', 'public', '0' * 64, False), ('\u0661', 'public', '0' * 64, False),
+                 ('1', '', '0' * 64, False), ('1', 'private/path', '0' * 64, False),
+                 ('1', 'private\\path', '0' * 64, False), ('1', 'bad\nname', '0' * 64, False),
+                 ('1', 'public', 'bad', False), ('1', 'public', '0' * 64, True)]
+        if limit:
+            cases.append(('9' * (limit + 1), 'public', '0' * 64, False))
+        for sid, name, digest, simulated in cases:
+            out, err = io.StringIO(), io.StringIO()
+            conversion = patch.object(probe, 'int', side_effect=ValueError('private detail'), create=True) if simulated else contextlib.nullcontext()
+            with self.subTest(sid=sid[:4], name=name, simulated=simulated), \
+                 patch.object(probe, 'read_window') as read, patch.object(probe, 'analyse') as analyse, \
+                 conversion, contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                with self.assertRaises(SystemExit) as caught:
+                    probe.main(['--sample', sid, name, digest, 'unused'])
+                self.assertEqual(caught.exception.code, 2)
+                read.assert_not_called()
+                analyse.assert_not_called()
+                self.assertEqual(out.getvalue(), '')
+                self.assertNotIn('private', err.getvalue())
+
+    def test_valid_identity_and_synthetic_mode(self):
+        name = 'OM - Élite "camera" (4:3).ORF'
+        for sample in (False, True):
+            args = ['--sample', '01', name, '0' * 64, 'unused'] if sample else []
+            out = io.StringIO()
+            with self.subTest(sample=sample), patch.object(probe, 'analyse', return_value={}) as analyse, \
+                 patch.object(probe, 'read_window', return_value=(b'', {})) as read, contextlib.redirect_stdout(out):
+                self.assertEqual(probe.main(args), 0)
+            records = json.loads(out.getvalue())['records']
+            self.assertEqual(analyse.call_count, 4 if sample else 3)
+            self.assertEqual(read.call_count, int(sample))
+            if sample:
+                self.assertEqual((records[-1]['pixls_id'], records[-1]['pixls_name']), ('01', name))
+
     def test_exhaustive_small_binary_invariants(self):
         for n in range(10):
             for xs in itertools.product((0, 1), repeat=n):

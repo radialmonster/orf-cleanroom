@@ -62,6 +62,11 @@ WIN = 12  # bytes in the read window (96 bits)
 def locate(path):
     with open(path, "rb") as f:
         data = f.read()
+    return locate_data(data)
+
+
+def locate_data(data):
+    """Locate payload geometry and bytes in an already-read container."""
     try:
         best = max(Tiff(data).all_ifds(), key=lambda d: sum(d.get(0x117) or [0]))
         offs, counts = best[0x111], best[0x117]

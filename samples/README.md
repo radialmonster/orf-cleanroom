@@ -2,11 +2,35 @@
 
 **Quick way:** download CC0 files with `tools/pixls_samples.py download`, then
 
-    python tools/manifest_rows.py --by @yourhandle --append samples/manifest.csv ../orf-samples/*
+    python tools/manifest_rows.py --by '@yourhandle' --append samples/manifest.csv ../orf-samples/*
 
 That fills every column it can measure and leaves the rest blank. For your own files, add `--own` (you confirm they're yours or the owner agreed). If one of "your" files turns out to be identical to a raw.pixls.us file, the tool records it as that CC0 file, which is better: others can re-test it.
 
+To reuse previously verified records without contacting the catalogue, pass
+`--licence-records records.json`. The JSON is an array of records or an object
+with a `files` array; each record needs a positive numeric `id`, public ORF/ORI
+`name`, lowercase `sha256`, and `licence` (for example `CC0`). Extra fields are
+ignored. The caller must have retained the original licence verification and
+public identity; supplying JSON does not itself verify provenance. The tool
+matches the measured local hash and skips a hash if any supplied record for it
+is non-CC0. Include known restricted records: the offline file cannot reveal
+catalogue entries omitted from it. `--own` still requires ownership or the
+owner's agreement and cannot override a supplied non-CC0 record.
+
+For a file that has not yet been checked, `python -I -B tools/pixls_samples.py
+check --json FILE...` checks its hash against the live catalogue and prints a
+JSON object usable as `--licence-records`. Its `files` array contains known
+identities, including non-CC0 matches; `unknown_inputs` lists unrecognized input
+positions (one-based) without local paths, and `unreadable_inputs` lists files
+that could not be read. Unknown files have no public identity or verified licence
+and need their own provenance. A non-CC0 match or unreadable input gives exit
+status 1. Save the output as UTF-8 and retain it with the original verification;
+later matching hashes can reuse that record without another catalogue check.
+For example, in PowerShell use `python -I -B tools/pixls_samples.py check --json
+FILE | Set-Content -Encoding utf8 records.json` and check the Python exit status.
+
 Use `--append` rather than shell `>>`: on Windows, `>>` can write CRLF line endings.
+When the append destination is new or empty, add `--header` to create its column header.
 
 `manifest.csv` lists the files used here, one row per file: raw.pixls.us CC0 files and contributors' own files. Raw files themselves are never committed.
 
@@ -32,3 +56,5 @@ Allowed rows: CC0 raw.pixls.us files, and your own files (`source` = `own`). Non
 **Columns you haven't measured stay blank** (except `variant`, which is then `unassigned`). Don't guess them. 
 
 **Rows are append-only.** Existing rows are never edited or removed; CI requires the old file to be an exact prefix of the new one. To fill bitstream columns for a file already listed, add a new row for the same `sha256` with your handle and script in `measured_by`. A file may have several rows, and a second row from a different person is welcome as an independent measurement. To see CC0 files not yet listed: `python tools/pixls_samples.py list --missing samples/manifest.csv`. No claim or announcement is needed; pick files at random so people spread out. Each new row must have every column; `source` `pixls` needs licence `CC0` and a numeric `pixls_id`, `source` `own` needs licence `not-shared` and an empty `pixls_id`; `measured_by` must start with `@yourhandle `. A PR that only appends rows under your own handle merges automatically.
+
+**A file that fails to parse is a lead, not a bad file.** The container readers are strict on purpose: `tools/orf_signature.py` (and so `manifest_rows.py`) stops on a file with an IFD offset outside the file, a width or height tag with more than one value, overlapping or out-of-file strips, or missing strip tables, and prints `FILE: reason` with exit status 1. `tools/capture_pair_calibration.py` treats a file whose EXIF pointer (tag 0x8769) is not exactly one LONG as having no capture metadata, without an error. All 104 local CC0 files of 2026-10-27 pass, so a failure on a new file, above all one from a body or firmware not yet in the manifest, more likely means an unusual container than a broken download. Check the hash first (a truncated or corrupt copy is the common case). If the file is intact, don't loosen the check, skip the file or edit around it: record the error text, body, firmware and file size (no serial numbers or other owner identifiers for own files) and open a lead with `Variant: container`, so the layout gets measured.

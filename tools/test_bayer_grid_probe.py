@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
 """Lead #338 bayer_grid_probe tests: synthetic payloads only."""
 import os
+import contextlib
+import hashlib
+import io
+import json
+import struct
 import sys
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bayer_grid_probe as probe  # noqa: E402
@@ -20,6 +26,28 @@ def checkerboard(width, height):
 
 
 class Tests(unittest.TestCase):
+    def test_cli_hash_and_payload_share_one_input_snapshot(self):
+        def tiff(payload):
+            tags = ((256, 8), (257, 8), (273, 62), (279, len(payload)))
+            return (b'II' + struct.pack('<HIH', 42, 8, 4)
+                    + b''.join(struct.pack('<HHII', tag, 4, 1, value) for tag, value in tags)
+                    + bytes(4) + payload)
+        first, second = tiff(b'\xff\xff'), tiff(b'\x80\x00')
+        original_open, reads = open, []
+        def open_input(path, *args, **kwargs):
+            if path == 'synthetic':
+                reads.append(path)
+                return io.BytesIO(first if len(reads) == 1 else second)
+            return original_open(path, *args, **kwargs)
+        output = io.StringIO()
+        with patch.object(sys, 'argv', ['probe', 'synthetic', '--window', '0:1']), \
+             patch('builtins.open', side_effect=open_input), contextlib.redirect_stdout(output):
+            self.assertEqual(probe.main(), 0)
+        result = json.loads(output.getvalue())['results'][0]
+        self.assertEqual(len(reads), 1)
+        self.assertEqual(result['sha256'], hashlib.sha256(first).hexdigest())
+        self.assertEqual(result['whole_payload']['tokens'], len(probe.parse(b'\xff\xff')[0]))
+
     def test_parse_counts_and_residual(self):
         toks = [(39, 0), (2, 5), (17, 31), (0, 1)]
         qs, ss, used = probe.parse(pack(toks))

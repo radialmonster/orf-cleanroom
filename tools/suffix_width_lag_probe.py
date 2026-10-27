@@ -15,6 +15,9 @@ Optional --block-rotation-control adds whole-block selection and matched
 donor rotations, preserving both marginals. This one deterministic control
 is not a null distribution, significance test or grammar-ranking rule.
 Reads regular files and prints aggregates only; stdlib Python 3.8+.
+Sample IDs must be distinct positive ASCII decimals and names printable basenames.
+An incomplete candidate prefix or input failure exits nonzero; all available
+candidate cells remain in the report.
 """
 import argparse
 import hashlib
@@ -191,10 +194,14 @@ def main(argv=None):
                         help="Add matched 128-token donor-rotation tables (descriptive only)")
     args = parser.parse_args(argv)
     ids = [entry[0] for entry in args.sample]
-    if any(not value.isascii() or not value.isdecimal() or int(value) <= 0 for value in ids):
-        parser.error("sample IDs must be positive ASCII decimals")
-    if len(set(ids)) != len(ids):
-        parser.error("sample IDs must be distinct")
+    try:
+        invalid_ids = any(not value.isascii() or not value.isdecimal() or int(value) <= 0 for value in ids) or len(set(map(int, ids))) != len(ids)
+    except ValueError:
+        invalid_ids = True
+    if invalid_ids:
+        parser.error("sample IDs must be distinct positive ASCII decimals")
+    if any(not name or not name.isprintable() or any(c in name for c in '/\\') for _, name, _ in args.sample):
+        parser.error("sample public name must be a printable basename")
     reports, failures = [], []
     for sample_id, name, path in args.sample:
         try:
@@ -207,7 +214,7 @@ def main(argv=None):
     print(json.dumps({"source_sha256": source_hashes(), "requested_tokens": TOKENS,
                       "python_version": sys.version.split()[0],
                       "samples": reports, "failures": failures}, indent=2, allow_nan=False))
-    return 1 if failures else 0
+    return 1 if failures or any(cell['token_shortfall'] for report in reports for cell in report['cells']) else 0
 
 
 if __name__ == "__main__":

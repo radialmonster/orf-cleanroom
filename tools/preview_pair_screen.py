@@ -16,6 +16,8 @@ dependent and cannot reject every ambiguous flat/dark scene. No train/test
 split or unrelated-pair labels are inferred from filenames or camera models.
 Licence verification must be established separately before using this tool.
 Read-only, stdlib CPU; outputs aggregates only, never grid/DC/pixel arrays.
+Unreadable or unsupported inputs cause exit 1; other inputs are still screened.
+Low-information previews are reported separately and do not count as failures.
 """
 import argparse
 import hashlib
@@ -62,12 +64,18 @@ def correlation(a, b):
     return max(-1.0, min(1.0, math.fsum(x * y for x, y in zip(a, b))))
 
 
-def measure(paths):
+def measure(paths, failures=None):
     records = []
     seen = set()
-    for path in paths:
-        with open(path, "rb") as stream:
-            data = stream.read()
+    for index, path in enumerate(paths, 1):
+        try:
+            with open(path, "rb") as stream:
+                data = stream.read()
+        except OSError as exc:
+            if failures is None:
+                raise
+            failures.append((index, type(exc).__name__))
+            continue
         sha = hashlib.sha256(data).hexdigest()
         if sha in seen:
             continue
@@ -82,7 +90,7 @@ def measure(paths):
             fp, sd = fingerprint(wb, hb, dc, width, height)
             record.update(width=width, height=height, grid_sd=sd,
                           status="ok" if fp is not None else "low_information")
-        except (ValueError, IndexError, KeyError, StopIteration) as exc:
+        except (ValueError, IndexError, KeyError, StopIteration, ZeroDivisionError) as exc:
             fp = None
             record.update(status="unsupported", error=type(exc).__name__)
         records.append((record, fp))
@@ -94,7 +102,10 @@ def main():
     parser.add_argument("files", nargs="+", help="previously licence-verified ORF/ORI files")
     args = parser.parse_args()
     start = time.perf_counter()
-    records = measure(args.files)
+    failures = []
+    records = measure(args.files, failures)
+    for index, error in failures:
+        print("input %d: %s" % (index, error), file=sys.stderr)
     for record, _ in records:
         print(json.dumps({"sample": record}, sort_keys=True))
     count = screened = eligible = 0
@@ -111,7 +122,8 @@ def main():
           "grid": GRID, "min_sd": MIN_SD, "threshold": THRESHOLD,
           "alignment": "identity_only", "seconds": time.perf_counter() - start,
           "interpretation": "uncalibrated screening only; scene identity not established"}}, sort_keys=True))
+    return int(bool(failures) or any(record["status"] == "unsupported" for record, _ in records))
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

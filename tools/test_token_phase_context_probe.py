@@ -1,15 +1,86 @@
 #!/usr/bin/env python3
 """Synthetic controls for token_phase_context_probe; stdlib, no file writes."""
+import contextlib
+import io
+import json
 import math
 import os
+import struct
 import sys
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import token_phase_context_probe as probe
 
 
 class PhaseContextTests(unittest.TestCase):
+    def test_cli_complete_short_and_unreadable_inputs(self):
+        def fixture(payload):
+            tags = ((256, 8), (257, 1), (273, 62), (279, len(payload)))
+            return (b'II' + struct.pack('<HIH', 42, 8, len(tags))
+                    + b''.join(struct.pack('<HHII', tag, 4, 1, value) for tag, value in tags)
+                    + struct.pack('<I', 0) + payload)
+
+        fixtures = {'complete': fixture(b'\xff\xff'), 'short': fixture(b'\xff')}
+        original_open = open
+
+        def open_fixture(path, *args, **kwargs):
+            if path in fixtures:
+                return io.BytesIO(fixtures[path])
+            if path == 'missing':
+                raise OSError('private diagnostic')
+            return original_open(path, *args, **kwargs)
+
+        for names, expected_status, shortfalls in (
+                (('complete',), 0, [0]), (('short',), 1, [1]),
+                (('complete', 'short'), 1, [0, 1]),
+                (('complete', 'short', 'missing'), 1, [0, 1]),
+                (('missing',), 1, [])):
+            argv = ['probe']
+            for i, name in enumerate(names, 1):
+                argv += ['--sample', str(i), 'public', name]
+            output = io.StringIO()
+            with self.subTest(names=names), mock.patch.object(sys, 'argv', argv), \
+                    mock.patch.object(probe, 'LIMIT', 2), mock.patch('builtins.open', side_effect=open_fixture), \
+                    contextlib.redirect_stdout(output):
+                status = probe.main()
+                result = json.loads(output.getvalue())
+                self.assertEqual(status, expected_status)
+                self.assertEqual([r['prefix_shortfall'] for r in result['samples']], shortfalls)
+                self.assertEqual(len(result['failures']), int('missing' in names))
+                self.assertNotIn('private diagnostic', output.getvalue())
+    def test_public_identity_validation(self):
+        for second in [('01', 'public'), ('2', ''), ('2', 'private/name'),
+                       ('2', 'private\\name'), ('2', 'private\nname')]:
+            argv = ['probe', '--sample', '1', 'public', 'unused', '--sample', *second, 'unused']
+            out, err = io.StringIO(), io.StringIO()
+            with self.subTest(second=second):
+                with mock.patch.object(sys, 'argv', argv), mock.patch.object(probe, 'report', return_value={'prefix_shortfall': 0}) as report, \
+                        contextlib.redirect_stdout(out), contextlib.redirect_stderr(err), self.assertRaises(SystemExit) as raised:
+                    probe.main()
+                self.assertEqual(raised.exception.code, 2)
+                report.assert_not_called()
+                self.assertEqual(out.getvalue(), '')
+                self.assertNotIn('private', err.getvalue())
+        def fake_report(sample_id, public_name, path):
+            return {'pixls_id': sample_id, 'pixls_name': public_name, 'prefix_shortfall': 0}
+        out = io.StringIO()
+        with mock.patch.object(sys, 'argv', ['probe', '--sample', '01', 'Camera "é" (4:3).ORF', 'unused']), \
+                mock.patch.object(probe, 'report', side_effect=fake_report), \
+                contextlib.redirect_stdout(out):
+            self.assertEqual(probe.main(), 0)
+        row = json.loads(out.getvalue())['samples'][0]
+        self.assertEqual((row['pixls_id'], row['pixls_name']), ('01', 'Camera "é" (4:3).ORF'))
+        with mock.patch.object(sys, 'argv', ['probe', '--sample', '1', 'public', 'unused']), \
+                mock.patch.object(probe, 'int', side_effect=ValueError('private detail'), create=True), \
+                mock.patch.object(probe, 'report') as report, contextlib.redirect_stderr(io.StringIO()) as err, \
+                self.assertRaises(SystemExit) as raised:
+            probe.main()
+        self.assertEqual(raised.exception.code, 2)
+        self.assertNotIn('private detail', err.getvalue())
+        report.assert_not_called()
+
     def test_balanced_xor(self):
         table = [[[0, 0] for _ in range(2)] for _ in range(4)]
         for c in range(4):

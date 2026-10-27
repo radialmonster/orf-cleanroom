@@ -16,6 +16,7 @@ import argparse
 from collections import Counter
 import csv
 import hashlib
+import io
 import json
 import math
 import re
@@ -70,6 +71,12 @@ def cohort(report, manifest, ids):
         count = sample['payload_bytes']
         if any(type(x) is not int or x < 1 for x in (width, height, count)):
             raise ValueError('invalid geometry')
+        for row in manifest:
+            if row['pixls_id'] == key:
+                for field, actual in (('payload_w', width), ('payload_h', height)):
+                    declared = row.get(field)
+                    if declared and int(declared) != actual:
+                        raise ValueError('feature geometry conflicts with manifest')
         starts = [w['payload_byte_start'] for w in windows]
         if starts != [i * (count - 65536) // 2 for i in range(3)] or count < 3 * 65536:
             raise ValueError('window coordinates disagree with frozen protocol')
@@ -131,7 +138,14 @@ def main(argv=None):
             raw_features = stream.read()
         with open(args.manifest, 'rb') as stream:
             raw_manifest = stream.read()
-        rows = cohort(json.loads(raw_features), list(csv.DictReader(raw_manifest.decode('utf-8').splitlines())), args.ids)
+        reader = csv.DictReader(io.StringIO(raw_manifest.decode('utf-8'), newline=''))
+        headers = reader.fieldnames or []
+        required = ('pixls_id', 'sha256', 'pixls_name', 'make', 'model', 'licence', 'source')
+        optional = ('payload_w', 'payload_h')
+        if (any(headers.count(field) != 1 for field in required) or
+                any(headers.count(field) > 1 for field in optional)):
+            raise ValueError('missing or duplicate consumed manifest column')
+        rows = cohort(json.loads(raw_features), list(reader), args.ids)
         with open(__file__, 'rb') as stream:
             source_hash = hashlib.sha256(stream.read()).hexdigest()
         result = {'schema': 'body-label-file-holdout-v1', 'scope': __doc__,

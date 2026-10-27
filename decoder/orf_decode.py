@@ -307,6 +307,10 @@ def decode_file(path, order=None, layout=None):
         # F_STRIDE_LATER (self-verified, Partial for #144): later 300-row bands
         # move the candidate peak and the fixed prefix S loses the contrast; it
         # establishes no physical rows or whole-frame constant (V1 S1.10, G3).
+        # 2026-10-27--radialmonster--phase-period-heldout-reproduction (#504):
+        # selected unassigned-file candidate-token
+        # phase/period contrasts give mixed gains; no physical rows, period
+        # change, variant assignment or decode follows (V1 S1.10, G3).
         # F_NULL_BPP and F_NULL_BPP_2 (Partial for #106) measure only the k=5
         # tokens-per-pixel distance from a Bernoulli null and its bpp/body relation;
         # they specify no value assembly or compressed decode step (V2 S1.1).
@@ -325,8 +329,20 @@ def decode_file(path, order=None, layout=None):
         # F_CONTEXT (Partial for #332): order-8 predictive structure reproduces on
         # a named unassigned four-file cohort, but is not an identified codec or
         # reconstruction (V1 S1.18).
-        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; predictive baselines are not a codec)")
-        r["notes"].append("compressed payload (%s bits per pixel); no decoder or padding rule is specified yet; suffix associations do not specify values, see specs/V1.md S1.1-S1.2, S1.7-S1.18, S2.3, G2, specs/V2.md S1.1-S1.2 and ROADMAP.md" % sig["bpp"])
+        # F_CONTEXT_TRANSFER (Partial for #362): the OM-5 6343 loss against
+        # order 0 reproduces, while 6344 reverses it in two windows; both
+        # remain unassigned and specify no codec or reconstruction (V1 S1.18).
+        # F_OM1_GRID (Partial for #338): a parity-dependent suffix-lag pattern
+        # repeats on two own OM-1 Mark II flat captures; it is unassigned token-index
+        # evidence, not a physical CFA map, predictor, or decode step (V1 S1.19).
+        # F_OM1_GRID_EVEN (Partial for #338): one of five additional evenly lit
+        # OM-1 Mark II flats repeats lag parity; the other four and strong site-table
+        # suffix concentration do not. Unassigned token-index evidence only (V1 S1.21).
+        # F_OM1_DARK (Partial for #338): same-colour offset signs repeat on four
+        # own lens-cap captures from two bodies and two sensitivity settings; this
+        # does not identify a predictor, values or a decode step (V1 S1.20).
+        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; predictive baselines and unassigned #338 token-index findings are not a codec)")
+        r["notes"].append("compressed payload (%s bits per pixel); no decoder or padding rule is specified yet; suffix associations do not specify values, see specs/V1.md S1.1-S1.2, S1.7-S1.21, S2.3, G2, specs/V2.md S1.1-S1.2 and ROADMAP.md" % sig["bpp"])
         return r
     packing = sc
     r.update(variant="V0", packing=packing, status=STATUS[packing])

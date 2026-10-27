@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """Synthetic tests for lead #29 lag probe; no external inputs or outputs."""
 import collections
+import contextlib
+import io
+import json
 import math
 import os
+import struct
 import sys
 import unittest
 from unittest import mock
@@ -12,6 +16,79 @@ import token_lag_probe as probe
 
 
 class LagTests(unittest.TestCase):
+    def test_identity_rejected_before_any_report(self):
+        limit = getattr(sys, 'get_int_max_str_digits', lambda: 0)()
+        cases = [([('1', 'public'), ('0', 'public')], False),
+                 ([('1', 'public'), ('\u0661', 'public')], False),
+                 ([('1', 'public'), ('01', 'public')], False),
+                 ([('1', 'public'), ('2', '')], False),
+                 ([('1', 'public'), ('2', 'private/path')], False),
+                 ([('1', 'public'), ('2', 'private\\path')], False),
+                 ([('1', 'public'), ('2', 'bad\nname')], False),
+                 ([('1', 'public'), ('2', 'public')], True)]
+        if limit:
+            cases.append(([('1', 'public'), ('9' * (limit + 1), 'public')], False))
+        for samples, simulated in cases:
+            args = []
+            for sid, name in samples:
+                args += ['--sample', sid, name, 'unused']
+            out, err = io.StringIO(), io.StringIO()
+            conversion = mock.patch.object(probe, 'int', side_effect=ValueError('private detail'), create=True) if simulated else contextlib.nullcontext()
+            with self.subTest(simulated=simulated, case=samples[-1][0][:4]), mock.patch.object(probe, 'report') as measured, conversion, contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                with self.assertRaises(SystemExit) as caught:
+                    with mock.patch.object(sys, 'argv', ['probe'] + args):
+                        probe.main()
+                self.assertEqual(caught.exception.code, 2)
+                measured.assert_not_called()
+                self.assertEqual(out.getvalue(), '')
+                self.assertNotIn('private', err.getvalue())
+
+    def test_valid_public_identity_spelling_is_preserved(self):
+        name = 'OM - Élite "camera" (4:3).ORF'
+        def echo(sid, public, path):
+            return {'pixls_id': sid, 'pixls_name': public, 'prefix_complete': True, 'prefix_shortfall': 0}
+        args = ['--sample', '01', name, 'unused']
+        out = io.StringIO()
+        with mock.patch.object(probe, 'report', side_effect=echo), contextlib.redirect_stdout(out):
+            with mock.patch.object(sys, 'argv', ['probe'] + args):
+                status = probe.main()
+        self.assertEqual(status, 0)
+        sample = json.loads(out.getvalue())['samples'][0]
+        self.assertEqual((sample['pixls_id'], sample['pixls_name']), ('01', name))
+
+
+    def test_cli_prefix_status_and_preserved_reports(self):
+        def fixture(payload):
+            tags = ((256, 25), (257, 1), (273, 62), (279, len(payload)))
+            return (b'II' + struct.pack('<HIH', 42, 8, len(tags))
+                    + b''.join(struct.pack('<HHII', tag, 4, 1, value) for tag, value in tags)
+                    + struct.pack('<I', 0) + payload)
+        fixtures = {'complete': fixture(b'\xff\xff'), 'short': fixture(b'\xff')}
+        original_open = open
+        def open_fixture(path, *args, **kwargs):
+            if path in fixtures:
+                return io.BytesIO(fixtures[path])
+            if path == 'missing':
+                raise OSError('private diagnostic')
+            return original_open(path, *args, **kwargs)
+        for names, expected, shortfalls in ((('complete',), 0, [0]), (('short',), 1, [1]),
+                                            (('complete', 'short'), 1, [0, 1]),
+                                            (('complete', 'short', 'missing'), 1, [0, 1]),
+                                            (('missing',), 1, [])):
+            argv = ['probe']
+            for i, name in enumerate(names, 1):
+                argv += ['--sample', str(i), 'public', name]
+            output = io.StringIO()
+            with self.subTest(names=names), mock.patch.object(sys, 'argv', argv), \
+                 mock.patch.object(probe, 'LIMIT', 2), mock.patch('builtins.open', side_effect=open_fixture), \
+                 contextlib.redirect_stdout(output):
+                status = probe.main()
+                result = json.loads(output.getvalue())
+                self.assertEqual(status, expected)
+                self.assertEqual([r['prefix_shortfall'] for r in result['samples']], shortfalls)
+                self.assertEqual(len(result['failures']), int('missing' in names))
+                self.assertNotIn('private diagnostic', output.getvalue())
+
     def test_independent_pair_enumeration(self):
         blocks = [[(i % 4, (i * 7) % 32) for i in range(128)],
                   [(i % 3, (i * 5) % 32) for i in range(128)]]

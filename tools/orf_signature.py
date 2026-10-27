@@ -70,17 +70,19 @@ class Tiff:
                 tags[tag] = None  # type not needed for the signature
         return tags, self.u32(off + 2 + 12 * n)
 
-    def all_ifds(self):
-        """Walk the IFD chain and SubIFDs (tag 0x14A); yield tag dicts."""
+    def all_ifds(self, with_offsets=False):
+        """Walk IFDs and SubIFDs; yield dicts or (offset, dict) when requested."""
         seen = set()
         todo = [self.u32(4)]
         while todo:
             off = todo.pop()
-            if off == 0 or off in seen or off + 2 > len(self.data):
+            if off == 0 or off in seen:
                 continue
+            if off + 2 > len(self.data):
+                raise ValueError("IFD offset outside file")
             seen.add(off)
             tags, nxt = self.ifd(off)
-            yield tags
+            yield (off, tags) if with_offsets else tags
             todo.append(nxt)
             todo.extend(tags.get(0x14A) or [])
 
@@ -99,8 +101,22 @@ def signature(path):
     model = next((d[0x110] for d in ifds if isinstance(d.get(0x110), str)), "")
     # The raw payload is the image IFD with the largest total strip byte count.
     best = max(ifds, key=lambda d: sum(d.get(0x117) or [0]))
+    offsets, counts = best.get(0x111), best.get(0x117)
+    if (not isinstance(offsets, list) or not isinstance(counts, list) or
+            not offsets or len(offsets) != len(counts)):
+        raise ValueError("missing or mismatched strip tables")
+    if any(type(off) is not int or type(count) is not int or off < 0 or count <= 0 or
+           off + count > len(data) for off, count in zip(offsets, counts)):
+        raise ValueError("strip extent outside file or empty")
+    extents = sorted((off, off + count) for off, count in zip(offsets, counts))
+    if any(right[0] < left[1] for left, right in zip(extents, extents[1:])):
+        raise ValueError("overlapping strip extents")
+    for tag in (0x100, 0x101):
+        values = best.get(tag)
+        if isinstance(values, list) and len(values) != 1:
+            raise ValueError("image dimensions must have one value")
     w, h = first(best, 0x100) or 0, first(best, 0x101) or 0
-    nbytes = sum(best.get(0x117) or [0])
+    nbytes = sum(counts)
     return {
         "file": os.path.basename(path),
         "sha256": hashlib.sha256(data).hexdigest(),
@@ -127,7 +143,7 @@ def main(paths):
     for p in paths:
         try:
             row = signature(p)
-        except (ValueError, struct.error, OSError) as exc:
+        except (ValueError, TypeError, struct.error, OSError) as exc:
             print("%s: %s" % (p, exc), file=sys.stderr)
             failed = True
             continue

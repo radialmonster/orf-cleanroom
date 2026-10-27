@@ -16,6 +16,55 @@ import frozen_bit_context as probe
 
 
 class ContextTests(unittest.TestCase):
+    def test_cli_rejects_truncated_and_malformed_csv(self):
+        header = 'sha256,licence,pixls_id,pixls_name,payload_w,payload_h,size_class,variant\n'
+        for row in ('abc,CC0,1,name,2,2,variable\n', 'abc,CC0,1,"unterminated\n'):
+            with self.subTest(row=row), patch('builtins.open', return_value=io.StringIO(header + row)), \
+                    patch.object(probe, 'load_window') as load, contextlib.redirect_stdout(io.StringIO()) as out, \
+                    contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(probe.main(['--manifest', 'manifest', '--discovery', 'a', '--validation', 'b']), 1)
+                load.assert_not_called()
+                self.assertEqual(out.getvalue(), '')
+
+    def test_manifest_allows_duplicate_rows_and_blank_optional_values(self):
+        header = 'sha256,licence,pixls_id,pixls_name,payload_w,payload_h,size_class,variant\n'
+        rows = 'abc,CC0,1,public.ORF,,,,\nabc,CC0,1,public.ORF,2,2,variable,unassigned\n'
+        def window(path, manifest, offset, size):
+            self.assertEqual(len(manifest), 2)
+            self.assertEqual(manifest[0]['payload_w'], '')
+            return [0, 1], {'sha256': path}
+        with patch('builtins.open', return_value=io.StringIO(header + rows)), \
+                patch.object(probe, 'load_window', side_effect=window), contextlib.redirect_stdout(io.StringIO()), \
+                contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(probe.main(['--manifest', 'manifest', '--discovery', 'a', '--validation', 'b']), 0)
+
+    def test_cli_rejects_duplicate_and_missing_manifest_columns_before_samples(self):
+        fields = ['sha256', 'licence', 'pixls_id', 'pixls_name', 'payload_w', 'payload_h', 'size_class', 'variant']
+        for header in (fields + ['pixls_id'], fields[:-1], ['sha256', 'licence']):
+            with self.subTest(header=header), patch('builtins.open', return_value=io.StringIO(','.join(header) + '\n')), \
+                    patch.object(probe, 'load_window') as load, contextlib.redirect_stdout(io.StringIO()) as out, \
+                    contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(probe.main(['--manifest', 'manifest', '--discovery', 'a', '--validation', 'b']), 1)
+                load.assert_not_called()
+                self.assertEqual(out.getvalue(), '')
+
+    def test_cli_rejects_duplicate_identity_header_with_real_synthetic_inputs(self):
+        data = (b'II' + struct.pack('<HI', 42, 8) + struct.pack('<H', 2)
+                + struct.pack('<HHII', 273, 4, 1, 38)
+                + struct.pack('<HHII', 279, 4, 1, 2) + struct.pack('<I', 0) + b'ab')
+        other = data[:-2] + b'cd'
+        header = 'sha256,licence,pixls_id,pixls_name,payload_w,payload_h,size_class,variant,pixls_id\n'
+        rows = ''.join('%s,CC0,%s,public.ORF,2,2,variable,unassigned,wrong%s\n' %
+                       (hashlib.sha256(blob).hexdigest(), i, i)
+                       for i, blob in ((1, data), (2, other)))
+        out, err = io.StringIO(), io.StringIO()
+        with patch('builtins.open', return_value=io.StringIO(header + rows)), \
+                patch.object(probe.Path, 'read_bytes', side_effect=[data, other]), \
+                contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            self.assertEqual(probe.main(['--manifest', 'manifest', '--discovery', 'a', '--validation', 'b',
+                                         '--offset', '0', '--bytes', '1']), 1)
+        self.assertEqual(out.getvalue(), '')
+
     def test_exhaustive_independent_context_counts(self):
         for length in range(9):
             for seq in itertools.product((0, 1), repeat=length):
@@ -88,6 +137,10 @@ class ContextTests(unittest.TestCase):
                                            ([dict(row, sha256='wrong')], 0, 1), ([row], 3, 2)):
                 with self.assertRaises(ValueError):
                     probe.load_window('synthetic', manifest, offset, size)
+            duplicate = dict(row, pixls_id='second', payload_w='999')
+            _, identity = probe.load_window('synthetic', [row, duplicate], 1, 2)
+            self.assertEqual(identity['pixls_id'], 'synthetic')
+            self.assertEqual(identity['manifest_signature']['payload_w'], '2')
         malformed = data[:38] + struct.pack('<I', 100) + data[42:]
         badrow = dict(row, sha256=hashlib.sha256(malformed).hexdigest())
         with patch.object(probe.Path, 'read_bytes', return_value=malformed):
@@ -115,7 +168,7 @@ class ContextTests(unittest.TestCase):
         for failure in (OSError(private), ValueError(private), struct.error(private),
                         KeyError(private), UnicodeError(private)):
             err, out = io.StringIO(), io.StringIO()
-            with patch('builtins.open', return_value=io.StringIO('sha256,licence\n')):
+            with patch('builtins.open', return_value=io.StringIO('sha256,licence,pixls_id,pixls_name,payload_w,payload_h,size_class,variant\n')):
                 with patch.object(probe, 'load_window', side_effect=failure):
                     with contextlib.redirect_stderr(err), contextlib.redirect_stdout(out):
                         self.assertEqual(probe.main(['--manifest', 'unused', '--discovery',
@@ -126,7 +179,7 @@ class ContextTests(unittest.TestCase):
 
     def test_cli_rejects_duplicate_hashes(self):
         argv = ['probe', '--manifest', 'synthetic.csv', '--discovery', 'a', '--validation', 'b']
-        with patch.object(sys, 'argv', argv), patch('builtins.open', return_value=io.StringIO('sha256,licence\n')):
+        with patch.object(sys, 'argv', argv), patch('builtins.open', return_value=io.StringIO('sha256,licence,pixls_id,pixls_name,payload_w,payload_h,size_class,variant\n')):
             with patch.object(probe, 'load_window', return_value=([0], {'sha256': 'same'})):
                 with patch.object(sys, 'stderr', io.StringIO()):
                     with self.assertRaises(SystemExit) as error:
@@ -141,7 +194,7 @@ class ContextTests(unittest.TestCase):
                                 (['--validation-offset', '0'], [20, 20, 0, 0])):
             def window(path, manifest, offset, size):
                 return [0, 1], {'sha256': path, 'window_offset': offset}
-            with patch.object(sys, 'argv', argv + extra), patch('builtins.open', return_value=io.StringIO('sha256,licence\n')):
+            with patch.object(sys, 'argv', argv + extra), patch('builtins.open', return_value=io.StringIO('sha256,licence,pixls_id,pixls_name,payload_w,payload_h,size_class,variant\n')):
                 with patch.object(probe, 'load_window', side_effect=window) as loader:
                     with patch.object(sys, 'stdout', io.StringIO()) as output:
                         probe.main()

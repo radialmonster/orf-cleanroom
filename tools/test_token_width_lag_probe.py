@@ -6,6 +6,7 @@ import json
 import math
 import os
 import random
+import struct
 import sys
 import unittest
 from unittest.mock import patch
@@ -16,6 +17,76 @@ import token_width_lag_probe as probe
 
 
 class WidthLagTests(unittest.TestCase):
+    def test_identity_rejected_before_any_report(self):
+        limit = getattr(sys, 'get_int_max_str_digits', lambda: 0)()
+        cases = [([('1', 'public'), ('0', 'public')], False),
+                 ([('1', 'public'), ('\u0661', 'public')], False),
+                 ([('1', 'public'), ('01', 'public')], False),
+                 ([('1', 'public'), ('2', '')], False),
+                 ([('1', 'public'), ('2', 'private/path')], False),
+                 ([('1', 'public'), ('2', 'private\\path')], False),
+                 ([('1', 'public'), ('2', 'bad\nname')], False),
+                 ([('1', 'public'), ('2', 'public')], True)]
+        if limit:
+            cases.append(([('1', 'public'), ('9' * (limit + 1), 'public')], False))
+        for samples, simulated in cases:
+            args = []
+            for sid, name in samples:
+                args += ['--sample', sid, name, 'unused']
+            out, err = io.StringIO(), io.StringIO()
+            conversion = patch.object(probe, 'int', side_effect=ValueError('private detail'), create=True) if simulated else contextlib.nullcontext()
+            with self.subTest(simulated=simulated, case=samples[-1][0][:4]), patch.object(probe, 'report') as report, conversion, contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                with self.assertRaises(SystemExit) as caught:
+                    probe.main(args)
+                self.assertEqual(caught.exception.code, 2)
+                report.assert_not_called()
+                self.assertEqual(out.getvalue(), '')
+                self.assertNotIn('private', err.getvalue())
+
+    def test_valid_public_identity_spelling_is_preserved(self):
+        name = 'OM - Élite "camera" (4:3).ORF'
+        def echo(sid, public, path, *args):
+            return {'pixls_id': sid, 'pixls_name': public, 'prefix_complete': True, 'token_shortfall': 0, 'shortfall_tokens': 0}
+        args = ['--sample', '01', name, 'unused']
+        out = io.StringIO()
+        with patch.object(probe, 'report', side_effect=echo), contextlib.redirect_stdout(out):
+            status = probe.main(args)
+        self.assertEqual(status, 0)
+        sample = json.loads(out.getvalue())['samples'][0]
+        self.assertEqual((sample['pixls_id'], sample['pixls_name']), ('01', name))
+
+
+    def test_cli_prefix_status_and_preserved_reports(self):
+        def fixture(payload):
+            tags = ((256, 25), (257, 1), (273, 62), (279, len(payload)))
+            return (b'II' + struct.pack('<HIH', 42, 8, len(tags))
+                    + b''.join(struct.pack('<HHII', tag, 4, 1, value) for tag, value in tags)
+                    + struct.pack('<I', 0) + payload)
+        fixtures = {'complete': fixture(b'\xff\xff'), 'short': fixture(b'\xff')}
+        original_open = open
+        def open_fixture(path, *args, **kwargs):
+            if path in fixtures:
+                return io.BytesIO(fixtures[path])
+            if path == 'missing':
+                raise OSError('private diagnostic')
+            return original_open(path, *args, **kwargs)
+        for names, expected, shortfalls in ((('complete',), 0, [0]), (('short',), 1, [1]),
+                                            (('complete', 'short'), 1, [0, 1]),
+                                            (('complete', 'short', 'missing'), 1, [0, 1]),
+                                            (('missing',), 1, [])):
+            args = []
+            for i, name in enumerate(names, 1):
+                args += ['--sample', str(i), 'public', name]
+            output = io.StringIO()
+            with self.subTest(names=names), patch.object(probe, 'LIMIT', 2), \
+                 patch('builtins.open', side_effect=open_fixture), contextlib.redirect_stdout(output):
+                status = probe.main(args)
+                result = json.loads(output.getvalue())
+                self.assertEqual(status, expected)
+                self.assertEqual([r['shortfall_tokens'] for r in result['samples']], shortfalls)
+                self.assertEqual(len(result['failures']), int('missing' in names))
+                self.assertNotIn('private diagnostic', output.getvalue())
+
     def test_independent_enumeration_all_cells(self):
         rng = random.Random(7)
         tokens = [(17 if t in (9, 38, 43) else rng.randrange(4), rng.randrange(32)) for t in range(79)]

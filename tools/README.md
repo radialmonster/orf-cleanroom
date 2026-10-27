@@ -559,6 +559,24 @@ ISO/bpp correlation, scene content, or causality. Licence-check inputs first.
     python -I -B tools/exif_sensitivity_probe.py --sample ID PUBLIC_NAME path/to/file.ORF
     python -I -B tools/test_exif_sensitivity_probe.py
 
+**`capture_pair_calibration.py`** supports #295. It labels the pairs printed by
+`preview_pair_screen.py` from each file's own metadata only (EXIF
+DateTimeOriginal, payload width, file name): camera-written High Res ORF / ORI
+companions require exactly matching stems after removing the extension; numeric
+suffixes are preserved and copy suffixes are not normalized. Same-second
+non-companions (bursts), same-session pairs within
+600 s, same-day and different-day pairs. Same-session H pairs have unknown scene
+identity; their hit rate is not an established false-positive rate. It reports
+class counts alongside AUC and score ranges. A threshold is calibrated on
+alternating shooting days only with at least 10 P and 10 H pairs on calibration
+days; held-out validation also requires at least 10 of each. This descriptive
+minimum does not establish statistical validity or independent captures. The
+tool reports aggregates only; no previews, payloads or images.
+
+    python -I -B tools/preview_pair_screen.py FILE ... > screen.jsonl
+    python -I -B tools/capture_pair_calibration.py --screen screen.jsonl FILE ...
+    python -I -B tools/test_capture_pair_calibration.py
+
 **`token_lag_probe.py`** supports lead #29 item 6 and builds on #11 and
 `suffix_joint_probe.py`'s bounded candidate scanner. In the first 262144 tokens,
 it keeps complete 128-token blocks without q>=17, forms only within-block
@@ -735,6 +753,22 @@ variation cannot select a true code or establish adaptation. All candidate
 tokens, including q>=17, contribute; there is no fitted offset or escape skip.
 
     python -I -B tools/suffix_width_probe.py --block-tokens 262144 --sample ID PUBLIC_NAME path/to/file.ORF
+
+**`token_count_closure.py`** supports specs/V1.md G3/G8 and lead #339. It parses
+each whole payload from bit 0 under 25 suffix-width rules fixed in its docstring
+before any cohort results: fixed k=4..7 and 21 causal adaptive rules
+(JPEG-LS-style accumulators, previous-value bit length) with k chosen before each
+token, and reports complete tokens minus W x H, the residual bits, escapes and
+mean k. `--table` adds the k=5 joint count of min(q,17) x suffix. `--summarize`
+reads the JSON lines back and prints per-rule closure counts by odd/even id, the
+Spearman correlation of bpp with the k=5 excess (overall and within each public
+name) and, for declared token predicates, the ten tightest ranges of
+count / excess. A count near W x H does not prove a syntax; these are
+descriptive statistics only.
+
+    python -I -B tools/token_count_closure.py --sample ID PUBLIC_NAME path/to/file.ORF [--table]
+    python -I -B tools/token_count_closure.py --summarize results.jsonl
+    python -I -B tools/test_token_count_closure.py
 
 **`token_affine_probe.py`** supports the untested GF(2) part of lead #29
 item 4, building on #11 and #166/#169. It tests exact affine prediction of
@@ -1028,6 +1062,18 @@ independent captures or causal effects. No raw files are read.
 
     python -I -B tools/cohort_design_audit.py --manifest samples/manifest.csv --ids 1993 1994 1995 1996
     python -I -B tools/test_cohort_design_audit.py
+
+**`capture_metadata_audit.py`** supports #318's capture-group metadata question.
+It checks every input hash and CC0 licence against retained records before
+reading metadata, then reports model/time availability and repeated groups
+without printing timestamps or local paths. Matching make, model and recorded
+second does not establish the same physical camera or independent captures.
+Timezone, subseconds and clock accuracy are not evaluated.
+
+    python -I -B tools/capture_metadata_audit.py --licence-records RECORDS.json --sample ID PATH
+    python -I -B tools/test_capture_metadata_audit.py
+
+Repeat `--sample ID PATH` for each public sample in the declared cohort.
 
 **`payload_feature_probe.py`** supports #299 with fixed raw-bit windows and
 aggregate density, transitions, byte entropy and run spectra. Schema v2 follows

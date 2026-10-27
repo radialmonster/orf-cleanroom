@@ -25,6 +25,42 @@ def fixture(width=2):
 
 
 class Tests(unittest.TestCase):
+    def test_out_of_bounds_ifd_links_fail_batch_and_preserve_valid_rows(self):
+        for link in ('next', 'subifd'):
+            data = bytearray(fixture())
+            if link == 'next':
+                struct.pack_into('<I', data, 82, len(data) + 100)
+            else:
+                # Add a numeric SubIFD tag as an extra IFD entry.
+                data = bytearray(fixture())
+                data[82:82] = struct.pack('<HHII', 0x14a, 4, 1, len(data) + 112)
+                struct.pack_into('<H', data, 8, 7)
+                struct.pack_into('<I', data, 10 + 4 * 12 + 8, 98)
+            with self.subTest(link=link):
+                status, output, error = self.call(['bad.orf', 'valid.orf'],
+                    {'bad.orf': bytes(data), 'valid.orf': fixture()})
+                self.assertEqual(status, 1)
+                self.assertEqual([r['file'] for r in csv.DictReader(io.StringIO(output))], ['valid.orf'])
+                self.assertIn('bad.orf:', error)
+
+    def test_ifd_offsets_order_default_and_cycles(self):
+        data = bytearray(160)
+        struct.pack_into('<2sHIH', data, 0, b'II', 42, 8, 1)
+        struct.pack_into('<HHII', data, 10, 0x14a, 4, 2, 128)
+        struct.pack_into('<I', data, 22, 80)
+        struct.pack_into('<II', data, 128, 32, 56)
+        for offset, value, nxt in ((32, 1, 8), (56, 2, 0), (80, 3, 32)):
+            struct.pack_into('<H', data, offset, 1)
+            struct.pack_into('<HHII', data, offset + 2, 0x100, 4, 1, value)
+            struct.pack_into('<I', data, offset + 14, nxt)
+        tiff = S.Tiff(data)
+        with_offsets = list(tiff.all_ifds(with_offsets=True))
+        self.assertEqual([offset for offset, _ in with_offsets], [8, 56, 32, 80])
+        default = list(tiff.all_ifds())
+        self.assertTrue(all(isinstance(tags, dict) for tags in default))
+        self.assertEqual(default, [tags for _, tags in with_offsets])
+        self.assertEqual([tags[0x100][0] for tags in default[1:]], [2, 1, 3])
+
     def call(self, paths, blobs):
         def opening(path, mode):
             self.assertEqual(mode, "rb")
@@ -75,6 +111,105 @@ class Tests(unittest.TestCase):
         self.assertEqual(status, 1)
         self.assertEqual(output, "")
         self.assertIn("empty.orf:", error)
+
+    def test_truncated_payload_does_not_produce_signature(self):
+        # The IFD declares 8 bytes at offset 86; the file contains only 4.
+        truncated = fixture()[:-4]
+        status, output, error = self.call(["truncated.orf", "valid.orf"],
+                                          {"truncated.orf": truncated, "valid.orf": fixture()})
+        self.assertEqual(status, 1)
+        self.assertEqual([r["file"] for r in csv.DictReader(io.StringIO(output))], ["valid.orf"])
+        self.assertIn("truncated.orf:", error)
+
+    def test_mismatched_strip_tables_do_not_produce_signature(self):
+        data = bytearray(fixture())
+        # StripOffsets is the fifth entry; replace its one value with two.
+        struct.pack_into("<II", data, 10 + 4 * 12 + 4, 2, len(data))
+        data.extend(struct.pack("<II", 86, 90))
+        status, output, error = self.call(["mismatch.orf"], {"mismatch.orf": bytes(data)})
+        self.assertEqual(status, 1)
+        self.assertEqual(output, "")
+        self.assertIn("mismatch.orf:", error)
+
+    def test_reordered_strips_are_valid(self):
+        data = bytearray(fixture())
+        offsets_at = len(data)
+        data.extend(struct.pack("<II", 90, 86))
+        counts_at = len(data)
+        data.extend(struct.pack("<II", 4, 4))
+        struct.pack_into("<II", data, 10 + 4 * 12 + 4, 2, offsets_at)
+        struct.pack_into("<II", data, 10 + 5 * 12 + 4, 2, counts_at)
+        status, output, error = self.call(["reordered.orf"], {"reordered.orf": bytes(data)})
+        self.assertEqual((status, error), (0, ""))
+        row = next(csv.DictReader(io.StringIO(output)))
+        self.assertEqual((row["payload_offset"], row["payload_bytes"], row["size_class"]),
+                         ("90", "8", "packed-16"))
+
+    def test_overlapping_strip_extents_are_rejected(self):
+        # Each strip is individually in bounds, but overlapping extents double-count bytes.
+        for offsets in ((86, 86), (86, 88), (88, 86)):
+            data = bytearray(fixture())
+            offsets_at = len(data)
+            data.extend(struct.pack("<II", *offsets))
+            counts_at = len(data)
+            data.extend(struct.pack("<II", 4, 4))
+            struct.pack_into("<II", data, 10 + 4 * 12 + 4, 2, offsets_at)
+            struct.pack_into("<II", data, 10 + 5 * 12 + 4, 2, counts_at)
+            with self.subTest(offsets=offsets):
+                status, output, error = self.call(["bad.orf", "valid.orf"],
+                    {"bad.orf": bytes(data), "valid.orf": fixture()})
+                self.assertEqual(status, 1)
+                self.assertEqual([r["file"] for r in csv.DictReader(io.StringIO(output))], ["valid.orf"])
+                self.assertIn("overlap", error)
+
+    def test_multiple_dimensions_are_rejected(self):
+        for entry in (0, 1):
+            for typ in (3, 4):
+                with self.subTest(entry=entry, typ=typ):
+                    data = bytearray(fixture())
+                    pos = 10 + entry * 12
+                    if typ == 3:
+                        struct.pack_into("<HHIHH", data, pos, 256 + entry, 3, 2, 2, 4)
+                    else:
+                        struct.pack_into("<II", data, pos + 4, 2, len(data))
+                        data.extend(struct.pack("<II", 2, 4))
+                    status, output, error = self.call(
+                        ["bad.orf", "valid.orf"],
+                        {"bad.orf": bytes(data), "valid.orf": fixture()})
+                    self.assertEqual(status, 1)
+                    self.assertEqual([r["file"] for r in csv.DictReader(io.StringIO(output))],
+                                     ["valid.orf"])
+                    self.assertIn("bad.orf:", error)
+
+    def test_single_short_dimensions_remain_valid(self):
+        data = bytearray(fixture())
+        for entry in (0, 1):
+            struct.pack_into("<HHIHH", data, 10 + entry * 12, 256 + entry, 3, 1, 2, 0)
+        status, output, error = self.call(["short.orf"], {"short.orf": bytes(data)})
+        self.assertEqual((status, error), (0, ""))
+        row = next(csv.DictReader(io.StringIO(output)))
+        self.assertEqual((row["payload_w"], row["payload_h"], row["bpp"], row["size_class"]),
+                         ("2", "2", "16.000", "packed-16"))
+
+    def test_non_numeric_dimension_and_strip_count_fail_per_file(self):
+        for entry in (0, 1, 5):
+            data = bytearray(fixture())
+            struct.pack_into("<HI4s", data, 10 + entry * 12 + 2, 2, 2, b"2\0\0\0")
+            for paths in (["bad.orf"], ["bad.orf", "valid.orf"]):
+                with self.subTest(entry=entry, paths=paths):
+                    status, output, error = self.call(paths, {"bad.orf": bytes(data), "valid.orf": fixture()})
+                    self.assertEqual(status, 1)
+                    self.assertEqual([r["file"] for r in csv.DictReader(io.StringIO(output))],
+                                     ["valid.orf"] if len(paths) == 2 else [])
+                    self.assertIn("bad.orf:", error)
+
+    def test_missing_dimension_keeps_existing_empty_bpp(self):
+        data = bytearray(fixture())
+        struct.pack_into("<H", data, 10, 65000)
+        status, output, error = self.call(["missing.orf"], {"missing.orf": bytes(data)})
+        self.assertEqual((status, error), (0, ""))
+        row = next(csv.DictReader(io.StringIO(output)))
+        self.assertEqual((row["payload_w"], row["bpp"], row["size_class"]), ("0", "", "variable"))
 
     def test_help_and_no_arguments(self):
         for paths, expected in [(["--help"], 0), (["-h"], 0), ([], 2)]:

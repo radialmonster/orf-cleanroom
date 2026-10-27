@@ -117,6 +117,8 @@ def parse_file(path, folder, name, found, errors):
         err("'Verified by: @handle' line is missing or malformed")
     if not LEAD_RE.match(header.get("Lead", "")):
         err("'Lead: #<issue number>' line is missing or malformed")
+    if "Partial" in header and not header["Partial"]:
+        err("'Partial:' must describe the verified part when present")
     variant = header.get("Variant", "")
     if variant != folder:
         err("Variant '%s' does not match the folder '%s'" % (variant, folder))
@@ -138,6 +140,9 @@ def parse_file(path, folder, name, found, errors):
                 err("'%s:' entry is not a finding ID or #issue: %s" % (key, part))
             else:
                 f.refs[key].append(part)
+    if fid in found:
+        err("duplicate finding ID %s (already in %s)" % (fid, found[fid].path))
+        return
     found[fid] = f
 
 
@@ -176,7 +181,28 @@ def resolve(found, errors):
                 else:
                     ok.append(ref)
             f.refs[key] = ok
-    for f in found.values():
+    # Corrections must have a later endpoint; a cycle supersedes every member.
+    state = {}
+    for fid in found:
+        if state.get(fid):
+            continue
+        state[fid] = 1
+        stack = [(fid, iter(found[fid].refs['Corrects']))]
+        while stack:
+            current, refs = stack[-1]
+            ref = next(refs, None)
+            if ref is None:
+                state[current] = 2
+                stack.pop()
+            elif ref.startswith('#'):
+                continue
+            elif state.get(ref) == 1:
+                errors.append("%s: circular 'Corrects:' reference to %s" % (found[current].path, ref))
+            elif not state.get(ref):
+                state[ref] = 1
+                stack.append((ref, iter(found[ref].refs['Corrects'])))
+    reproducers = {}
+    for f in sorted(found.values(), key=lambda item: item.id):
         if not f.reproduces:
             continue
         t = found.get(f.reproduces)
@@ -194,6 +220,15 @@ def resolve(found, errors):
                 errors.append("%s: 'Lead:' must be the same as in %s (%s)" % (f.path, t.id, t.lead))
             if t.verifier and f.verifier.lower() == t.verifier.lower():
                 errors.append("%s: 'Verified by' must be someone who did not already verify %s" % (f.path, t.id))
+            if (f.verifier and f.verifier.lower() != t.author.lower()
+                    and f.verifier.lower() != t.verifier.lower()
+                    and f.author.lower() == t.author.lower() and f.lead == t.lead):
+                key = (t.id, f.verifier.lower())
+                if key in reproducers:
+                    errors.append("%s: 'Verified by' already verified %s in %s" %
+                                  (f.path, t.id, reproducers[key]))
+                else:
+                    reproducers[key] = f.path
 
 
 def statuses(found):
