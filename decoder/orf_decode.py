@@ -341,6 +341,9 @@ def decode_file(path, order=None, layout=None):
         # F_CONTEXT (Partial for #332): order-8 predictive structure reproduces on
         # a named unassigned four-file cohort, but is not an identified codec or
         # reconstruction (V1 S1.18).
+        # 2026-10-27--mtakemoto--rice-counts-public-files (Partial for #339):
+        # candidate Rice counts on unassigned files specify no codec or pixel map
+        # (V1 S1.8).
         # 2026-10-27--radialmonster--body-label-holdout-reproduction (#329):
         # a file-cohort label diagnostic is not variant, capture-independent
         # validation or a decode step (V1 S1.22, G6).
