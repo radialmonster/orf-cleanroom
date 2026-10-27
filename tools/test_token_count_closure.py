@@ -90,6 +90,33 @@ def encode(rule, values):
 
 
 class Tests(unittest.TestCase):
+    def test_identity_rejected_before_any_sample_read(self):
+        for samples in ((('1', 'good.ORF'), ('01', 'good.ORF')),
+                        (('1', 'good.ORF'), ('2', 'private/path.ORF')),
+                        (('1', 'private\\path.ORF'),), (('1', 'name\n.ORF'),),
+                        (('1', ''),), (('0', 'good.ORF'),), (('-1', 'good.ORF'),),
+                        (('\u0661', 'good.ORF'),)):
+            args = []
+            for sid, name in samples:
+                args += ['--sample', sid, name, 'unused']
+            out, err = io.StringIO(), io.StringIO()
+            with self.subTest(samples=samples), mock.patch.object(C, 'report') as report, \
+                 contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                with self.assertRaises(SystemExit) as raised:
+                    C.main(args)
+                self.assertEqual(raised.exception.code, 2)
+                report.assert_not_called()
+                self.assertEqual(out.getvalue(), '')
+
+    def test_valid_public_punctuation_and_optional_hash(self):
+        name = 'OM System - STYLUS1,1s - "high-res" (4:3).ORF'
+        for extra, expected in (([], False), (['--hash'], True)):
+            with self.subTest(extra=extra), mock.patch.object(C, 'report', return_value={'ok': True}) as report, \
+                 contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(C.main(['--sample', '01', name, 'private-file'] + extra), 0)
+            self.assertEqual(report.call_args.args[:3], ('1', name, 'private-file'))
+            self.assertEqual(report.call_args.args[-1], expected)
+
     def test_report_uses_one_file_snapshot_for_hash_and_payload(self):
         tags = [(256, 2), (257, 2), (273, 62), (279, 8)]
         first = (struct.pack('<2sHIH', b'II', 42, 8, len(tags)) +

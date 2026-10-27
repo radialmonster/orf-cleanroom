@@ -304,10 +304,16 @@ def main(argv=None):
     if any(r not in RULES for r in rules) or len(set(rules)) != len(rules):
         parser.error("unknown or repeated rule; known: " + ",".join(RULES))
     ids = [s[0] for s in args.sample]
-    if any(not i.isascii() or not i.isdecimal() or int(i) <= 0 for i in ids) or len(set(ids)) != len(ids):
+    if any(not i.isascii() or not i.isdecimal() or int(i) <= 0 for i in ids):
         parser.error("sample IDs must be distinct positive ASCII decimals")
+    canonical = [str(int(i)) for i in ids]
+    if len(set(canonical)) != len(canonical):
+        parser.error("sample IDs must be distinct positive ASCII decimals")
+    if any(not name or not name.isprintable() or any(c in name for c in "/\\")
+           for _, name, _ in args.sample):
+        parser.error("sample public name must be a name without path or control separators")
     failed = False
-    for index, (sample_id, name, path) in enumerate(args.sample, 1):
+    for index, ((_, name, path), sample_id) in enumerate(zip(args.sample, canonical), 1):
         try:
             print(json.dumps(report(sample_id, name, path, rules, args.table, args.hash)), flush=True)
         except (OSError, ValueError, KeyError, IndexError, TypeError, struct.error) as exc:
