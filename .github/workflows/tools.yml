@@ -90,3 +90,7 @@ jobs:
         run: |
           python -I -B tools/test_token_framing_probe.py
           python -I -B tools/test_token_anchor_sync_probe.py
+      - name: Synthetic cyclic phase and holdout tests
+        run: |
+          python -I -B tools/test_token_cyclic_phase_probe.py
+          python -I -B tools/test_token_phase_holdout_probe.py
