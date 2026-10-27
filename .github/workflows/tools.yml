@@ -93,6 +93,10 @@ jobs:
         run: python -I -B tools/test_payload_feature_probe.py
       - name: Synthetic search calibration tests
         run: python -I -B tools/test_framing_search_calibration.py
+      - name: Synthetic code-family and run-reordering tests
+        run: |
+          python -I -B tools/test_code_family_screen.py
+          python -I -B tools/test_run_reorder_search.py
       - name: Synthetic terminal and byte-boundary tests
         run: |
           python -I -B tools/test_terminal_residual_null_probe.py
