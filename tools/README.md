@@ -1,5 +1,18 @@
 # tools
 
+**`token_phase_rotation_control.py`** supports #144, building on #508. It
+refits joint period/phase and fixed-period phase for the observed sequence and
+each conditional block rotation, then compares their exact common-interval
+head-minus-rest contrasts. Sixteen references rotate independent 5240-token
+blocks and the partial blocks separately in training and test, using the stated
+seed and rejection draws. Results are descriptive: block seams, partial blocks,
+the fixed partition, and prior exposure limit interpretation; no calibrated
+significance, physical row, codec or population claim follows. Hash-match the
+input to its retained verified CC0 record. Aggregate JSON only.
+
+    python -I -B tools/token_phase_rotation_control.py --sample ID PUBLIC_NAME VERIFIED_SHA256 FILE
+    python -I -B tools/test_token_phase_rotation_control.py
+
 **`e400_boundary_probe.py`** tests the previously excluded boundary words in
 lead #79. Every nonzero-low4 word within two pixels of any stored-raster edge
 is tested with axial-2/diagonal-1 families, available-neighbour renormalization,
