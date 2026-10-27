@@ -113,6 +113,10 @@ jobs:
         run: |
           python -I -B tools/test_token_cyclic_phase_probe.py
           python -I -B tools/test_token_phase_holdout_probe.py
+      - name: Synthetic phase context and surrogate tests
+        run: |
+          python -I -B tools/test_token_phase_context_probe.py
+          python -I -B tools/test_token_phase_surrogate_probe.py
       - name: Synthetic fixed-band and stride tests
         run: |
           python -I -B tools/test_token_band_profile.py
