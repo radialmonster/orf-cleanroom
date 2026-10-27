@@ -172,6 +172,15 @@ class Tests(unittest.TestCase):
             with contextlib.redirect_stderr(err), contextlib.redirect_stdout(out):
                 self.assertEqual(C.main(["--sample", "1", "x", bad, "--rules", "F5"]), 1)
             self.assertNotIn(tmp, err.getvalue())
+            short = os.path.join(tmp, "short.jsonl")
+            rec = {"pixls_id": "1", "pixls_name": "x.ORF", "bpp": 7.0,
+                   "rules": {"F5": {"d": 5000, "rel": 0.05}}, "f5_table": [1] * 10}
+            with open(short, "w", encoding="utf-8-sig") as handle:
+                handle.write(json.dumps(rec) + chr(10))
+            with contextlib.redirect_stderr(err), contextlib.redirect_stdout(out):
+                self.assertEqual(C.main(["--summarize", short]), 1)
+            self.assertIn("summarize: IndexError", err.getvalue())
+            self.assertNotIn(tmp, err.getvalue())
 
 
 if __name__ == "__main__":

@@ -27,8 +27,10 @@ Rules (frozen 2026-10-26 before any cohort results):
 id (declared discovery/validation halves); the Spearman rank correlation of
 bpp with F5 rel over all files and within each public name (extension
 dropped) with three or more files; and, with tables, for each declared token
-predicate the min and max over files of count/d (files with d >= 1000).
-A predicate counting exactly the extra tokens would give 1 on every file.
+predicate the min and max over files of count/d (files with d >= 1000),
+listing the ten with the smallest max/min (a constant multiple of d ranks
+like 1, so read min and max). A predicate counting exactly the extra tokens
+would give 1 on every file.
 These are descriptive statistics, not significance tests.
 
     python -I -B tools/token_count_closure.py --sample ID PUBLIC_NAME FILE
@@ -226,7 +228,7 @@ def predicates():
 def summarize(paths):
     files = {}
     for path in paths:
-        with open(path, encoding="utf-8") as handle:
+        with open(path, encoding="utf-8-sig") as handle:
             for line in handle:
                 if line.strip():
                     rec = json.loads(line)
@@ -291,7 +293,7 @@ def main(argv=None):
             parser.error("--summarize takes no --sample")
         try:
             print(json.dumps(summarize(args.summarize), indent=2, allow_nan=False))
-        except (OSError, ValueError, KeyError, TypeError) as exc:
+        except (OSError, ValueError, KeyError, TypeError, IndexError) as exc:
             print("summarize: %s" % type(exc).__name__, file=sys.stderr)
             return 1
         return 0
