@@ -24,6 +24,8 @@ The predeclared additional CC0 file was id 5286, `OM System - OM-1 - 16bit (4:3)
 
 Both inputs were matched to retained verified CC0 records, existing manifest entries and their local hashes. For these exact inputs, the original and verification versions selected identical payload bytes and preview start, dimensions and length, and produced identical in-memory preview DC values. The preview is a numeric camera-rendering reference, not sensor ground truth. No image or preview data were exported. The current and original code differ in general container checks and luma arithmetic implementation; this compatibility observation is limited to these files.
 
+The maintainer separately recomputed clamped box means with float32 storage, scalar block averages, row-centred Pearson correlations, all 20 seeded within-row shuffles and all 22 preview-row shifts. Both reports' score and summary statistics match within 1e-12; alignment ranks and escape counts match exactly. Separate metadata checks confirm one strip and the same historical payload and preview selection on each file, with ordinary three-component interleaved previews.
+
 ## Reproduce
 
 At `3be87a1b0785e4ec17adeb4d7a55073076092cb6`, substitute the two hash-matched public files:
