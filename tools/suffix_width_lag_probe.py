@@ -15,6 +15,8 @@ Optional --block-rotation-control adds whole-block selection and matched
 donor rotations, preserving both marginals. This one deterministic control
 is not a null distribution, significance test or grammar-ranking rule.
 Reads regular files and prints aggregates only; stdlib Python 3.8+.
+An incomplete candidate prefix or input failure exits nonzero; all available
+candidate cells remain in the report.
 """
 import argparse
 import hashlib
@@ -207,7 +209,7 @@ def main(argv=None):
     print(json.dumps({"source_sha256": source_hashes(), "requested_tokens": TOKENS,
                       "python_version": sys.version.split()[0],
                       "samples": reports, "failures": failures}, indent=2, allow_nan=False))
-    return 1 if failures else 0
+    return 1 if failures or any(cell['token_shortfall'] for report in reports for cell in report['cells']) else 0
 
 
 if __name__ == "__main__":
