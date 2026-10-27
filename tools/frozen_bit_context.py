@@ -153,7 +153,13 @@ def main(argv=None):
         parser.error('offsets >= 0 and bytes 1..1048576 required')
     try:
         with open(args.manifest, newline='', encoding='utf-8') as stream:
-            manifest = list(csv.DictReader(stream))
+            reader = csv.DictReader(stream, strict=True)
+            fields = ('sha256', 'licence', 'pixls_id', 'pixls_name', 'payload_w', 'payload_h', 'size_class', 'variant')
+            if any((reader.fieldnames or []).count(field) != 1 for field in fields):
+                raise ValueError('missing or duplicate consumed manifest column')
+            manifest = list(reader)
+            if any(row[field] is None for row in manifest for field in fields):
+                raise ValueError('truncated manifest row')
         started = time.perf_counter()
         loaded = ([load_window(path, manifest, args.offset, args.size) for path in args.discovery]
                   + [load_window(path, manifest, validation_offset, args.size)
@@ -167,7 +173,7 @@ def main(argv=None):
                        'scope': 'compressed-bit predictive baseline only; no codec/reconstruction',
                        'cpu_seconds': time.perf_counter() - started,
                        'backend': 'stdlib CPU; fixed tiny campaign, no GPU claim'})
-    except (OSError, UnicodeError, ValueError, KeyError, IndexError, TypeError, struct.error):
+    except (OSError, UnicodeError, ValueError, KeyError, IndexError, TypeError, struct.error, csv.Error):
         print('invalid input: unreadable manifest/sample or invalid hash/strip/window', file=sys.stderr)
         return 1
     print(json.dumps(result, indent=2, sort_keys=True))
