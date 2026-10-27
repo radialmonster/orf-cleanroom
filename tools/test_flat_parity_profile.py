@@ -84,5 +84,25 @@ class Tests(unittest.TestCase):
         self.assertIsNone(report['real']['zero_opposing'])
         self.assertEqual(report['shuffled']['orientation'],report['real']['orientation'])
 
+    def test_cli_prefix_and_unavailable_prefix(self):
+        ss=checker(8,205); qs=array('H',[0]*len(ss))
+        digest=p.hashlib.sha256(b'data').hexdigest()
+        for limit, status in ((204*8,0),(206*8,1)):
+            out=io.StringIO()
+            with self.subTest(limit=limit), \
+                 patch.object(sys,'argv',['profile','sample','--sha256',digest,'--tokens',str(limit)]), \
+                 patch('builtins.open',return_value=io.BytesIO(b'data')), \
+                 patch.object(p.orf_tokens,'locate_data',return_value=(8,205,b'payload')), \
+                 patch.object(p.grid,'parse',return_value=(qs,ss,0)), \
+                 patch.object(p.grid,'shuffled',side_effect=lambda values,width,seed: values), \
+                 contextlib.redirect_stdout(out):
+                self.assertEqual(p.main(),status)
+            report=json.loads(out.getvalue())
+            if status == 0:
+                self.assertEqual((report['whole_tokens'],report['profile_tokens']),(205*8,limit))
+                self.assertEqual(report['real']['evaluation_total'],2)
+            else:
+                self.assertFalse(report['complete'])
+
 
 if __name__ == '__main__': unittest.main()

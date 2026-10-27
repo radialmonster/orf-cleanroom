@@ -54,7 +54,10 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('file')
     ap.add_argument('--sha256', required=True)
+    ap.add_argument('--tokens', type=int, help='profile this many prefix tokens (default: all)')
     args = ap.parse_args()
+    if args.tokens is not None and args.tokens <= 0:
+        ap.error('--tokens must be positive')
     try:
         with open(args.file, 'rb') as f:
             data = f.read()
@@ -64,10 +67,16 @@ def main():
         width, height, payload = orf_tokens.locate_data(data)
         del data
         qs, ss, used = grid.parse(payload)
+        whole_tokens = len(qs)
+        if args.tokens is not None and whole_tokens < args.tokens:
+            raise ValueError('requested prefix unavailable')
+        if args.tokens is not None:
+            qs, ss = qs[:args.tokens], ss[:args.tokens]
         real = profile(qs, ss, width)
         control = profile(qs, grid.shuffled(ss, width, 20261023), width,
                           fixed_orientation=real['orientation'], use_fixed=True)
-        print(json.dumps(dict(sha256=digest, width=width, height=height, tokens=len(qs),
+        print(json.dumps(dict(sha256=digest, width=width, height=height,
+                              whole_tokens=whole_tokens, profile_tokens=len(qs),
                               consumed_bits=used, residual_bits=len(payload)*8-used,
                               seed=20261023, real=real, shuffled=control)))
         return 0 if real['complete'] else 1

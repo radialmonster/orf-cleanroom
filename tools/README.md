@@ -280,6 +280,16 @@ TIFF tags; that is a coordinate choice, not an established pixel map or CFA phas
     python -I -B tools/bayer_grid_probe.py path/to/file.ORF
     python -I -B tools/test_bayer_grid_probe.py
 
+**`flat_parity_profile.py`** reports the fixed #338 nominal-block q=0/suffix
+0/8 parity contrast, training on blocks 2:202 and evaluating later complete
+blocks. `--tokens` selects a prefix; without it the whole candidate stream is
+profiled. Consumed and residual bits describe the whole parse in either mode.
+A null verdict is undefined even when exit status is zero. The fixed
+shuffle is descriptive; token blocks do not establish physical rows.
+
+    python -I -B tools/flat_parity_profile.py --sha256 HASH --tokens 8000000 path/to/file.ORF
+    python -I -B tools/test_flat_parity_profile.py
+
 **`pixls_samples.py`** lists, checks and downloads raw.pixls.us Olympus/OM samples using the site's licence listing. It downloads CC0 files only and verifies SHA-256. See the top-level README.
 
 **`manifest_rows.py`** turns local CC0 files into ready-made `samples/manifest.csv` rows, combining the licence listing with `orf_signature.py`.
