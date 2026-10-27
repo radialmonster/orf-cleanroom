@@ -27,6 +27,8 @@ The original three public OM-3 controlled white/dark files' 4MB zlib, bzip2 and 
 
 The shared unassigned bounded decompression screen reproduces 25/22 complete raw-DEFLATE hits for 7804 real/shuffled; predeclared 6344 gives 13/18, with no partial or other-format complete hits (finding `2026-10-27--mtakemoto--public-container-screen-reproduction`, Partial for #339; V1 S1.8). This does not exclude other framing or offsets.
 
+The original three public OM-3 controlled files and public 1993 reproduce their bounded raw-DEFLATE hit counts, with P1010009 as a separate extension (`2026-10-27--mtakemoto--controlled-container-screen`, Partial for #339). On 1993 the zlib 789c signature counts are 21 real versus 288 shuffled; no equivalence or codec claim follows.
+
 Eight further whole-payload candidate-family count rows reproduce on public 1993/7804 real and shuffled, with predeclared 6344 separately reported (finding `2026-10-27--mtakemoto--public-code-family-counts`, Partial for #339; V1 S1.8). Real Elias delta completes zero words on these files; no codec or pixel mapping follows.
 
 The nine candidate-family counts and k=5 endpoints also reproduce on the original three public OM-3 controlled white/dark files; predeclared 7797 is a separate busy High Res extension (`2026-10-27--mtakemoto--controlled-flat-family-counts`, Partial for #339). Real Elias delta completes no words; flat-file recompression and container claims remain outside this result.
