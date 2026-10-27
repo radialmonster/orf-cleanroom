@@ -1,15 +1,56 @@
 #!/usr/bin/env python3
 """Synthetic controls for token_phase_context_probe; stdlib, no file writes."""
 import math
+import contextlib
+import io
+import json
 import os
+import struct
 import sys
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import token_phase_context_probe as probe
 
 
 class PhaseContextTests(unittest.TestCase):
+    def test_cli_complete_short_and_unreadable_inputs(self):
+        def fixture(payload):
+            tags = ((256, 8), (257, 1), (273, 62), (279, len(payload)))
+            return (b'II' + struct.pack('<HIH', 42, 8, len(tags))
+                    + b''.join(struct.pack('<HHII', tag, 4, 1, value) for tag, value in tags)
+                    + struct.pack('<I', 0) + payload)
+
+        fixtures = {'complete': fixture(b'\xff\xff'), 'short': fixture(b'\xff')}
+        original_open = open
+
+        def open_fixture(path, *args, **kwargs):
+            if path in fixtures:
+                return io.BytesIO(fixtures[path])
+            if path == 'missing':
+                raise OSError('private diagnostic')
+            return original_open(path, *args, **kwargs)
+
+        for names, expected_status, shortfalls in (
+                (('complete',), 0, [0]), (('short',), 1, [1]),
+                (('complete', 'short'), 1, [0, 1]),
+                (('complete', 'short', 'missing'), 1, [0, 1]),
+                (('missing',), 1, [])):
+            argv = ['probe']
+            for i, name in enumerate(names, 1):
+                argv += ['--sample', str(i), 'public', name]
+            output = io.StringIO()
+            with self.subTest(names=names), mock.patch.object(sys, 'argv', argv), \
+                    mock.patch.object(probe, 'LIMIT', 2), mock.patch('builtins.open', side_effect=open_fixture), \
+                    contextlib.redirect_stdout(output):
+                status = probe.main()
+                result = json.loads(output.getvalue())
+                self.assertEqual(status, expected_status)
+                self.assertEqual([r['prefix_shortfall'] for r in result['samples']], shortfalls)
+                self.assertEqual(len(result['failures']), int('missing' in names))
+                self.assertNotIn('private diagnostic', output.getvalue())
+
     def test_balanced_xor(self):
         table = [[[0, 0] for _ in range(2)] for _ in range(4)]
         for c in range(4):
