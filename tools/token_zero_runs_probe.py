@@ -19,6 +19,7 @@ Each window censors both edges independently, even inside an ongoing run.
 These windows alone do not establish stationarity or representativeness.
 The CLI prints all available reports, then exits 1 if any input failed or any
 requested start/window was incomplete; complete error-free reports exit 0.
+IDs that cannot be converted to integers are argument errors.
 Public names must be printable basenames; licence verification remains separate.
 Public sample IDs must be distinct numerically; leading-zero aliases count as
 the same ID. Licence verification remains separate from this identity check.
@@ -161,7 +162,11 @@ def main():
     if args.start_token < 0 or args.tokens <= 0:
         parser.error("--start-token must be nonnegative and --tokens positive")
     ids = [sample[0] for sample in args.sample]
-    if any(not x.isascii() or not x.isdecimal() or int(x) <= 0 for x in ids) or len(set(map(int, ids))) != len(ids):
+    try:
+        invalid_ids = any(not x.isascii() or not x.isdecimal() or int(x) <= 0 for x in ids) or len(set(map(int, ids))) != len(ids)
+    except ValueError:
+        invalid_ids = True
+    if invalid_ids:
         parser.error("sample IDs must be distinct positive ASCII decimal integers")
     if any(not name or not name.isprintable() or any(c in name for c in "/\\")
            for _, name, _ in args.sample):

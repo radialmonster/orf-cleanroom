@@ -41,6 +41,7 @@ These are descriptive statistics, not significance tests.
 Each sample prints one JSON line, so separate runs can be concatenated.
 --hash adds the input SHA-256 (leave it off for files you may not identify).
 Stdlib, Python 3.8+. Reads input files and prints aggregates only.
+Sample IDs that cannot be converted to integers are argument errors.
 """
 import argparse
 import array
@@ -343,9 +344,13 @@ def main(argv=None):
     if any(r not in RULES for r in rules) or len(set(rules)) != len(rules):
         parser.error("unknown or repeated rule; known: " + ",".join(RULES))
     ids = [s[0] for s in args.sample]
-    if any(not i.isascii() or not i.isdecimal() or int(i) <= 0 for i in ids):
+    try:
+        invalid_ids = any(not i.isascii() or not i.isdecimal() or int(i) <= 0 for i in ids)
+        canonical = [str(int(i)) for i in ids] if not invalid_ids else []
+    except ValueError:
+        invalid_ids = True
+    if invalid_ids:
         parser.error("sample IDs must be distinct positive ASCII decimals")
-    canonical = [str(int(i)) for i in ids]
     if len(set(canonical)) != len(canonical):
         parser.error("sample IDs must be distinct positive ASCII decimals")
     if any(not name or not name.isprintable() or any(c in name for c in "/\\")

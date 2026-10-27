@@ -126,3 +126,7 @@ jobs:
         run: |
           python -I -B tools/test_token_bit_chain_probe.py
           python -I -B tools/test_token_context_probe.py
+      - name: Synthetic packed-16 neighbour arithmetic tests
+        run: |
+          python -I -B tools/test_e400_high12_probe.py
+          python -I -B tools/test_e400_zero_low4_probe.py
