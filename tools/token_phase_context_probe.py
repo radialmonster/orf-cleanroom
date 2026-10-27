@@ -24,6 +24,8 @@ Adjacent train/test blocks can remain dependent. Held-out scores are not
 unbiased estimates, null calibration, significance, historical reproduction,
 physical columns or a decoder. Negative gains are retained.
 Check public sample licences separately before use.
+Incomplete requested prefixes and input failures produce a nonzero exit;
+available aggregate reports are retained.
 Sample IDs must be distinct positive ASCII decimals; names must be printable
 and contain no path separators.
 """
@@ -213,7 +215,7 @@ def main():
     print(json.dumps({"source_sha256": sources, "python_version": sys.version.split()[0],
                       "escape_extra_bits": 0, "requested_prefix_tokens": LIMIT,
                       "samples": reports, "failures": failures}, indent=2, allow_nan=False))
-    return 1 if failures else 0
+    return 1 if failures or any(r["prefix_shortfall"] for r in reports) else 0
 
 
 if __name__ == "__main__":
