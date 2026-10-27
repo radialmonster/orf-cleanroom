@@ -166,6 +166,10 @@ jobs:
         run: |
           python -I -B tools/test_bayer_grid_probe.py
           python -I -B tools/test_orf_v0_unpack.py
+      - name: Synthetic sensor rejection controls
+        run: |
+          python -I -B tools/test_v0_sensor_controls.py
+          python -I -B tools/test_sensor_rejection_controls.py
       - name: Synthetic packed-16 boundary and exception tests
         run: |
           python -I -B tools/test_e400_boundary_probe.py

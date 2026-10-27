@@ -19,6 +19,7 @@ Usage: python -I -B tools/token_lag_probe.py --sample ID PUBLIC_NAME FILE
 Repeat --sample. Licence-check downloaded samples separately before use.
 Incomplete requested prefixes and input failures produce a nonzero exit;
 available aggregate reports are retained.
+Sample IDs must be distinct positive ASCII decimals and names printable basenames.
 """
 import argparse
 import hashlib
@@ -125,10 +126,14 @@ def main():
                         metavar=("ID", "PUBLIC_NAME", "FILE"), required=True)
     args = parser.parse_args()
     ids = [row[0] for row in args.sample]
-    if any(not value.isdecimal() or not value.isascii() or int(value) <= 0 for value in ids):
-        parser.error("sample IDs must be positive ASCII decimals")
-    if len(set(ids)) != len(ids):
-        parser.error("sample IDs must be distinct")
+    try:
+        invalid_ids = any(not value.isdecimal() or not value.isascii() or int(value) <= 0 for value in ids) or len(set(map(int, ids))) != len(ids)
+    except ValueError:
+        invalid_ids = True
+    if invalid_ids:
+        parser.error("sample IDs must be distinct positive ASCII decimals")
+    if any(not name or not name.isprintable() or any(c in name for c in '/\\') for _, name, _ in args.sample):
+        parser.error("sample public name must be a printable basename")
     reports, failures = [], []
     for sample_id, name, path in args.sample:
         try:
