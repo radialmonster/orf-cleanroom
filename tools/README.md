@@ -281,6 +281,15 @@ The screen is bounded and descriptive: it cannot exclude other framings, paramet
     python -I -B tools/code_family_screen.py path/to/file.ORF [--shuffle]
     python -I -B tools/test_code_family_screen.py
 
+**`rice_boundary_compare.py`** supports #339 by comparing complete literal stop-1 Rice
+k=4 and k=5 endpoints from bit 0 in a fixed payload prefix. It aggregates shared-boundary
+interval spans and word counts, and reports unmatched tails and residual bits. `--shuffle`
+shuffles the whole payload with the stated seed before taking the prefix. Shared endpoints
+do not establish physical framing, synchronization or the correct code family.
+
+    python -I -B tools/rice_boundary_compare.py path/to/file.ORF --prefix-bytes 3000000 [--shuffle]
+    python -I -B tools/test_rice_boundary_compare.py
+
 **`bayer_grid_probe.py`** supports lead #338. On the candidate k=5 parse it counts suffix
 equality on the lag lattice `dy*W + dx` (dy 0..3, dx -4..4) over a token prefix, next to one fixed
 shuffle that permutes ordinary suffixes within W-token blocks (escape positions kept). It also reports
