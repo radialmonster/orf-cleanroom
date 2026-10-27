@@ -358,6 +358,9 @@ def decode_file(path, order=None, layout=None):
         # 2026-10-27--mtakemoto--public-container-screen-reproduction (Partial
         # for #339): bounded unassigned format hits do not establish framing
         # or a decode step (V1 S1.8).
+        # 2026-10-27--mtakemoto--controlled-flat-family-counts (Partial for
+        # #339): candidate counts reproduce on three public controlled files;
+        # the separate 7797 extension is busy, not a flat or a codec result.
         # 2026-10-27--mtakemoto--public-code-family-counts (Partial for #339):
         # unassigned candidate counts establish no codec or pixel mapping (V1 S1.8).
         # 2026-10-27--radialmonster--body-label-holdout-reproduction (#329):
