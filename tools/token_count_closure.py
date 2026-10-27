@@ -47,6 +47,7 @@ import array
 import collections
 import hashlib
 import json
+import math
 import os
 import statistics
 import struct
@@ -226,13 +227,51 @@ def predicates():
     return out
 
 
+def unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON object key")
+        result[key] = value
+    return result
+
+
+def validate_summary_record(rec):
+    if not isinstance(rec, dict):
+        raise ValueError("record must be an object")
+    rid, name, rules = rec.get("pixls_id"), rec.get("pixls_name"), rec.get("rules")
+    if not isinstance(rid, str) or not rid.isascii() or not rid.isdecimal() or int(rid) <= 0:
+        raise ValueError("invalid public ID")
+    if (not isinstance(name, str) or not name or not name.isprintable()
+            or any(c in name for c in "/\\") or not isinstance(rules, dict) or not rules):
+        raise ValueError("invalid name or rules")
+    def finite(value):
+        try:
+            return type(value) in (int, float) and math.isfinite(value)
+        except OverflowError:
+            return False
+    if not finite(rec.get("bpp")) or rec["bpp"] <= 0:
+        raise ValueError("invalid bpp")
+    for rule, values in rules.items():
+        if rule not in RULES or not isinstance(values, dict) or not finite(values.get("rel")):
+            raise ValueError("invalid rule or relative excess")
+        if rule == "F5" and type(values.get("d")) is not int:
+            raise ValueError("invalid F5 excess")
+    if "f5_table" in rec:
+        table = rec["f5_table"]
+        if not isinstance(table, list) or len(table) != 576 or any(type(n) is not int or n < 0 for n in table):
+            raise ValueError("invalid F5 table")
+
+
 def summarize(paths):
     files = {}
     for path in paths:
         with open(path, encoding="utf-8-sig") as handle:
             for line in handle:
                 if line.strip():
-                    rec = json.loads(line)
+                    rec = json.loads(line, object_pairs_hook=unique_object)
+                    validate_summary_record(rec)
+                    rec["pixls_id"] = str(int(rec["pixls_id"]))
                     if rec["pixls_id"] in files:
                         raise ValueError("duplicate pixls_id in results")
                     files[rec["pixls_id"]] = rec
@@ -294,7 +333,7 @@ def main(argv=None):
             parser.error("--summarize takes no --sample")
         try:
             print(json.dumps(summarize(args.summarize), indent=2, allow_nan=False))
-        except (OSError, ValueError, KeyError, TypeError, IndexError) as exc:
+        except (OSError, ValueError, KeyError, TypeError, IndexError, OverflowError) as exc:
             print("summarize: %s" % type(exc).__name__, file=sys.stderr)
             return 1
         return 0
