@@ -162,6 +162,10 @@ jobs:
         run: |
           python -I -B tools/test_e400_high12_probe.py
           python -I -B tools/test_e400_zero_low4_probe.py
+      - name: Synthetic grid and packed-word boundary tests
+        run: |
+          python -I -B tools/test_bayer_grid_probe.py
+          python -I -B tools/test_orf_v0_unpack.py
       - name: Synthetic sensor rejection controls
         run: |
           python -I -B tools/test_v0_sensor_controls.py
