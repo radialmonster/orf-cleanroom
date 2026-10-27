@@ -120,6 +120,13 @@ def main():
             existing.seek(-1, os.SEEK_END)
             if existing.read(1) != b"\n":
                 ap.error("--append destination must end in a newline")
+            existing.seek(0)
+            try:
+                header = next(csv.reader([existing.readline().decode("utf-8-sig")], strict=True))
+            except (UnicodeError, csv.Error, StopIteration):
+                ap.error("--append destination has an invalid manifest header")
+            if header != COLUMNS:
+                ap.error("--append destination has an invalid manifest header")
     if a.licence_records is not None:
         try:
             listing = by_hash(licence_records(a.licence_records))
