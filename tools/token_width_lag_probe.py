@@ -20,6 +20,8 @@ Historical private files, precise estimator and row alignment are unknown;
 this descriptive public metric does not reproduce their exact values.
 Licence-check samples separately before use. Requires one contiguous,
 in-bounds, positive variable-size payload; variant remains unassigned.
+Incomplete requested prefixes and input failures produce a nonzero exit;
+available aggregate reports are retained.
 """
 import argparse
 import hashlib
@@ -121,7 +123,7 @@ def main(argv=None):
     print(json.dumps({"source_sha256": hashes, "python_version": sys.version.split()[0],
                       "escape_extra_bits": 0, "pair_selection": "both endpoint q<17; original indices",
                       "samples": reports, "failures": failures}, indent=2, allow_nan=False))
-    return 1 if failures else 0
+    return 1 if failures or any(r["shortfall_tokens"] for r in reports) else 0
 
 
 if __name__ == "__main__":
