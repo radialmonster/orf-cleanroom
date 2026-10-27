@@ -382,6 +382,9 @@ def decode_file(path, order=None, layout=None):
         # F_OM1_DARK (Partial for #338): same-colour offset signs repeat on four
         # own lens-cap captures from two bodies and two sensitivity settings; this
         # does not identify a predictor, values or a decode step (V1 S1.20).
+        # F_EM5_DARK_SIGN (#561): six public E-M5 Mark II dark files retain
+        # four token-offset signs in 4M and 8M prefixes; no CFA or predictor is
+        # established (V1 S1.21).
         # F_WHITE_PARITY (#555): one white-file nominal profile has zero opposing
         # eligible blocks; one whole-stream block is low-information and excluded.
         # It does not establish physical rows (V1 S1.21).

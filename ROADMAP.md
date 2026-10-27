@@ -17,6 +17,8 @@ Shared unassigned flat-capture evidence: two own OM-1 Mark II files repeat a par
 
 On one public OM-3 white file, a fixed nominal-block parity profile has no opposing eligible blocks in an 8M prefix or whole stream (3709 whole-stream blocks eligible, one excluded as low-information); its shuffled control has no eligible blocks (`2026-10-27--radialmonster--white-parity-profile-reproduction`, self-verified #555). This is conditional on descriptive thresholds and does not establish physical rows.
 
+Six public E-M5 Mark II dark captures retain four declared real-versus-shuffled token-offset signs in 4M and 8M prefixes (`2026-10-27--radialmonster--em5-dark-sign-reproduction`, self-verified #561). The wider run uses the same captures and does not establish CFA, predictor or variant membership.
+
 Shared unassigned Rice stop-1 k=5 counts reproduce on public ids 1993 and 7804, with a predeclared 7803 extension (finding `2026-10-27--mtakemoto--rice-counts-public-files`, Partial for #339; V1 S1.8). The original 1993 zlib-9 prefix ratios also reproduce, with a separate 7803 extension (finding `2026-10-27--mtakemoto--zlib-public-prefix-reproduction`, Partial for #339); an earlier conflicting review result remains unexplained. These observations establish neither codec nor pixel correspondence; other #339 claims remain open.
 
 The shared unassigned bounded decompression screen reproduces 25/22 complete raw-DEFLATE hits for 7804 real/shuffled; predeclared 6344 gives 13/18, with no partial or other-format complete hits (finding `2026-10-27--mtakemoto--public-container-screen-reproduction`, Partial for #339; V1 S1.8). This does not exclude other framing or offsets.
