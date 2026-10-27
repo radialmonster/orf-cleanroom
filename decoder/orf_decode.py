@@ -278,6 +278,9 @@ def decode_file(path, order=None, layout=None):
         # F_PHASE (Partial for #356) finds a file-specific row-phase dependence of
         # the same top-band score on two further E-M1 Mark II files; it establishes
         # no phase law, physical row origin, values or decode step.
+        # 2026-10-27--mszyndel--om1-topband-luma-reproduction (#368) measures
+        # unassigned OM-1 top-band scores at fixed width stride and phase 0;
+        # it specifies no physical rows, values or decode (V1 S1.15, G4).
         # finding F_FIXED: a payload that is not an exact 12 / 12.8 / 16 bit packing is compressed
         # Tail counts: finding 2026-10-21--radialmonster--compressed-tail-full-cohort-reproduction
         # and terminal endpoint: finding F_ENDPOINT (both Partial, unassigned 87-file cohort)
