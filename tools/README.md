@@ -281,6 +281,16 @@ The screen is bounded and descriptive: it cannot exclude other framings, paramet
     python -I -B tools/code_family_screen.py path/to/file.ORF [--shuffle]
     python -I -B tools/test_code_family_screen.py
 
+**`whole_family_null.py`** supports V2 G0. It counts nine literal candidate
+families over a whole payload and a single same-length Bernoulli control fitted
+to its full-payload ones fraction. It retains packed bytes rather than a bit
+list. Endpoints, residuals and count per stored site are descriptive; they do
+not identify a codec, framing, physical pixel correspondence or variant. Density
+is preserved only in expectation and one seeded draw does not show significance.
+
+    python -I -B tools/whole_family_null.py path/to/file.ORF --seed 20261021
+    python -I -B tools/test_whole_family_null.py
+
 **`rice_boundary_compare.py`** supports #339 by comparing complete literal stop-1 Rice
 k=4 and k=5 endpoints from bit 0 in a fixed payload prefix. It aggregates shared-boundary
 interval spans and word counts, and reports unmatched tails and residual bits. `--shuffle`
