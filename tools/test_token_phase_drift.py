@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Synthetic, no-file-write CPU references for token_phase_drift.py."""
 import os
+import contextlib
 import hashlib
 import io
+import json
 import random
 import sys
 import time
@@ -11,9 +13,61 @@ from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from token_phase_drift import experiment, fit_predict, phase_profile, scan_bands, measure, main
+import token_phase_drift as probe
 
 
 class PhaseDriftTests(unittest.TestCase):
+    def test_bad_hash_remains_a_per_sample_failure(self):
+        args = ['--sample', '1', 'public', '0' * 64, 'unused',
+                '--sample', '2', 'public', 'bad', 'unused']
+        out = io.StringIO()
+        with mock.patch.object(probe, 'measure', return_value={'bands_complete': True}) as measured, \
+             contextlib.redirect_stdout(out):
+            self.assertEqual(probe.main(args), 1)
+        samples = json.loads(out.getvalue())['samples']
+        self.assertEqual([s['ok'] for s in samples], [True, False])
+        self.assertEqual(samples[1]['error'], 'ValueError')
+        self.assertEqual(measured.call_count, 1)
+
+    def test_identity_rejected_before_any_measurement(self):
+        limit = getattr(sys, 'get_int_max_str_digits', lambda: 0)()
+        cases = [([('1', 'public'), ('0', 'public')], False),
+                 ([('1', 'public'), ('\u0661', 'public')], False),
+                 ([('1', 'public'), ('01', 'public')], False),
+                 ([('1', 'public'), ('2', '')], False),
+                 ([('1', 'public'), ('2', 'private/path')], False),
+                 ([('1', 'public'), ('2', 'private\\path')], False),
+                 ([('1', 'public'), ('2', 'bad\nname')], False),
+                 ([('1', 'public'), ('2', 'public')], True)]
+        if limit:
+            cases.append(([('1', 'public'), ('9' * (limit + 1), 'public')], False))
+        for samples, simulated in cases:
+            args = []
+            for sid, name in samples:
+                args += ['--sample', sid, name, '0' * 64, 'unused']
+            out, err = io.StringIO(), io.StringIO()
+            conversion = mock.patch.object(probe, 'int', side_effect=ValueError('private detail'), create=True) if simulated else contextlib.nullcontext()
+            with self.subTest(simulated=simulated, case=samples[-1][0][:4]), mock.patch.object(probe, 'measure') as measured, conversion, contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                with self.assertRaises(SystemExit) as caught:
+                    probe.main(args)
+                self.assertEqual(caught.exception.code, 2)
+                measured.assert_not_called()
+                self.assertEqual(out.getvalue(), '')
+                self.assertNotIn('private', err.getvalue())
+
+    def test_valid_public_identity_spelling_is_preserved(self):
+        name = 'OM - Élite "camera" (4:3).ORF'
+        def echo(sid, public=None, path=None, *args):
+            return {'bands_complete': True}
+        args = ['--sample', '01', name, '0' * 64, 'unused']
+        out = io.StringIO()
+        with mock.patch.object(probe, 'measure', side_effect=echo), contextlib.redirect_stdout(out):
+            status = probe.main(args)
+        self.assertEqual(status, 0)
+        sample = json.loads(out.getvalue())['samples'][0]
+        self.assertEqual((sample['pixls_id'], sample['pixls_name']), ('01', name))
+
+
     def test_profile_independent_direct_heads(self):
         rng = random.Random(421)
         cells = 0

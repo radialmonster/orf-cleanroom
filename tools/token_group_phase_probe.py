@@ -27,6 +27,7 @@ valid magnitude, physical groups/rows, significance, decoder or finding.
 Short requested prefixes retain observed diagnostics only and exit 1. Errors are
 sanitized and successful inputs survive a mixed batch. Verify public CC0
 provenance/hash separately. Usage: --sample ID PUBLIC_NAME FILE (repeatable).
+Sample IDs must be distinct positive ASCII decimals and names printable basenames.
 """
 import argparse
 import hashlib
@@ -162,8 +163,14 @@ def main(argv=None):
                         metavar=("ID", "PUBLIC_NAME", "FILE"))
     args = parser.parse_args(argv)
     ids = [s[0] for s in args.sample]
-    if any(not s.isascii() or not s.isdecimal() or int(s) <= 0 for s in ids) or len(set(map(int, ids))) != len(ids):
+    try:
+        invalid_ids = any(not s.isascii() or not s.isdecimal() or int(s) <= 0 for s in ids) or len(set(map(int, ids))) != len(ids)
+    except ValueError:
+        invalid_ids = True
+    if invalid_ids:
         parser.error("sample IDs must be distinct positive ASCII decimal integers")
+    if any(not name or not name.isprintable() or any(c in name for c in '/\\') for _, name, _ in args.sample):
+        parser.error("sample public name must be a printable basename")
     reports, failures = [], []
     for sample_id, name, path in args.sample:
         try:
