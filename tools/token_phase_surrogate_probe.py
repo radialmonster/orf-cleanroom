@@ -14,6 +14,7 @@ for ORFs. Adjacent blocks may depend; within-block phase structure remains.
 No historical private-number reproduction, physical-column or decode claim.
 Stdlib, reads samples/prints aggregate JSON only. Reuse retained CC0 records
 only after matching the local SHA256. New content needs first verification.
+Sample IDs must be distinct positive ASCII decimals and names printable basenames.
 """
 import argparse
 import hashlib
@@ -146,8 +147,14 @@ def main(argv=None):
                         metavar=("ID", "PUBLIC_NAME", "FILE"))
     args = parser.parse_args(argv)
     ids = [sample[0] for sample in args.sample]
-    if any(not x.isascii() or not x.isdecimal() or int(x) <= 0 for x in ids) or len(set(ids)) != len(ids):
+    try:
+        invalid_ids = any(not x.isascii() or not x.isdecimal() or int(x) <= 0 for x in ids) or len(set(map(int, ids))) != len(ids)
+    except ValueError:
+        invalid_ids = True
+    if invalid_ids:
         parser.error("sample IDs must be distinct positive ASCII decimal integers")
+    if any(not name or not name.isprintable() or any(c in name for c in '/\\') for _, name, _ in args.sample):
+        parser.error("sample public name must be a printable basename")
     reports, failures = [], []
     for sample_id, name, path in args.sample:
         try:

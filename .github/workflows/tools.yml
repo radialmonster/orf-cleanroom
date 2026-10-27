@@ -25,10 +25,46 @@ jobs:
           python decoder/orf_decode.py --help > /dev/null
       - name: Decoder round-trip tests (synthetic bytes)
         run: python tools/test_orf_decode.py
+      - name: Conformance CLI tests
+        run: python -I -B tools/test_conformance.py
       - name: value_map_probe tests
-        run: python tools/test_value_map_probe.py
+        run: |
+          mkdir -p work/ci-tmp
+          TMPDIR="$PWD/work/ci-tmp" python -I -B tools/test_value_map_probe.py
+          TMPDIR="$PWD/work/ci-tmp" python -I -B tools/test_value_map_window_probe.py
       - name: orf_tokens tests
         run: python tools/test_orf_tokens.py
+      - name: Token luma probe tests
+        run: python -I -B tools/test_token_luma_probe.py
+      - name: Token luma stride probe tests
+        run: python -I -B tools/test_token_luma_stride_probe.py
+      - name: Token luma phase probe tests
+        run: python -I -B tools/test_token_luma_phase_probe.py
+      - name: Token phase and suffix joint tests
+        run: |
+          python -I -B tools/test_token_phase_probe.py
+          python -I -B tools/suffix_joint_probe.py --self-test
+      - name: Token count closure tests
+        run: python -I -B tools/test_token_count_closure.py
+      - name: orf signature tests
+        run: python -I -B tools/test_orf_signature.py
+      - name: Active area metadata tests
+        run: python -I -B tools/test_orf_active_area.py
+      - name: capture pair calibration tests
+        run: python -I -B tools/test_capture_pair_calibration.py
+      - name: Capture metadata audit tests
+        run: python -I -B tools/test_capture_metadata_audit.py
+      - name: Exif sensitivity probe tests
+        run: python -I -B tools/test_exif_sensitivity_probe.py
+      - name: preview pair screen tests
+        run: python -I -B tools/test_preview_pair_screen.py
+      - name: Synthetic preview sensitivity and Figure 8 tests
+        run: |
+          mkdir -p work/ci-tmp
+          TMPDIR="$PWD/work/ci-tmp" python -I -B tools/test_preview_pair_sensitivity.py
+          TMPDIR="$PWD/work/ci-tmp" python -I -B tools/test_huffman_figure8_probe.py
+      - name: JPEG preview reader tests
+        run: python -I -B tools/test_jpeg_dc.py
       - name: suffix_match_probe tests
         run: |
           python -I tools/test_suffix_match_probe.py
@@ -41,7 +77,117 @@ jobs:
         run: python -I tools/test_pr_checks_safety.py
       - name: Issue and comment scan tests
         run: python -I tools/test_issue_scan.py
+      - name: Finding partial scope tests
+        run: python -I -B tools/test_findings_partial.py
+      - name: Findings index identity tests
+        run: python -I -B tools/test_findings_index.py
       - name: Offline automerge decision tests
         run: python -I -B tools/test_automerge_decision.py
       - name: Offline sample tool regression tests
         run: python -I -B tools/test_sample_tool_regressions.py
+      - name: Offline manifest licence record tests
+        run: python -I -B tools/test_manifest_offline.py
+      - name: Metadata cohort design audit tests
+        run: python -I -B tools/test_cohort_design_audit.py
+      - name: Body label holdout tests
+        run: python -I -B tools/test_body_label_holdout.py
+      - name: Payload feature probe tests
+        run: python -I -B tools/test_payload_feature_probe.py
+      - name: Synthetic search calibration tests
+        run: python -I -B tools/test_framing_search_calibration.py
+      - name: Synthetic code-family and run-reordering tests
+        run: |
+          python -I -B tools/test_code_family_screen.py
+          python -I -B tools/test_run_reorder_search.py
+      - name: Synthetic terminal and byte-boundary tests
+        run: |
+          python -I -B tools/test_terminal_residual_null_probe.py
+          python -I -B tools/test_byte_boundary_tail_probe.py
+      - name: Synthetic frozen model and coding controls
+        run: |
+          python -I -B tools/test_frozen_bit_context.py
+          python -I -B tools/test_bounded_codec_controls.py
+      - name: Synthetic framing and anchor synchronization tests
+        run: |
+          python -I -B tools/test_token_framing_probe.py
+          python -I -B tools/test_token_anchor_sync_probe.py
+      - name: Synthetic escape and run accounting tests
+        run: |
+          python -I -B tools/test_escape_balance_probe.py
+          python -I -B tools/test_token_zero_runs_probe.py
+      - name: Synthetic cyclic phase and holdout tests
+        run: |
+          python -I -B tools/test_token_cyclic_phase_probe.py
+          python -I -B tools/test_token_phase_holdout_probe.py
+      - name: Synthetic phase context and surrogate tests
+        run: |
+          python -I -B tools/test_token_phase_context_probe.py
+          python -I -B tools/test_token_phase_surrogate_probe.py
+      - name: Synthetic group phase and drift tests
+        run: |
+          python -I -B tools/test_token_group_phase_probe.py
+          python -I -B tools/test_token_phase_drift.py
+      - name: Synthetic fixed-band and stride tests
+        run: |
+          python -I -B tools/test_token_band_profile.py
+          python -I -B tools/test_token_row_stride.py
+      - name: Synthetic stride, width context, and tail distribution tests
+        run: |
+          python -I -B tools/test_token_head_stride_probe.py
+          python -I -B tools/test_token_phase_stride_compare.py
+          python -I -B tools/test_token_width_context_probe.py
+          python -I -B tools/test_token_tail_distribution_probe.py
+      - name: Synthetic width and suffix lag tests
+        run: |
+          python -I -B tools/test_token_width_lag_probe.py
+          python -I -B tools/test_suffix_width_lag_probe.py
+      - name: Synthetic bit chain and context model tests
+        run: |
+          python -I -B tools/test_token_bit_chain_probe.py
+          python -I -B tools/test_token_context_probe.py
+      - name: Synthetic affine and bit gate tests
+        run: |
+          python -I -B tools/test_token_affine_probe.py
+          python -I -B tools/test_token_b4_gate_probe.py
+      - name: Synthetic token scale and bridge tests
+        run: |
+          python -I -B tools/test_token_scale_probe.py
+          python -I -B tools/test_q_value_bridge_probe.py
+      - name: Synthetic token lag and position tests
+        run: |
+          python -I -B tools/test_token_lag_probe.py
+          python -I -B tools/test_token_position_probe.py
+      - name: Synthetic payload-band and donor-lag tests
+        run: |
+          python -I -B tools/test_payload_band_lag.py
+          python -I -B tools/test_token_donor_comb_probe.py
+      - name: Synthetic token predictor and loop tests
+        run: |
+          python -I -B tools/test_token_predictor_probe.py
+          python -I -B tools/test_token_loop_probe.py
+      - name: Synthetic suffix window and width tests
+        run: |
+          python -I -B tools/test_suffix_window_probe.py
+          python -I -B tools/test_suffix_width_probe.py
+      - name: Synthetic packed-16 neighbour arithmetic tests
+        run: |
+          python -I -B tools/test_e400_high12_probe.py
+          python -I -B tools/test_e400_zero_low4_probe.py
+      - name: Synthetic grid and packed-word boundary tests
+        run: |
+          python -I -B tools/test_bayer_grid_probe.py
+          python -I -B tools/test_orf_v0_unpack.py
+      - name: Synthetic unit order and trailing-bit tests
+        run: |
+          mkdir -p work/ci-tmp
+          TMPDIR="$PWD/work/ci-tmp" python -I -B tools/test_unit_order_probe.py
+          TMPDIR="$PWD/work/ci-tmp" python -I -B tools/test_trailing_ones_probe.py
+      - name: Synthetic sensor rejection controls
+        run: |
+          python -I -B tools/test_v0_sensor_controls.py
+          python -I -B tools/test_sensor_rejection_controls.py
+      - name: Synthetic packed-16 boundary and exception tests
+        run: |
+          python -I -B tools/test_e400_boundary_probe.py
+          python -I -B tools/test_e400_exception_probe.py
+          python -I -B tools/test_e400_single_pass_probe.py

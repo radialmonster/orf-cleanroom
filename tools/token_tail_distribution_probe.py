@@ -9,6 +9,8 @@ stride/phase fitting, decoding, preview access or field semantics. Retain
 q>=17 with zero extra escape skip; actual escape syntax remains unknown.
 Reuse retained CC0 verification after matching the local SHA-256. Stdlib,
 Python 3.8+; reads files and prints numbers, without writing sample data.
+Sample IDs must be unique positive ASCII decimals; names must be printable
+and contain no path separators.
 """
 import argparse
 import collections
@@ -165,10 +167,18 @@ def main(argv=None):
     args = parser.parse_args(argv)
     starts = sorted(set(args.start_row if args.start_row is not None else [0, 1000, 2000]))
     ids = [s[0] for s in args.sample]
-    if (args.rows < 1 or args.stride < 2 or min(starts) < 0 or
-            any(not sid.isascii() or not sid.isdecimal() or int(sid) < 1 for sid in ids)
-            or len(set(ids)) != len(ids)):
-        parser.error("require positive unique decimal IDs, rows/stride and nonnegative starts")
+    if args.rows < 1 or args.stride < 2 or min(starts) < 0:
+        parser.error("require positive rows/stride and nonnegative starts")
+    try:
+        if any(not sid.isascii() or not sid.isdecimal() or int(sid) <= 0 for sid in ids):
+            raise ValueError
+        if len(set(int(sid) for sid in ids)) != len(ids):
+            raise ValueError
+    except ValueError:
+        parser.error("sample IDs must be distinct positive ASCII decimals")
+    if any(not name or not name.isprintable() or any(c in name for c in "/\\")
+           for _, name, _, _ in args.sample):
+        parser.error("sample public name must be printable without path separators")
     samples, failed = [], False
     for sid, name, digest, path in args.sample:
         entry = dict(pixls_id=sid, pixls_name=name)

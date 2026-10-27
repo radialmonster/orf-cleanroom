@@ -11,15 +11,18 @@ Usage:
   python pixls_samples.py list [--all-licences] [--missing MANIFEST]
                                                   # CC0 ORF/ORI files by default;
                                                   # --missing: only those not in MANIFEST
-  python pixls_samples.py check FILE [FILE ...]   # licence of local files, by SHA-256
+  python pixls_samples.py check [--json] FILE [FILE ...] # check local hashes against the live catalogue;
+                                                  # exit 1 for unreadable or non-CC0 inputs
   python pixls_samples.py download DIR [--model M] [--max N]
                                                   # CC0 only, SHA-256 verified;
-                                                  # DIR must be outside the repo
+                                                  # DIR must be outside the repo;
+                                                  # exits 1 on hash mismatch or local file error
 """
 import argparse
 import csv
 import difflib
 import hashlib
+from html.parser import HTMLParser
 import json
 import os
 import re
@@ -37,6 +40,40 @@ def fetch(url):
         return r.read()
 
 
+class LicenceLinks(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.hrefs = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'a':
+            self.hrefs.extend(value for key, value in attrs if key == 'href')
+
+
+def licence_from_html(html):
+    """Classify one unambiguous Creative Commons licence link; otherwise fail closed."""
+    if not isinstance(html, str) or '<![' in html:
+        return 'unknown'
+    parser = LicenceLinks()
+    try:
+        parser.feed(html)
+    except (AssertionError, ValueError):
+        return 'unknown'
+    if len(parser.hrefs) != 1 or not isinstance(parser.hrefs[0], str):
+        return 'unknown'
+    try:
+        url = urllib.parse.urlsplit(parser.hrefs[0])
+    except ValueError:
+        return 'unknown'
+    if (url.scheme not in ('http', 'https') or url.netloc.lower() != 'creativecommons.org'
+            or url.query or url.fragment):
+        return 'unknown'
+    if url.path.rstrip('/') == '/publicdomain/zero/1.0':
+        return 'CC0'
+    licence = re.fullmatch(r'/licenses/([a-z-]+)/([0-9.]+)/?', url.path)
+    return 'CC-%s-%s' % (licence.group(1).upper(), licence.group(2)) if licence else 'unknown'
+
+
 def rows():
     """Yield dicts for every Olympus / OM System ORF or ORI in the listing."""
     listing = json.loads(fetch(LISTING))
@@ -46,14 +83,27 @@ def rows():
         make, model, mode, licence_html, file_html = r[0], r[1], r[2], r[5], r[7]
         if not make.lower().startswith(MAKES):
             continue
-        url = re.search(r"href='([^']+)'", file_html).group(1)
+        if not isinstance(file_html, str) or '<![' in file_html:
+            raise ValueError("invalid catalogue file link")
+        parsed = LicenceLinks()
+        try:
+            parsed.feed(file_html)
+        except (AssertionError, ValueError):
+            raise ValueError("invalid catalogue file link")
+        if len(parsed.hrefs) != 1 or not isinstance(parsed.hrefs[0], str):
+            raise ValueError("ambiguous catalogue file link")
+        url = parsed.hrefs[0]
         name = url.rsplit("/", 1)[1]
         if not name.lower().endswith((".orf", ".ori")):
             continue
-        lic = re.search(r"licenses/([a-z-]+)/([0-9.]+)", licence_html)
-        file_id = re.search(r"getfile\.php/(\d+)/", url).group(1)
-        # The hash is the one 64-hex run outside the link (a URL could hold another).
-        hashes = re.findall(r"(?<![0-9a-f])[0-9a-f]{64}(?![0-9a-f])", re.sub(r"href='[^']*'", "", file_html))
+        match = re.search(r"getfile\.php/(\d+)/", url)
+        if match is None:
+            raise ValueError("invalid catalogue file identity")
+        file_id = match.group(1)
+        # Preserve the existing search outside href values, including other attributes.
+        without_href = re.sub(r'''\bhref\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)''',
+                              "", file_html, flags=re.IGNORECASE)
+        hashes = re.findall(r"(?<![0-9a-f])[0-9a-f]{64}(?![0-9a-f])", without_href)
         if len(hashes) != 1:
             print("skipped (no single SHA-256 in the listing): id %s" % file_id, file=sys.stderr)
             continue
@@ -62,7 +112,7 @@ def rows():
             "make": make,
             "model": model,
             "mode": mode,
-            "licence": "CC0" if "zero/1.0" in licence_html else ("CC-%s-%s" % (lic.group(1).upper(), lic.group(2)) if lic else "unknown"),
+            "licence": licence_from_html(licence_html),
             "sha256": hashes[0],
             "name": name,
             # Site names can repeat and contain ':', which Windows can't store.
@@ -107,15 +157,35 @@ def cmd_list(a):
 def cmd_check(a):
     lic = by_hash(rows())
     bad = 0
-    for p in a.files:
-        r = lic.get(sha256_file(p))
-        if r is None:
-            print("NOT LISTED  %s  (not a raw.pixls.us file; fine if it's your own, see RULES.md 'Data')" % p)
-        elif r["licence"] != "CC0":
-            print("NOT CC0     %s  (%s; don't use it here)" % (p, r["licence"]))
+    known, unknown, unreadable, seen = [], [], [], set()
+    for index, p in enumerate(a.files, 1):
+        try:
+            digest = sha256_file(p)
+        except OSError as exc:
+            if a.json:
+                unreadable.append(index)
+            else:
+                print("input %d: %s" % (index, type(exc).__name__), file=sys.stderr)
             bad += 1
-        else:
+            continue
+        r = lic.get(digest)
+        if r is None:
+            if a.json:
+                unknown.append(index)
+            else:
+                print("NOT LISTED  %s  (not a raw.pixls.us file; fine if it's your own, see RULES.md 'Data')" % p)
+        elif r["licence"] != "CC0":
+            if not a.json:
+                print("NOT CC0     %s  (%s; don't use it here)" % (p, r["licence"]))
+            bad += 1
+        elif not a.json:
             print("CC0         %s  = %s" % (p, r["name"]))
+        if a.json and r is not None and r["sha256"] not in seen:
+            known.append({k: r[k] for k in ("id", "name", "sha256", "licence")})
+            seen.add(r["sha256"])
+    if a.json:
+        print(json.dumps({"files": known, "unknown_inputs": unknown,
+                          "unreadable_inputs": unreadable}, indent=2))
     sys.exit(1 if bad else 0)
 
 
@@ -140,22 +210,37 @@ def cmd_download(a):
     os.makedirs(dest, exist_ok=True)
     lic = by_hash(listing)
     n = 0
+    bad = False
     for r in listing:
         if lic[r["sha256"]]["licence"] != "CC0" or (a.model and model_key(r["model"]) != key):
             continue
         if a.max is not None and n >= a.max:
             break
         path = os.path.join(dest, r["local_name"])
-        if not (os.path.exists(path) and sha256_file(path) == r["sha256"]):
+        try:
+            reuse = os.path.exists(path) and sha256_file(path) == r["sha256"]
+        except OSError as exc:
+            print("local file error, skipped: %s (%s)" % (r["local_name"], type(exc).__name__), file=sys.stderr)
+            bad = True
+            continue
+        if not reuse:
             url = urllib.parse.quote(r["url"], safe=":/")
             data = fetch(url)
             if hashlib.sha256(data).hexdigest() != r["sha256"]:
                 print("hash mismatch, skipped: %s" % r["name"], file=sys.stderr)
+                bad = True
                 continue
-            with open(path, "wb") as f:
-                f.write(data)
+            try:
+                with open(path, "wb") as f:
+                    f.write(data)
+            except OSError as exc:
+                print("local file error, skipped: %s (%s)" % (r["local_name"], type(exc).__name__), file=sys.stderr)
+                bad = True
+                continue
         print("CC0  %s" % path)
         n += 1
+    if bad:
+        sys.exit(1)
 
 
 def model_key(name):
@@ -171,6 +256,7 @@ def main():
     p.add_argument("--all-licences", action="store_true")
     p.add_argument("--missing", metavar="MANIFEST", help="only files whose sha256 is not yet in this manifest CSV (e.g. samples/manifest.csv)")
     p = sub.add_parser("check")
+    p.add_argument("--json", action="store_true", help="emit reusable licence records and 1-based unlisted/unreadable input positions")
     p.add_argument("files", nargs="+")
     p = sub.add_parser("download")
     p.add_argument("dir", help="folder to save into (outside the repo; created if missing)")

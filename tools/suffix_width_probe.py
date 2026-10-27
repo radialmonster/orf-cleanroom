@@ -13,6 +13,7 @@ cannot establish a code. Licence-check public inputs before measurement.
 Optional fixed-token-block summaries measure within-file q0 variation. Blocks
 are candidate-token intervals, not shared bit intervals or physical rows;
 the histogram contains q0 counts in complete blocks, with the tail separate.
+Sample IDs must be distinct positive ASCII decimals and names printable basenames.
 """
 import argparse
 import collections
@@ -130,10 +131,14 @@ def main(argv=None):
     if args.block_tokens < 0:
         parser.error("block token count must be nonnegative")
     ids = [entry[0] for entry in args.sample]
-    if any(not value.isascii() or not value.isdecimal() or int(value) <= 0 for value in ids):
-        parser.error("sample IDs must be positive ASCII decimals")
-    if len(set(ids)) != len(ids):
-        parser.error("sample IDs must be distinct")
+    try:
+        invalid_ids = any(not value.isascii() or not value.isdecimal() or int(value) <= 0 for value in ids) or len(set(map(int, ids))) != len(ids)
+    except ValueError:
+        invalid_ids = True
+    if invalid_ids:
+        parser.error("sample IDs must be distinct positive ASCII decimals")
+    if any(not name or not name.isprintable() or any(c in name for c in '/\\') for _, name, _ in args.sample):
+        parser.error("sample public name must be a printable basename")
     reports, failures = [], []
     for sample_id, name, path in args.sample:
         try:

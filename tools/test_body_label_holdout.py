@@ -2,7 +2,9 @@
 """Independent hand arithmetic and malformed aggregate controls."""
 import copy
 import contextlib
+import csv
 import io
+import json
 import os
 import sys
 import unittest
@@ -12,6 +14,21 @@ import body_label_holdout as probe
 
 
 class Tests(unittest.TestCase):
+    def test_cli_preserves_quoted_multiline_body(self):
+        report, manifest = self.fixture()
+        manifest[0]['model'] = 'camera\nvariant'
+        manifest[1]['model'] = 'cameravariant'
+        stream = io.StringIO(newline='')
+        writer = csv.DictWriter(stream, fieldnames=list(manifest[0]))
+        writer.writeheader()
+        writer.writerows(manifest)
+        output = io.StringIO()
+        with patch('builtins.open', side_effect=[io.BytesIO(json.dumps(report).encode()),
+                io.BytesIO(stream.getvalue().encode()), io.BytesIO(b'source')]), contextlib.redirect_stdout(output):
+            self.assertEqual(probe.main(['--features', 'x', '--manifest', 'y', '--ids', '1', '2', '3']), 0)
+        bodies = [row['body'][1] for row in json.loads(output.getvalue())['cohort']]
+        self.assertEqual(bodies[:2], ['camera\nvariant', 'cameravariant'])
+
     def test_training_only_scaling_and_distances(self):
         rows = [{'pixls_id': str(i), 'body': (label, ''), 'features': [x, 7]}
                 for i, (label, x) in enumerate([('A', 0), ('A', 2), ('B', 10), ('B', 12)])]
@@ -48,7 +65,8 @@ class Tests(unittest.TestCase):
                     'one_fraction': 0.5, 'transition_fraction': 0.5, 'byte_entropy_bits': 8}}
                     for start in (0, 65536, 131072)]})
             manifest.append({'pixls_id': key, 'pixls_name': key, 'sha256': digest,
-                'make': 'M', 'model': key, 'licence': 'CC0', 'source': 'pixls'})
+                'make': 'M', 'model': key, 'licence': 'CC0', 'source': 'pixls',
+                'payload_w': '100', 'payload_h': '100'})
         return {'schema': 'raw-bit-window-features-v1', 'window_count': 3,
                 'window_bytes': 65536, 'samples': samples, 'errors': []}, manifest
 
@@ -89,6 +107,29 @@ class Tests(unittest.TestCase):
         with self.assertRaises(ValueError):
             probe.cohort(report, manifest, ['1', '2', '3'])
 
+    def test_geometry_conflict_with_manifest_is_rejected(self):
+        for field in ('payload_width', 'payload_height'):
+            report, manifest = self.fixture()
+            sample = report['samples'][0]
+            sample[field] = 200
+            sample['payload_bits_per_pixel'] = sample['payload_bytes'] * 8 / 20000
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                probe.cohort(report, manifest, ['1', '2', '3'])
+
+    def test_blank_manifest_geometry_is_not_a_conflict(self):
+        report, manifest = self.fixture()
+        manifest[0]['payload_w'] = manifest[0]['payload_h'] = ''
+        del manifest[1]['payload_w']
+        del manifest[1]['payload_h']
+        self.assertEqual(len(probe.cohort(report, manifest, ['1', '2', '3'])), 3)
+
+    def test_conflicting_duplicate_manifest_geometry_is_rejected(self):
+        for field in ('payload_w', 'payload_h'):
+            report, manifest = self.fixture()
+            conflicting = dict(manifest[0], **{field: '200'})
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                probe.cohort(report, manifest + [conflicting], ['1', '2', '3'])
+
     def test_non_numeric_public_id_is_rejected(self):
         report, manifest = self.fixture()
         report['samples'][0]['pixls_id'] = 'not-a-public-id'
@@ -102,6 +143,49 @@ class Tests(unittest.TestCase):
             with contextlib.redirect_stderr(error):
                 self.assertEqual(probe.main(['--features', 'x', '--manifest', 'y', '--ids', '1', '2', '3']), 1)
         self.assertIn('invalid diagnostic input', error.getvalue())
+
+    def test_cli_rejects_ambiguous_manifest_headers(self):
+        report, manifest = self.fixture()
+        for field in ('make', 'model', 'payload_w', 'payload_h'):
+            stream = io.StringIO()
+            columns = list(manifest[0])
+            writer = csv.writer(stream, lineterminator='\n')
+            writer.writerow(columns + [field])
+            for row in manifest:
+                writer.writerow([row[k] for k in columns] + [row[field]])
+            output, error = io.StringIO(), io.StringIO()
+            with self.subTest(field=field), patch('builtins.open', side_effect=[
+                    io.BytesIO(json.dumps(report).encode()), io.BytesIO(stream.getvalue().encode()),
+                    io.BytesIO(b'source')]), \
+                    contextlib.redirect_stdout(output), contextlib.redirect_stderr(error):
+                self.assertEqual(probe.main(['--features', 'x', '--manifest', 'y', '--ids', '1', '2', '3']), 1)
+                self.assertEqual(output.getvalue(), '')
+                self.assertIn('invalid diagnostic input', error.getvalue())
+
+    def test_cli_accepts_legacy_geometry_and_duplicate_rows(self):
+        report, manifest = self.fixture()
+        columns = [k for k in manifest[0] if k not in ('payload_w', 'payload_h')]
+        stream = io.StringIO()
+        writer = csv.DictWriter(stream, fieldnames=columns, extrasaction='ignore', lineterminator='\n')
+        writer.writeheader()
+        writer.writerows(manifest + [manifest[0]])
+        output = io.StringIO()
+        with patch('builtins.open', side_effect=[io.BytesIO(json.dumps(report).encode()),
+                io.BytesIO(stream.getvalue().encode()), io.BytesIO(b'source')]), contextlib.redirect_stdout(output):
+            self.assertEqual(probe.main(['--features', 'x', '--manifest', 'y', '--ids', '1', '2', '3']), 0)
+        parsed = json.loads(output.getvalue())
+        self.assertEqual([row['body'] for row in parsed['cohort']], [['M', '1'], ['M', '2'], ['M', '3']])
+
+    def test_cli_rejects_missing_required_column(self):
+        report, manifest = self.fixture()
+        columns = [k for k in manifest[0] if k != 'model']
+        stream = io.StringIO()
+        writer = csv.DictWriter(stream, fieldnames=columns, extrasaction='ignore', lineterminator='\n')
+        writer.writeheader()
+        writer.writerows(manifest)
+        with patch('builtins.open', side_effect=[io.BytesIO(json.dumps(report).encode()),
+                io.BytesIO(stream.getvalue().encode())]), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(probe.main(['--features', 'x', '--manifest', 'y', '--ids', '1', '2', '3']), 1)
 
 
 if __name__ == '__main__':

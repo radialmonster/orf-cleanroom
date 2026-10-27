@@ -16,6 +16,7 @@ File mode requires an expected previously licence-verified SHA256. The caller
 must retain the licence record: a hash alone does not establish licence.
 Builds on #231's run-preservation definition and #297's full-search protocol;
 distinct from #308's synthetic byte-shuffle harness. No findings are asserted.
+File mode requires a positive ASCII decimal ID and a printable public basename.
 """
 import argparse
 import fractions
@@ -178,18 +179,25 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--sample', nargs=4, metavar=('ID', 'PUBLIC_NAME', 'SHA256', 'PATH'))
     args = parser.parse_args(argv)
+    if args.sample:
+        sid, name, expected, path = args.sample
+        try:
+            invalid_id = not sid.isascii() or not sid.isdigit() or int(sid) <= 0
+        except ValueError:
+            invalid_id = True
+        if invalid_id:
+            parser.error('sample ID must be a positive ASCII integer')
+        if not name or not name.isprintable() or any(c in name for c in '/\\'):
+            parser.error('sample public name must be a printable basename')
+        if len(expected) != 64 or any(c not in '0123456789abcdef' for c in expected):
+            parser.error('expected SHA256 must be 64 lowercase hexadecimal digits')
     records = []
     rng = random.Random(611)
     uniform = bytes(rng.getrandbits(8) for _ in range(SPAN_BYTES))
-    for name, buf in [('constant_zero', bytes(SPAN_BYTES)), ('uniform', uniform),
-                      ('forced_byte_lsb', bytes(value | 1 for value in uniform))]:
-        records.append(dict(name=name, input_kind='synthetic_development', **analyse(buf)))
+    for synthetic_name, buf in [('constant_zero', bytes(SPAN_BYTES)), ('uniform', uniform),
+                                ('forced_byte_lsb', bytes(value | 1 for value in uniform))]:
+        records.append(dict(name=synthetic_name, input_kind='synthetic_development', **analyse(buf)))
     if args.sample:
-        sid, name, expected, path = args.sample
-        if not sid.isascii() or not sid.isdigit() or int(sid) <= 0:
-            parser.error('sample ID must be a positive ASCII integer')
-        if len(expected) != 64 or any(c not in '0123456789abcdef' for c in expected):
-            parser.error('expected SHA256 must be 64 lowercase hexadecimal digits')
         try:
             window, metadata = read_window(path, expected)
             records.append(dict(pixls_id=sid, pixls_name=name,

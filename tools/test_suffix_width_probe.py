@@ -31,6 +31,41 @@ def reference(data, k, stop):
 
 
 class Tests(unittest.TestCase):
+    def test_public_identity_validation_before_reporting(self):
+        limit = getattr(sys, 'get_int_max_str_digits', lambda: 0)()
+        cases = [([('1', 'public'), ('01', 'public')], False),
+                 ([('1', 'public'), ('2', 'private/path')], False),
+                 ([('1', 'public'), ('2', '')], False), ([('1', 'public'), ('2', 'private\\path')], False),
+                 ([('1', 'public'), ('2', 'bad\nname')], False), ([('0', 'public')], False),
+                 ([('1', 'public')], True)]
+        if limit:
+            cases.append(([('9' * (limit + 1), 'public')], False))
+        for samples, simulated in cases:
+            args = []
+            for sid, name in samples:
+                args += ['--sample', sid, name, 'unused']
+            out, err = io.StringIO(), io.StringIO()
+            conversion = mock.patch.object(probe, 'int', side_effect=ValueError('private detail'), create=True) if simulated else contextlib.nullcontext()
+            with self.subTest(samples=samples[0][0][:4], simulated=simulated), mock.patch.object(probe, 'report') as report, conversion, contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                with self.assertRaises(SystemExit) as caught:
+                    probe.main(args)
+                self.assertEqual(caught.exception.code, 2)
+                report.assert_not_called()
+                self.assertEqual(out.getvalue(), '')
+                self.assertNotIn('private', err.getvalue())
+
+    def test_valid_public_identity_spelling_is_preserved(self):
+        name = 'OM - Élite "camera" (4:3).ORF'
+        def report(sid, public, path, *args, **kwargs):
+            return {'pixls_id': sid, 'pixls_name': public}
+        args = ['--sample', '01', name, 'unused']
+        out = io.StringIO()
+        with mock.patch.object(probe, 'report', side_effect=report), contextlib.redirect_stdout(out):
+            status = probe.main(args)
+        self.assertEqual(status, 0)
+        self.assertEqual(json.loads(out.getvalue())['samples'], [{'pixls_id': '01', 'pixls_name': name}])
+
+
     def check(self, data, k, stop):
         hist, end = reference(data, k, stop)
         result = probe.scan(data, k, stop)

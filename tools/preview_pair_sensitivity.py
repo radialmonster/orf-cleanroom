@@ -22,8 +22,12 @@ or pixel array.
 Same-model grouping uses the `model` text in samples/manifest.csv, matched by
 SHA-256, because that is the grouping used by #327. Inputs without a manifest
 row fall back to the EXIF Model tag and are labelled in the sample record.
+The default or requested manifest must be readable; pass --manifest '' to
+explicitly use EXIF fallback for all inputs.
 Input licence verification is the caller's responsibility. Read-only, standard
 library CPU; all output is aggregate numbers and public file identities.
+Unreadable or unsupported inputs exit nonzero after reporting the readable batch;
+low-information previews are reported without making the batch fail.
 """
 import argparse
 import csv
@@ -191,20 +195,32 @@ def correlation(a, b):
 
 def read_manifest(path):
     models = {}
-    if not path or not os.path.exists(path):
+    if not path:
         return models
     with open(path, "r", encoding="utf-8", newline="") as stream:
-        for row in csv.DictReader(stream):
+        reader = csv.DictReader(stream, strict=True)
+        required = ("sha256", "pixls_id", "model")
+        if any((reader.fieldnames or []).count(field) != 1 for field in required):
+            raise ValueError("missing or duplicate consumed manifest column")
+        for row in reader:
+            if any(row[field] is None for field in required):
+                raise ValueError("truncated manifest row")
             models[row["sha256"].lower()] = row
     return models
 
 
-def measure(paths, manifest, grids):
+def measure(paths, manifest, grids, failures=None):
     records = []
     seen = set()
-    for path in paths:
-        with open(path, "rb") as stream:
-            data = stream.read()
+    for index, path in enumerate(paths, 1):
+        try:
+            with open(path, "rb") as stream:
+                data = stream.read()
+        except OSError as exc:
+            if failures is None:
+                raise
+            failures.append((index, type(exc).__name__))
+            continue
         sha = hashlib.sha256(data).hexdigest()
         if sha in seen:
             continue
@@ -237,7 +253,7 @@ def measure(paths, manifest, grids):
                 record["status"] = "low_information"
             else:
                 record["status"] = "ok"
-        except (ValueError, IndexError, KeyError, struct.error) as exc:
+        except (ValueError, IndexError, KeyError, ZeroDivisionError, struct.error) as exc:
             record["status"] = "unsupported"
             record["error"] = type(exc).__name__
             fingerprints = {grid: None for grid in grids}
@@ -251,7 +267,7 @@ def main():
     parser.add_argument("files", nargs="+",
                         help="public ORF/ORI files with licence already verified")
     parser.add_argument("--manifest", default=DEFAULT_MANIFEST,
-                        help="CSV mapping SHA-256 to model (default: %(default)s)")
+                        help="readable CSV mapping SHA-256 to model (default: %(default)s); empty disables")
     parser.add_argument("--grids", default=",".join(str(g) for g in DEFAULT_GRIDS),
                         help="comma-separated grid sizes (default: %(default)s)")
     args = parser.parse_args()
@@ -262,7 +278,15 @@ def main():
     if not grids or grids[0] < 2 or grids[-1] > 128:
         parser.error("grid sizes must be between 2 and 128")
     start = time.perf_counter()
-    records = measure(args.files, read_manifest(args.manifest), grids)
+    try:
+        manifest = read_manifest(args.manifest)
+    except (OSError, UnicodeError, ValueError, csv.Error, KeyError):
+        parser.error("invalid or unreadable manifest")
+    failures = []
+    records = measure(args.files, manifest, grids, failures=failures)
+    for index, name in failures:
+        print("input %d: %s" % (index, name), file=sys.stderr)
+    failed = bool(failures) or any(record['status'] == 'unsupported' for record, _ in records)
     for record, _ in records:
         print(json.dumps({"sample": record}, sort_keys=True))
     by_sha = {record["sha256"]: record for record, _ in records}
@@ -404,7 +428,8 @@ def main():
         "interpretation": ("uncalibrated screening and descriptive metadata; "
                            "scene, capture and exposure identity not established"),
     }}, sort_keys=True))
+    return int(failed)
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

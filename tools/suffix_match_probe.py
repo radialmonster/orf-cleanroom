@@ -4,6 +4,8 @@
 Original clean-room analysis; stdlib Python 3.8+. Candidate W-token blocks are
 coordinates, not established image geometry. This measures single-symbol
 equality, not dictionary coding. See the frozen public cohort/design metadata.
+Within each cohort, sample IDs and content hashes must be distinct; this does
+not establish that files represent independent captures or scenes.
 """
 import argparse
 from collections import Counter
@@ -190,7 +192,7 @@ def validate_cohort(cohort):
     samples = cohort["samples"]
     if type(samples) is not list or not samples:
         raise InputError("invalid_cohort_samples")
-    ids = set()
+    ids, hashes = set(), set()
     for sample in samples:
         if type(sample) is not dict or set(sample) != {"id", "name", "sha256"}:
             raise InputError("invalid_sample_identity")
@@ -205,8 +207,20 @@ def validate_cohort(cohort):
             raise InputError("invalid_sample_name")
         if type(sha) is not str or not re.fullmatch(r"[0-9a-f]{64}", sha):
             raise InputError("invalid_sample_hash")
+        if sha in hashes:
+            raise InputError("duplicate_sample_hash")
         ids.add(ident)
+        hashes.add(sha)
     return cohort
+
+
+def unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("duplicate JSON object key")
+        result[key] = value
+    return result
 
 
 def validate_mapping(cohort, mappings):
@@ -318,7 +332,7 @@ def main(argv=None):
             raise InputError("missing_or_invalid_arguments")
         output["measured_by"] = args.measured_by
         with open(args.cohort, encoding="utf-8") as stream:
-            cohort = validate_cohort(json.load(stream))
+            cohort = validate_cohort(json.load(stream, object_pairs_hook=unique_object))
         output.update({key: cohort[key] for key in ("design_id", "design_sha256", "phase")})
         try:
             paths = validate_mapping(cohort, args.sample)

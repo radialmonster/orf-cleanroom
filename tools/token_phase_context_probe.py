@@ -24,6 +24,10 @@ Adjacent train/test blocks can remain dependent. Held-out scores are not
 unbiased estimates, null calibration, significance, historical reproduction,
 physical columns or a decoder. Negative gains are retained.
 Check public sample licences separately before use.
+Incomplete requested prefixes and input failures produce a nonzero exit;
+available aggregate reports are retained.
+Sample IDs must be distinct positive ASCII decimals; names must be printable
+and contain no path separators.
 """
 import argparse
 import hashlib
@@ -188,8 +192,16 @@ def main():
     parser.add_argument("--sample", nargs=3, action="append", metavar=("ID", "PUBLIC_NAME", "FILE"), required=True)
     args = parser.parse_args()
     ids = [sample[0] for sample in args.sample]
-    if any(not x.isascii() or not x.isdecimal() or int(x) <= 0 for x in ids) or len(set(ids)) != len(ids):
+    try:
+        invalid_ids = (any(not x.isascii() or not x.isdecimal() or int(x) <= 0 for x in ids)
+                       or len(set(map(int, ids))) != len(ids))
+    except ValueError:
+        invalid_ids = True
+    if invalid_ids:
         parser.error("sample IDs must be distinct positive ASCII decimal integers")
+    if any(not name or not name.isprintable() or any(c in name for c in "/\\")
+           for _, name, _ in args.sample):
+        parser.error("sample public name must be printable without path separators")
     reports, failures = [], []
     for sample_id, name, path in args.sample:
         try:
@@ -203,7 +215,7 @@ def main():
     print(json.dumps({"source_sha256": sources, "python_version": sys.version.split()[0],
                       "escape_extra_bits": 0, "requested_prefix_tokens": LIMIT,
                       "samples": reports, "failures": failures}, indent=2, allow_nan=False))
-    return 1 if failures else 0
+    return 1 if failures or any(r["prefix_shortfall"] for r in reports) else 0
 
 
 if __name__ == "__main__":

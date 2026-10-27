@@ -6,6 +6,8 @@ Strides define absolute r*S token blocks, with a global nonoverlap guard.
 Known-profile reused inputs remain exploratory. No null, significance,
 physical rows, true escape grammar, historical reproduction or decode.
 Stdlib only; reads samples and prints JSON, never token/pixel arrays.
+Sample IDs must be unique positive ASCII decimals; names must be printable
+and contain no path separators.
 """
 import argparse
 import hashlib
@@ -99,14 +101,22 @@ def main(argv=None):
     if args.radius < 0 or args.rows < 2 or min(heads) < 1:
         ap.error("require radius>=0, rows>=2 and head>=1")
     ids = [sample[0] for sample in args.sample]
-    if len(set(ids)) != len(ids):
-        ap.error("duplicate public sample ID")
+    try:
+        if any(not sid.isascii() or not sid.isdecimal() or int(sid) <= 0 for sid in ids):
+            raise ValueError
+        if len(set(int(sid) for sid in ids)) != len(ids):
+            raise ValueError
+    except ValueError:
+        ap.error("sample IDs must be distinct positive ASCII decimals")
+    if any(not name or not name.isprintable() or any(c in name for c in "/\\")
+           for _, name, _, _, _ in args.sample):
+        ap.error("sample public name must be printable without path separators")
     samples, failed = [], False
     for sid, name, digest, center, path in args.sample:
         entry = dict(pixls_id=sid, pixls_name=name)
         try:
-            if not sid.isdecimal() or len(digest) != 64 or any(c not in "0123456789abcdefABCDEF" for c in digest):
-                raise ValueError("invalid public ID or verified hash")
+            if len(digest) != 64 or any(c not in "0123456789abcdefABCDEF" for c in digest):
+                raise ValueError("invalid verified hash")
             entry.update(measure(path, digest, int(center), args.radius, heads, args.rows))
             entry["ok"] = entry["complete"] and entry["token_shortfall"] == 0
         except (OSError, ValueError, KeyError, TypeError, IndexError, struct.error) as exc:

@@ -36,6 +36,84 @@ def entropy(counts):
 
 
 class Tests(unittest.TestCase):
+    def test_public_identity_validation_before_reporting(self):
+        limit = getattr(sys, 'get_int_max_str_digits', lambda: 0)()
+        cases = [([('1', 'public'), ('01', 'public')], False),
+                 ([('1', 'public'), ('2', 'private/path')], False),
+                 ([('1', 'public'), ('2', '')], False), ([('1', 'public'), ('2', 'private\\path')], False),
+                 ([('1', 'public'), ('2', 'bad\nname')], False), ([('0', 'public')], False),
+                 ([('1', 'public')], True)]
+        if limit:
+            cases.append(([('9' * (limit + 1), 'public')], False))
+        for samples, simulated in cases:
+            args = []
+            for sid, name in samples:
+                args += ['--sample', sid, name, 'unused']
+            out, err = io.StringIO(), io.StringIO()
+            conversion = mock.patch.object(probe, 'int', side_effect=ValueError('private detail'), create=True) if simulated else contextlib.nullcontext()
+            with self.subTest(samples=samples[0][0][:4], simulated=simulated), mock.patch.object(probe, 'report') as report, conversion, contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                with self.assertRaises(SystemExit) as caught:
+                    probe.main(args)
+                self.assertEqual(caught.exception.code, 2)
+                report.assert_not_called()
+                self.assertEqual(out.getvalue(), '')
+                self.assertNotIn('private', err.getvalue())
+
+    def test_valid_public_identity_spelling_is_preserved(self):
+        name = 'OM - Élite "camera" (4:3).ORF'
+        def report(sid, public, path, *args, **kwargs):
+            return {'pixls_id': sid, 'pixls_name': public, 'cells': [{'token_shortfall': 0}]}
+        args = ['--sample', '01', name, 'unused']
+        out = io.StringIO()
+        with mock.patch.object(probe, 'report', side_effect=report), contextlib.redirect_stdout(out):
+            status = probe.main(args)
+        self.assertEqual(status, 0)
+        sample = json.loads(out.getvalue())['samples'][0]
+        self.assertEqual((sample['pixls_id'], sample['pixls_name']), ('01', name))
+
+
+    def test_cli_short_sweep_retains_cells_and_reports_failure(self):
+        class Input(io.BytesIO):
+            def fileno(self):
+                return 123
+        regular = types.SimpleNamespace(st_mode=stat.S_IFREG)
+        entries = [(0x100, 10), (0x101, 10), (0x103, 1), (0x111, 74), (0x117, 2)]
+        data = (b'II' + struct.pack('<HIH', 0x4f52, 8, 5)
+                + b''.join(struct.pack('<HHII', tag, 4, 1, value) for tag, value in entries)
+                + bytes(4) + b'\x8b\x81')
+        def read_input(path, *args):
+            if path == 'missing':
+                raise OSError('private detail')
+            return Input(data)
+        for rotate in (False, True):
+            for names in (('short',), ('short', 'missing')):
+                args = ['--block-rotation-control'] if rotate else []
+                for i, name in enumerate(names, 1):
+                    args += ['--sample', str(i), 'public', name]
+                out = io.StringIO()
+                with self.subTest(rotate=rotate, names=names), \
+                     mock.patch.object(probe.os, 'stat', return_value=regular), \
+                     mock.patch.object(probe.os, 'fstat', return_value=regular), \
+                     mock.patch('builtins.open', side_effect=read_input), \
+                     mock.patch.object(probe, 'source_hashes', return_value={}), contextlib.redirect_stdout(out):
+                    status = probe.main(args)
+                    result = json.loads(out.getvalue())
+                    self.assertEqual(status, 1)
+                    cells = result['samples'][0]['cells']
+                    self.assertEqual(len(cells), 14)
+                    self.assertTrue(all(c['token_shortfall'] > 0 for c in cells))
+                    self.assertTrue(all(('block_rotation_control' in c) == rotate for c in cells))
+                    self.assertEqual(len(result['failures']), int('missing' in names))
+                    self.assertNotIn('private detail', out.getvalue())
+
+    def test_cli_complete_and_one_short_cell(self):
+        for shortfall, status in ((0, 0), (1, 1)):
+            cells = [{'token_shortfall': 0} for _ in range(14)]
+            cells[-1]['token_shortfall'] = shortfall
+            with self.subTest(shortfall=shortfall), mock.patch.object(probe, 'report', return_value={'cells': cells}), \
+                 contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(probe.main(['--sample', '1', 'public', 'unused']), status)
+
     def test_rotation_tables_against_independent_pair_enumeration(self):
         rng = random.Random(931)
         tokens = [(rng.randrange(8), rng.randrange(32)) for _ in range(400)]
@@ -100,7 +178,7 @@ class Tests(unittest.TestCase):
                     self.assertIsNone(cell[label]["observed_minus_control_mi_bits"])
 
     def test_rotation_cli_flag_forwarding(self):
-        with mock.patch.object(probe, "report", return_value={}) as report:
+        with mock.patch.object(probe, "report", return_value={"cells": []}) as report:
             with contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(probe.main(["--block-rotation-control", "--sample", "1", "n", "p"]), 0)
             report.assert_called_once_with("1", "n", "p", rotation_control=True)

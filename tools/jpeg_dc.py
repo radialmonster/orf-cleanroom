@@ -15,6 +15,7 @@ Usage:
     python -I tools/jpeg_dc.py FILE.jpg
 
 For an ORF the largest baseline JPEG with width and height >= 1000 is used.
+Any input failure exits 1; later valid inputs are still processed.
 """
 import os
 import sys
@@ -213,6 +214,7 @@ def find_preview(data, max_dim=12000, max_area=100_000_000):
     while i >= 0:
         j = i + 2
         dims = None
+        has_scan = False
         while j < len(data):
             if data[j] != 0xFF:
                 j += 1
@@ -234,9 +236,10 @@ def find_preview(data, max_dim=12000, max_area=100_000_000):
                 w = (data[j + 5] << 8) | data[j + 6]
                 dims = (w, h)
             if m == 0xDA:
+                has_scan = True
                 break
             j += L
-        if dims and 1000 <= dims[0] <= max_dim and 1000 <= dims[1] <= max_dim \
+        if has_scan and dims and 1000 <= dims[0] <= max_dim and 1000 <= dims[1] <= max_dim \
                 and dims[0] * dims[1] <= max_area:
             # search for EOI from the SOS, not from SOI: header segments (APPn, a
             # thumbnail) can hold FF D9, entropy-coded data cannot (FF is stuffed)
@@ -252,6 +255,7 @@ def main(paths):
     if not paths or paths[0] in ("-h", "--help"):
         print(__doc__)
         sys.exit(0 if paths else 2)
+    failed = False
     for path in paths:
         try:
             data = open(path, "rb").read()
@@ -259,6 +263,7 @@ def main(paths):
                 best = find_preview(data)
                 if best is None:
                     print("%s: no preview" % os.path.basename(path), file=sys.stderr)
+                    failed = True
                     continue
                 start = best[1]
             else:
@@ -267,8 +272,10 @@ def main(paths):
             print("%s: dc %dx%d  min %d  max %d  mean %.2f" % (
                 os.path.basename(path), wb, hb, min(dc), max(dc), sum(dc) / len(dc)))
         except (ValueError, IndexError, KeyError, OSError) as exc:
+            failed = True
             print("%s: %s" % (os.path.basename(path), exc), file=sys.stderr)
+    return int(failed)
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    sys.exit(main(sys.argv[1:]))

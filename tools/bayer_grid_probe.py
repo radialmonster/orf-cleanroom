@@ -3,7 +3,7 @@
 
 Original clean-room analysis; stdlib Python 3.8+. Candidate k=5 tokens (lead #11: q zero bits, a 1
 stop bit, a 5-bit suffix), parsed from payload bit 0 with orf_tokens.scan; a final token whose bits
-do not all fit in the payload is dropped. The payload comes from orf_tokens.locate.
+do not all fit in the payload is dropped. The payload comes from orf_tokens.locate_data.
 Tokens with q >= 17 never match. W is the payload width from the TIFF tags; token index i is
 treated as row i // W, column i % W. That is a coordinate choice, not an established pixel map.
 
@@ -19,6 +19,7 @@ Per file (aggregate JSON; no paths, pixels or images):
                   shifting indices by --offset; per cell the total and the three most common
                   (q, suffix) pairs with counts
 The CFA phase is not known: the site tables only show whether a 2x2 pattern exists.
+Container geometry, payload and input hash use the same file snapshot.
 
     python -I -B tools/bayer_grid_probe.py FILE [FILE ...]
     python -I -B tools/test_bayer_grid_probe.py
@@ -160,13 +161,16 @@ def main():
     results, failures = [], []
     for n, path in enumerate(a.files):
         try:
-            w, h, payload = orf_tokens.locate(path)
+            with open(path, "rb") as f:
+                data = f.read()
+            w, h, payload = orf_tokens.locate_data(data)
+            input_digest = hashlib.sha256(data).hexdigest()
+            del data
             if w <= 0 or h <= 0 or not payload:
                 raise ValueError("no payload")
             r = analyze(payload, w, h, a.tokens, a.seed, windows, a.offset, a.large_q)
-            with open(path, "rb") as f:
-                r.update({"sha256": hashlib.sha256(f.read()).hexdigest(), "W": w, "H": h,
-                          "payload_bytes": len(payload)})
+            r.update({"sha256": input_digest, "W": w, "H": h,
+                      "payload_bytes": len(payload)})
             results.append(r)
         except (OSError, ValueError, KeyError, IndexError, TypeError) as exc:
             failures.append({"argument": n, "error": type(exc).__name__})

@@ -1,5 +1,6 @@
 """Synthetic checks for token_luma_probe (no sample files)."""
 
+import array
 import contextlib
 import io
 import os
@@ -197,6 +198,70 @@ class CliStatusTests(unittest.TestCase):
             stack.enter_context(contextlib.redirect_stdout(output))
             p.run_file("unused", 2, 1, 2, 1, shift_null=True)
         self.assertIn("observed rank 2/2", output.getvalue())
+
+
+def scalar_box_mean_rows(v, rows, w, window):
+    # The original one-value-at-a-time loop; the fast version must match it bit for bit.
+    out = array.array("f", [0.0]) * (rows * w)
+    half = window // 2
+    for r in range(rows):
+        base = r * w
+        prefix = [0] * (w + 1)
+        s = 0
+        for c in range(w):
+            s += v[base + c]
+            prefix[c + 1] = s
+        for c in range(w):
+            a = max(0, c - half)
+            b = min(w, c + half + 1)
+            out[base + c] = (prefix[b] - prefix[a]) / (b - a)
+    return out
+
+
+def scalar_block_mean(v, rows, w, nd, wb):
+    out = []
+    for r in range(nd):
+        r0 = r * rows // nd
+        r1 = max(r0 + 1, (r + 1) * rows // nd)
+        acc = [0.0] * w
+        for tr in range(r0, min(r1, rows)):
+            for c in range(w):
+                acc[c] += v[tr * w + c]
+        prefix = [0.0] * (w + 1)
+        s = 0.0
+        for c in range(w):
+            s += acc[c]
+            prefix[c + 1] = s
+        row = []
+        for c in range(wb):
+            c0 = c * w // wb
+            c1 = max(c0 + 1, (c + 1) * w // wb)
+            row.append((prefix[c1] - prefix[c0]) / ((r1 - r0) * (c1 - c0)))
+        out.append(row)
+    return out
+
+
+class ScalarReferenceTests(unittest.TestCase):
+    def test_fast_paths_match_scalar_loops_exactly(self):
+        rng = random.Random(7)
+        for _ in range(300):
+            rows, w = rng.randint(1, 8), rng.randint(1, 90)
+            window = rng.choice([1, 3, 9, 63, 121, 201])
+            v = bytes(rng.randrange(3) for _ in range(rows * w))
+            boxed = p.box_mean_rows(v, rows, w, window)
+            self.assertEqual(boxed.tobytes(), scalar_box_mean_rows(v, rows, w, window).tobytes())
+            nd, wb = rng.randint(1, rows + 3), rng.randint(1, w + 3)
+            self.assertEqual(repr(p.block_mean(boxed, rows, w, nd, wb)),
+                             repr(scalar_block_mean(boxed, rows, w, nd, wb)))
+
+    def test_shift_scores_equal_full_rescoring(self):
+        rng = random.Random(11)
+        rows, w, window, nd, wb = 12, 70, 9, 6, 10
+        sa = bytes(rng.choice([0, 4, 16, 20, 33]) for _ in range(rows * w))
+        target = [[rng.random() for _ in range(wb)] for _ in range(nd)]
+        for k, value in p.preview_shift_scores(sa, rows, w, window, target):
+            self.assertEqual(repr(value), repr(p.score(sa, rows, w, window, nd,
+                                                       target[k:] + target[:k])))
 
 
 class SelfTest(unittest.TestCase):

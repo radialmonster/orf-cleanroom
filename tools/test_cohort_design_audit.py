@@ -44,6 +44,13 @@ def record(i, model, mode, width):
 
 
 class Tests(unittest.TestCase):
+    def test_quoted_multiline_models_keep_distinct_bodies(self):
+        rows = [record(1, 'camera\nvariant', 'normal', 10),
+                record(2, 'cameravariant', 'normal', 10)]
+        report = audit(load_records(manifest(rows), ['1', '2']))
+        self.assertEqual(len(report['levels']['body']), 2)
+        self.assertEqual(report['rank'], 2)
+
     def test_exact_rank_all_binary_3x3(self):
         for values in itertools.product((0, 1), repeat=9):
             rows = [list(values[i:i + 3]) for i in (0, 3, 6)]
@@ -120,6 +127,16 @@ class Tests(unittest.TestCase):
         row = dict(record(1, "a", "normal", 10), source="own")
         with self.assertRaises(ValueError):
             load_records(manifest([row]), ["1"])
+
+    def test_duplicate_audited_column_cannot_override_body(self):
+        row = record(1, "camera-a", "normal", 10)
+        for field, replacement in (("model", "camera-b"), ("payload_w", "100"),
+                                   ("pixls_id", "2"), ("source", "own")):
+            text = manifest([row]).splitlines()
+            text[0] += "," + field
+            text[1] += "," + replacement
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                load_records("\n".join(text) + "\n", ["1"])
 
 
 if __name__ == "__main__":

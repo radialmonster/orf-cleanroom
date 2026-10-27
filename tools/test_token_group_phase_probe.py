@@ -28,6 +28,45 @@ def fixture(tokens, endian="<"):
 
 
 class GroupPhaseTests(unittest.TestCase):
+    def test_identity_rejected_before_any_measurement(self):
+        limit = getattr(sys, 'get_int_max_str_digits', lambda: 0)()
+        cases = [([('1', 'public'), ('0', 'public')], False),
+                 ([('1', 'public'), ('\u0661', 'public')], False),
+                 ([('1', 'public'), ('01', 'public')], False),
+                 ([('1', 'public'), ('2', '')], False),
+                 ([('1', 'public'), ('2', 'private/path')], False),
+                 ([('1', 'public'), ('2', 'private\\path')], False),
+                 ([('1', 'public'), ('2', 'bad\nname')], False),
+                 ([('1', 'public'), ('2', 'public')], True)]
+        if limit:
+            cases.append(([('1', 'public'), ('9' * (limit + 1), 'public')], False))
+        for samples, simulated in cases:
+            args = []
+            for sid, name in samples:
+                args += ['--sample', sid, name, 'unused']
+            out, err = io.StringIO(), io.StringIO()
+            conversion = patch.object(probe, 'int', side_effect=ValueError('private detail'), create=True) if simulated else contextlib.nullcontext()
+            with self.subTest(simulated=simulated, case=samples[-1][0][:4]), patch.object(probe, 'report') as measured, conversion, contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                with self.assertRaises(SystemExit) as caught:
+                    probe.main(args)
+                self.assertEqual(caught.exception.code, 2)
+                measured.assert_not_called()
+                self.assertEqual(out.getvalue(), '')
+                self.assertNotIn('private', err.getvalue())
+
+    def test_valid_public_identity_spelling_is_preserved(self):
+        name = 'OM - Élite "camera" (4:3).ORF'
+        def echo(sid, public=None, path=None, *args):
+            return {'pixls_id': sid, 'pixls_name': public, 'prefix_complete': True, 'prefix_shortfall': 0}
+        args = ['--sample', '01', name, 'unused']
+        out = io.StringIO()
+        with patch.object(probe, 'report', side_effect=echo), contextlib.redirect_stdout(out):
+            status = probe.main(args)
+        self.assertEqual(status, 0)
+        sample = json.loads(out.getvalue())['samples'][0]
+        self.assertEqual((sample['pixls_id'], sample['pixls_name']), ('01', name))
+
+
     def test_fraction_oracle_every_phase(self):
         blocks = [[(i * 7 + b * 11) % 13 for i in range(probe.BLOCK)] for b in range(2)]
         for g in probe.GROUPS:
