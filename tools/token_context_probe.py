@@ -22,6 +22,8 @@ This is a descriptive transfer estimate, not uncertainty/significance,
 historical private-estimator reproduction, a conditional law or a decoder.
 Escape omission is selective and cannot repair unknown post-escape framing.
 Licence-check samples separately. No previews are accessed.
+Sample IDs must be distinct positive ASCII decimals; names must be printable
+and contain no path separators.
 Incomplete requested prefixes and input failures produce a nonzero exit;
 available aggregate reports are retained.
 """
@@ -165,8 +167,16 @@ def main():
     parser.add_argument("--sample", nargs=3, action="append", metavar=("ID", "PUBLIC_NAME", "FILE"), required=True)
     args = parser.parse_args()
     ids = [row[0] for row in args.sample]
-    if any(not x.isascii() or not x.isdecimal() or int(x) <= 0 for x in ids) or len(set(ids)) != len(ids):
+    try:
+        invalid_ids = (any(not x.isascii() or not x.isdecimal() or int(x) <= 0 for x in ids)
+                       or len(set(map(int, ids))) != len(ids))
+    except ValueError:
+        invalid_ids = True
+    if invalid_ids:
         parser.error("sample IDs must be distinct positive ASCII decimal integers")
+    if any(not name or not name.isprintable() or any(c in name for c in "/\\")
+           for _, name, _ in args.sample):
+        parser.error("sample public name must be printable without path separators")
     reports, failures = [], []
     for sample_id, name, path in args.sample:
         try:

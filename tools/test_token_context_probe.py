@@ -18,6 +18,36 @@ import token_context_probe as probe
 
 
 class ContextChecks(unittest.TestCase):
+    def test_public_identity_validation(self):
+        for second in [('01', 'public'), ('2', ''), ('2', 'private/name'),
+                       ('2', 'private\\name'), ('2', 'private\nname')]:
+            argv = ['probe', '--sample', '1', 'public', 'unused', '--sample', *second, 'unused']
+            out, err = io.StringIO(), io.StringIO()
+            with self.subTest(second=second):
+                with mock.patch.object(sys, 'argv', argv), mock.patch.object(probe, 'report', return_value={'prefix_shortfall': 0}) as report, \
+                        contextlib.redirect_stdout(out), contextlib.redirect_stderr(err), self.assertRaises(SystemExit) as raised:
+                    probe.main()
+                self.assertEqual(raised.exception.code, 2)
+                report.assert_not_called()
+                self.assertEqual(out.getvalue(), '')
+                self.assertNotIn('private', err.getvalue())
+        def fake_report(sample_id, public_name, path):
+            return {'pixls_id': sample_id, 'pixls_name': public_name, 'prefix_shortfall': 0}
+        out = io.StringIO()
+        with mock.patch.object(sys, 'argv', ['probe', '--sample', '01', 'Camera "é" (4:3).ORF', 'unused']), \
+                mock.patch.object(probe, 'report', side_effect=fake_report), \
+                contextlib.redirect_stdout(out):
+            self.assertEqual(probe.main(), 0)
+        row = json.loads(out.getvalue())['samples'][0]
+        self.assertEqual((row['pixls_id'], row['pixls_name']), ('01', 'Camera "é" (4:3).ORF'))
+        with mock.patch.object(sys, 'argv', ['probe', '--sample', '1', 'public', 'unused']), \
+                mock.patch.object(probe, 'int', side_effect=ValueError('private detail'), create=True), \
+                mock.patch.object(probe, 'report') as report, contextlib.redirect_stderr(io.StringIO()) as err, \
+                self.assertRaises(SystemExit) as raised:
+            probe.main()
+        self.assertEqual(raised.exception.code, 2)
+        self.assertNotIn('private detail', err.getvalue())
+        report.assert_not_called()
     def test_cli_complete_short_and_unreadable_inputs(self):
         def fixture(payload):
             tags = ((256, 8), (257, 1), (273, 62), (279, len(payload)))

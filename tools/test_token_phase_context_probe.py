@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Synthetic controls for token_phase_context_probe; stdlib, no file writes."""
-import math
 import contextlib
 import io
 import json
+import math
 import os
 import struct
 import sys
@@ -50,6 +50,36 @@ class PhaseContextTests(unittest.TestCase):
                 self.assertEqual([r['prefix_shortfall'] for r in result['samples']], shortfalls)
                 self.assertEqual(len(result['failures']), int('missing' in names))
                 self.assertNotIn('private diagnostic', output.getvalue())
+    def test_public_identity_validation(self):
+        for second in [('01', 'public'), ('2', ''), ('2', 'private/name'),
+                       ('2', 'private\\name'), ('2', 'private\nname')]:
+            argv = ['probe', '--sample', '1', 'public', 'unused', '--sample', *second, 'unused']
+            out, err = io.StringIO(), io.StringIO()
+            with self.subTest(second=second):
+                with mock.patch.object(sys, 'argv', argv), mock.patch.object(probe, 'report', return_value={'prefix_shortfall': 0}) as report, \
+                        contextlib.redirect_stdout(out), contextlib.redirect_stderr(err), self.assertRaises(SystemExit) as raised:
+                    probe.main()
+                self.assertEqual(raised.exception.code, 2)
+                report.assert_not_called()
+                self.assertEqual(out.getvalue(), '')
+                self.assertNotIn('private', err.getvalue())
+        def fake_report(sample_id, public_name, path):
+            return {'pixls_id': sample_id, 'pixls_name': public_name, 'prefix_shortfall': 0}
+        out = io.StringIO()
+        with mock.patch.object(sys, 'argv', ['probe', '--sample', '01', 'Camera "é" (4:3).ORF', 'unused']), \
+                mock.patch.object(probe, 'report', side_effect=fake_report), \
+                contextlib.redirect_stdout(out):
+            self.assertEqual(probe.main(), 0)
+        row = json.loads(out.getvalue())['samples'][0]
+        self.assertEqual((row['pixls_id'], row['pixls_name']), ('01', 'Camera "é" (4:3).ORF'))
+        with mock.patch.object(sys, 'argv', ['probe', '--sample', '1', 'public', 'unused']), \
+                mock.patch.object(probe, 'int', side_effect=ValueError('private detail'), create=True), \
+                mock.patch.object(probe, 'report') as report, contextlib.redirect_stderr(io.StringIO()) as err, \
+                self.assertRaises(SystemExit) as raised:
+            probe.main()
+        self.assertEqual(raised.exception.code, 2)
+        self.assertNotIn('private detail', err.getvalue())
+        report.assert_not_called()
 
     def test_balanced_xor(self):
         table = [[[0, 0] for _ in range(2)] for _ in range(4)]
