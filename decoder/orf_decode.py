@@ -368,6 +368,8 @@ def decode_file(path, order=None, layout=None):
         # remain unassigned and specify no codec or reconstruction (V1 S1.18).
         # 2026-10-27--radialmonster--frozen-context-six-file-reproduction (#541):
         # selected unassigned-file scores vary and specify no codec (V1 S1.18).
+        # 2026-10-27--radialmonster--context-scalar-grid-reproduction (#545):
+        # bounded calibration scores specify no codec or decode (V1 S1.18).
         # F_OM1_GRID (Partial for #338): a parity-dependent suffix-lag pattern
         # repeats on two own OM-1 Mark II flat captures; it is unassigned token-index
         # evidence, not a physical CFA map, predictor, or decode step (V1 S1.19).
