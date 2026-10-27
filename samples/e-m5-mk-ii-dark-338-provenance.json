@@ -1,0 +1,50 @@
+[
+    {
+        "name": "P1010009.ORF",
+        "sha256": "ce4e204f1df7064076a2fffdfb32284a6a1bf05d9a04c571178710a25f137b8c",
+        "licence": "CC0",
+        "owner_declaration_url": "https://zenodo.org/records/23700343",
+        "public_source_url": "https://zenodo.org/records/23700343/files/P1010009.ORF?download=1",
+        "declared_conditions": "dark ISO 200"
+    },
+    {
+        "name": "P1010011.ORF",
+        "sha256": "d34532152c79ef24b22c60c6cf743cef41fe28196b40fe16b557c16b7a7ea03d",
+        "licence": "CC0",
+        "owner_declaration_url": "https://zenodo.org/records/23700343",
+        "public_source_url": "https://zenodo.org/records/23700343/files/P1010011.ORF?download=1",
+        "declared_conditions": "dark ISO 200"
+    },
+    {
+        "name": "P1010013.ORF",
+        "sha256": "81acdd3675c329b351a634cfb4e22228f2db8df94f36480690e04416ded0817d",
+        "licence": "CC0",
+        "owner_declaration_url": "https://zenodo.org/records/23700343",
+        "public_source_url": "https://zenodo.org/records/23700343/files/P1010013.ORF?download=1",
+        "declared_conditions": "dark ISO 200"
+    },
+    {
+        "name": "P1010017.ORF",
+        "sha256": "431b03c21b743f13006be4ed9eb18f17e04d4a7ad50281eec3d2f7668d02a2c5",
+        "licence": "CC0",
+        "owner_declaration_url": "https://zenodo.org/records/23700343",
+        "public_source_url": "https://zenodo.org/records/23700343/files/P1010017.ORF?download=1",
+        "declared_conditions": "dark ISO 800"
+    },
+    {
+        "name": "P1010018.ORF",
+        "sha256": "e39afef52d22200798ea4367da3b6b1178dc44fdababc5dfb9e816ea5b931e3f",
+        "licence": "CC0",
+        "owner_declaration_url": "https://zenodo.org/records/23700343",
+        "public_source_url": "https://zenodo.org/records/23700343/files/P1010018.ORF?download=1",
+        "declared_conditions": "dark ISO 800"
+    },
+    {
+        "name": "P1010019.ORF",
+        "sha256": "5d8234f321aa9d89fe539c1e4ead24e09696c9bff7ecfcef45a7f1571426ec75",
+        "licence": "CC0",
+        "owner_declaration_url": "https://zenodo.org/records/23700343",
+        "public_source_url": "https://zenodo.org/records/23700343/files/P1010019.ORF?download=1",
+        "declared_conditions": "dark ISO 800"
+    }
+]
