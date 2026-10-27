@@ -63,6 +63,53 @@ class Tests(unittest.TestCase):
         self.assertEqual(out['joint_selected']['stride'], min(s for s, r in rows.items() if Fraction(r['train_numerator'], r['train_denominator']) == maximum))
         self.assertEqual(out['joint_selected']['stride'], 3)
 
+    def test_common_interval_direct_token_mask(self):
+        for values in ([(i * 17 + i // 7) % 13 for i in range(600)], [4] * 600):
+            q = array('B', values)
+            out = P.diagnostic(q, 20, 12, 2, 5, 2)
+            expected = {}
+            for model, key in (('joint_selected', 'common_interval_joint'),
+                               ('fixed_stride_selected', 'common_interval_fixed'),
+                               ('fixed_origin', 'common_interval_origin')):
+                selected, result = out[model], out[key]
+                start, end = out['test_barrier'], out['test_barrier'] + 5 * 10
+                heads = [q[i] for i in range(start, end)
+                         if (i - 20 - selected['phase']) % selected['stride'] < 2]
+                rest = [q[i] for i in range(start, end)
+                        if (i - 20 - selected['phase']) % selected['stride'] >= 2]
+                self.assertEqual((result['start'], result['end_exclusive']), (start, end))
+                self.assertEqual((result['head_count'], result['head_sum']), (len(heads), sum(heads)))
+                self.assertEqual((result['rest_count'], result['rest_sum']), (len(rest), sum(rest)))
+                expected[key] = Fraction(sum(heads), len(heads)) - Fraction(sum(rest), len(rest))
+                self.assertAlmostEqual(result['mean_head_minus_rest'], float(expected[key]))
+            self.assertAlmostEqual(out['common_interval_joint_minus_fixed'],
+                                   float(expected['common_interval_joint'] - expected['common_interval_fixed']))
+
+    def test_common_interval_empty_mask(self):
+        out = P.diagnostic(array('B', [0, 10] + [0] * 40), 0, 4, 2, 1, 1)
+        result = out['common_interval_fixed']
+        self.assertEqual((result['start'], result['end_exclusive']), (18, 20))
+        self.assertEqual((result['head_count'], result['head_sum']), (0, 0))
+        self.assertEqual((result['rest_count'], result['rest_sum']), (2, 0))
+        self.assertIsNone(result['mean_head_minus_rest'])
+        self.assertIsNone(out['common_interval_joint_minus_fixed'])
+
+    def test_common_interval_clips_both_edge_heads(self):
+        q = array('B', [10 if (i - 2) % 5 < 2 else 0 for i in range(100)])
+        out = P.diagnostic(q, 0, 6, 1, 2, 2)
+        model = out['joint_selected']
+        self.assertEqual((model['stride'], model['phase']), (5, 2))
+        result = out['common_interval_joint']
+        start, end = result['start'], result['end_exclusive']
+        self.assertEqual((start, end), (28, 38))
+        self.assertEqual((start - model['phase']) % model['stride'], 1)
+        self.assertEqual((end - 1 - model['phase']) % model['stride'], 0)
+        heads = [q[i] for i in range(start, end) if (i - model['phase']) % model['stride'] < 2]
+        rest = [q[i] for i in range(start, end) if (i - model['phase']) % model['stride'] >= 2]
+        self.assertEqual((result['head_count'], result['head_sum']), (len(heads), sum(heads)))
+        self.assertEqual((result['rest_count'], result['rest_sum']), (len(rest), sum(rest)))
+        self.assertEqual(result['mean_head_minus_rest'], float(Fraction(sum(heads), len(heads)) - Fraction(sum(rest), len(rest))))
+
     def test_synthetic_tiff_cli_hash_and_shortfall(self):
         def fixture(payload):
             tags = ((256, 8), (257, 8), (273, 62), (279, len(payload)))

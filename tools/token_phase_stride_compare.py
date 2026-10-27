@@ -3,6 +3,8 @@
 
 Fits contiguous shifted boundaries, unlike token_phase_holdout_probe's cyclic
 heads within fixed blocks. Test starts preserve the fitted phase and period.
+Also scores all three fitted models over one common token interval, including
+partial edge blocks; head counts can differ. This is descriptive, not a null.
 Capped-q candidate tokens are not established physical rows or a codec.
 No significance or universal stride inference follows; aggregate JSON only.
 """
@@ -88,10 +90,36 @@ def diagnostic(qs, anchor, center, radius, rows, head):
     joint, fixed = evaluate(global_choice), evaluate(fixed_choice)
     baseline_num, baseline_den = score(center, 0, anchor)
     baseline = evaluate((baseline_num, baseline_den, center, 0))
+    common_end = barrier + rows * lo
+    def common_score(model):
+        stride, phase = model['stride'], model['phase']
+        start = anchor + phase + ((barrier - anchor - phase) // stride) * stride
+        head_sum = head_count = 0
+        while start < common_end:
+            left, right = max(start, barrier), min(start + head, common_end)
+            if right > left:
+                head_sum += prefix[right - anchor] - prefix[left - anchor]
+                head_count += right - left
+            start += stride
+        total_sum = prefix[common_end - anchor] - prefix[barrier - anchor]
+        rest_count = common_end - barrier - head_count
+        rest_sum = total_sum - head_sum
+        return {'start': barrier, 'end_exclusive': common_end,
+                'head_count': head_count, 'head_sum': head_sum,
+                'rest_count': rest_count, 'rest_sum': rest_sum,
+                'mean_head_minus_rest': (head_sum / head_count - rest_sum / rest_count
+                                         if head_count and rest_count else None)}
+    common_joint, common_fixed, common_origin = map(common_score, (joint, fixed, baseline))
+    common_delta = (common_joint['mean_head_minus_rest'] - common_fixed['mean_head_minus_rest']
+                    if common_joint['mean_head_minus_rest'] is not None
+                    and common_fixed['mean_head_minus_rest'] is not None else None)
     delta = joint['test_mean'] - fixed['test_mean']
     return {'complete': True, 'required_tokens': required, 'test_barrier': barrier,
             'fixed_phase_training_means': fixed_curve, 'best_phase_by_stride': curves,
             'joint_selected': joint, 'fixed_stride_selected': fixed, 'fixed_origin': baseline,
+            'common_interval_joint': common_joint, 'common_interval_fixed': common_fixed,
+            'common_interval_origin': common_origin,
+            'common_interval_joint_minus_fixed': common_delta,
             'heldout_joint_minus_fixed': delta, 'practical_threshold': THRESHOLD,
             'at_least_threshold': delta >= THRESHOLD}
 
