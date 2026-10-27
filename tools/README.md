@@ -1159,3 +1159,12 @@ framing/termination/padding cost, round trip or reconstruction is implemented.
 
     python -I -B tools/frozen_bit_context.py --manifest samples/manifest.csv --discovery DISCOVERY_FILE --validation VALIDATION_FILE
     python -I -B tools/test_frozen_bit_context.py
+
+**`frozen_context_calibration.py`** tests a fixed seven-point odds calibration
+of frozen order-0 and order-8 models on disjoint per-file windows. It reports
+all calibration candidates and heldout scores with equal three-bit index costs;
+calibration data transmission is excluded, and scores are not a codec.
+Inputs require retained CC0 provenance matched by local hash and manifest.
+
+    python -I -B tools/frozen_context_calibration.py --manifest samples/manifest.csv --discovery FILE1993 FILE1995 --validation FILE
+    python -I -B tools/test_frozen_context_calibration.py
