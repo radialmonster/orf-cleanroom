@@ -122,3 +122,7 @@ jobs:
           python -I -B tools/test_token_head_stride_probe.py
           python -I -B tools/test_token_width_context_probe.py
           python -I -B tools/test_token_tail_distribution_probe.py
+      - name: Synthetic packed-16 neighbour arithmetic tests
+        run: |
+          python -I -B tools/test_e400_high12_probe.py
+          python -I -B tools/test_e400_zero_low4_probe.py
