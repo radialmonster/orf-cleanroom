@@ -341,6 +341,9 @@ def decode_file(path, order=None, layout=None):
         # F_CONTEXT (Partial for #332): order-8 predictive structure reproduces on
         # a named unassigned four-file cohort, but is not an identified codec or
         # reconstruction (V1 S1.18).
+        # 2026-10-27--radialmonster--body-label-holdout-reproduction (#329):
+        # a file-cohort label diagnostic is not variant, capture-independent
+        # validation or a decode step (V1 S1.22, G6).
         # F_CONTEXT_TRANSFER (Partial for #362): the OM-5 6343 loss against
         # order 0 reproduces, while 6344 reverses it in two windows; both
         # remain unassigned and specify no codec or reconstruction (V1 S1.18).
