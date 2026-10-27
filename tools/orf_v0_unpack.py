@@ -21,6 +21,7 @@ correlation of row y with row y+2 when rows are read at stride = row bytes
 
 Nothing is written but text; no pixel values are printed or saved. Only a
 window (default 3 bands of 16 rows, first 1200 columns) is read.
+The CLI exits 1 if an input fails, retaining later reports and valid skips.
 
 Usage: python orf_v0_unpack.py FILE [FILE ...] [--rows N] [--bands N] [--cols N]
 """
@@ -229,12 +230,15 @@ def main():
     ap.add_argument("--bands", type=int, default=3, help="bands spread through the frame (default 3)")
     ap.add_argument("--cols", type=int, default=1200, help="columns read per row (default 1200)")
     a = ap.parse_args()
-    for p in a.files:
+    failed = False
+    for index, p in enumerate(a.files, 1):
         try:
             analyse(p, a.rows, a.bands, a.cols)
         except (ValueError, struct.error, OSError) as exc:
-            print("%s: %s" % (p, exc), file=sys.stderr)
+            print("input %d: %s" % (index, type(exc).__name__), file=sys.stderr)
+            failed = True
+    return int(failed)
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
