@@ -236,6 +236,31 @@ class ParseTests(unittest.TestCase):
 
 
 class CohortAndRunnerTests(unittest.TestCase):
+    def test_duplicate_content_hash_is_rejected(self):
+        c = cohort()
+        c['samples'][1]['sha256'] = c['samples'][0]['sha256']
+        with self.assertRaises(probe.InputError):
+            probe.validate_cohort(c)
+
+    def test_duplicate_identity_json_key_rejected_before_measurement(self):
+        c = cohort()
+        source = json.dumps(c)
+        variants = (source.replace('"id": 101', '"id": 999, "id": 101'),
+                    source.replace('"sha256": "' + 'a' * 64 + '"',
+                                   '"sha256": "' + 'c' * 64 + '", "sha256": "' + 'a' * 64 + '"'))
+        for text in variants:
+            with self.subTest(text=text), named_temp(mode='w', encoding='utf-8') as stream:
+                stream.write(text)
+                stream.flush()
+                with mock.patch.object(probe, 'measure_sample', return_value={'status': 'ok'}) as measure, \
+                        contextlib.redirect_stdout(io.StringIO()) as output:
+                    status = probe.main(['--cohort', stream.name, '--measured-by', '@fictional',
+                                         '--sample', '101', '/private/a', '--sample', '202', '/private/b'])
+                self.assertEqual(status, 1)
+                measure.assert_not_called()
+                self.assertEqual(json.loads(output.getvalue())['reason'], 'invalid_cohort_input')
+                self.assertNotIn('private', output.getvalue())
+
     def test_shared_public_name_preserves_distinct_ordered_records(self):
         c = cohort()
         c["samples"][1]["name"] = c["samples"][0]["name"]
