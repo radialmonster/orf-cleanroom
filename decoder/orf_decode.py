@@ -382,6 +382,9 @@ def decode_file(path, order=None, layout=None):
         # F_OM1_DARK (Partial for #338): same-colour offset signs repeat on four
         # own lens-cap captures from two bodies and two sensitivity settings; this
         # does not identify a predictor, values or a decode step (V1 S1.20).
+        # F_WHITE_PARITY (#555): one white-file nominal profile has zero opposing
+        # eligible blocks; one whole-stream block is low-information and excluded.
+        # It does not establish physical rows (V1 S1.21).
         # F_OM3_FLAT (Partial for #338): seven public OM-3 controlled files
         # reproduce their 4M-token grids and retain patterns at 8M, using the
         # same captures; token coordinates do not establish a pixel map.
