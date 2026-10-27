@@ -40,6 +40,7 @@ same-token within-row null, not significance tests.
 
 The tool reads files, prints JSON to stdout and writes nothing. Standard
 library only, Python 3.8+.
+IDs that cannot be converted to integers are argument errors.
 
 Usage:
   python -I -B tools/token_loop_probe.py --self-test
@@ -385,13 +386,17 @@ def main(argv=None):
 
     selected = []
     for raw_id, public_name, path in args.sample:
-        if not raw_id.isascii() or not raw_id.isdigit() or int(raw_id) <= 0:
+        try:
+            numeric_id = int(raw_id) if raw_id.isascii() and raw_id.isdigit() else 0
+        except ValueError:
+            ap.error("sample ID must be a positive decimal")
+        if numeric_id <= 0:
             ap.error("sample ID must be a positive decimal")
         if not public_name or not public_name.isprintable() or any(c in public_name for c in "/\\"):
             ap.error("public sample name must not contain a local path")
-        if any(s[0] == int(raw_id) for s in selected):
+        if any(s[0] == numeric_id for s in selected):
             ap.error("duplicate sample ID")
-        selected.append((int(raw_id), public_name, path))
+        selected.append((numeric_id, public_name, path))
 
     try:
         samples = [measure_sample(sid, name, path, args.rows, args.perms)
