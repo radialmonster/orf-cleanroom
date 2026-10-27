@@ -18,6 +18,7 @@ consistency verdict applies only to observed selected rows. All supplied sample
 identities survive input errors, with sanitized error classes and no local paths.
 Reuse verified CC0 records after matching local hashes; new content needs its
 first licence verification. Builds on #11, #29, #166 and #169.
+Sample IDs must be distinct positive ASCII decimals and names printable basenames.
 """
 import argparse
 import hashlib
@@ -120,8 +121,15 @@ def main():
     parser.add_argument("--sample", nargs=3, action="append", required=True,
                         metavar=("ID", "PUBLIC_NAME", "FILE"))
     args = parser.parse_args()
-    if any(not sample_id.isdigit() for sample_id, _, _ in args.sample):
-        parser.error("sample ID must be numeric")
+    ids = [sample_id for sample_id, _, _ in args.sample]
+    try:
+        invalid_ids = any(not i.isascii() or not i.isdecimal() or int(i) <= 0 for i in ids) or len(set(map(int, ids))) != len(ids)
+    except ValueError:
+        invalid_ids = True
+    if invalid_ids:
+        parser.error("sample IDs must be distinct positive ASCII decimals")
+    if any(not name or not name.isprintable() or any(c in name for c in '/\\') for _, name, _ in args.sample):
+        parser.error("sample public name must be a printable basename")
     reports = []
     failures = []
     incomplete = False
