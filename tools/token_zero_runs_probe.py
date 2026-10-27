@@ -19,6 +19,8 @@ Each window censors both edges independently, even inside an ongoing run.
 These windows alone do not establish stationarity or representativeness.
 The CLI prints all available reports, then exits 1 if any input failed or any
 requested start/window was incomplete; complete error-free reports exit 0.
+Public sample IDs must be distinct numerically; leading-zero aliases count as
+the same ID. Licence verification remains separate from this identity check.
 """
 import argparse
 from collections import Counter
@@ -158,7 +160,7 @@ def main():
     if args.start_token < 0 or args.tokens <= 0:
         parser.error("--start-token must be nonnegative and --tokens positive")
     ids = [sample[0] for sample in args.sample]
-    if any(not x.isascii() or not x.isdecimal() or int(x) <= 0 for x in ids) or len(set(ids)) != len(ids):
+    if any(not x.isascii() or not x.isdecimal() or int(x) <= 0 for x in ids) or len(set(map(int, ids))) != len(ids):
         parser.error("sample IDs must be distinct positive ASCII decimal integers")
     reports, failures = [], []
     for sample_id, name, path in args.sample:
