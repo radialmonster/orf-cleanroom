@@ -337,6 +337,8 @@ def decode_file(path, order=None, layout=None):
         # they specify no value assembly or compressed decode step (V2 S1.1).
         # F_NULL_CORRECTED (Partial for #231): corrected fixed-prefix q0 null
         # separation specifies neither entropy-code boundaries nor values (V1 S1.12).
+        # 2026-10-27--radialmonster--q47-family-null-reproduction (#577):
+        # finite candidate counts do not identify a codec or V2 (V2 S1.3).
         # F_Q47 (self-verified, #246): the first payload token is q=39/suffix 0 on
         # 83 variable-size CC0 files and q=47/suffix 0 on four large-sensor files;
         # it specifies no value assembly, decode step or variant assignment
