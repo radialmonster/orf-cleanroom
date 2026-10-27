@@ -2,6 +2,7 @@
 """Measure within/cross-unit roughness for V0 packed-12 / packed-12.8 (lead #75, G4).
 
 The central 300 stored rows when height>400, otherwise every stored row,
+are measured by default; --all-rows selects the entire stored frame. Both
 use even i in range(2,width-3,2). Select strictly when
 abs(r[i+2]-r[i-2])+abs(r[i+3]-r[i-1]) > threshold, separately for each
 pair order. Swapping pairs preserves this gradient but changes cross-unit
@@ -51,7 +52,7 @@ def summarize(within, cross, count):
             'cross_over_within': cross/within if within else None}
 
 
-def analyse(path, threshold):
+def analyse(path, threshold, all_rows=False):
     p = od.Payload(path)
     sc = p.sig['size_class']
     w, h = p.sig['payload_w'], p.sig['payload_h']
@@ -63,7 +64,7 @@ def analyse(path, threshold):
     if w <= 0 or h <= 0 or not p.in_file:
         raise ValueError('invalid payload')
     rb = od.row_bytes(sc, w)
-    start, stop = (h//2-150, h//2+150) if h > 400 else (0, h)
+    start, stop = (h//2-150, h//2+150) if h > 400 and not all_rows else (0, h)
     sums = [[0, 0, 0], [0, 0, 0]]
     with open(path, 'rb') as stream:
         order, unused_margin = od.detect_order(stream, p, sc, w, h, rb)
@@ -88,6 +89,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('threshold', type=nonnegative)
     parser.add_argument('sample_dir', nargs='?')
+    parser.add_argument('--all-rows', action='store_true', help='measure every stored row')
     parser.add_argument('--sample', nargs=3, action='append', default=[],
                         metavar=('ID', 'PUBLIC_NAME', 'FILE'))
     args = parser.parse_args(argv)
@@ -107,7 +109,7 @@ def main(argv=None):
     for sample_id, public_name, path in samples:
         report = {'sample_id': sample_id, 'public_name': public_name}
         try:
-            report.update(analyse(path, args.threshold))
+            report.update(analyse(path, args.threshold, args.all_rows))
         except (od.NotSpecified, ValueError, IndexError, KeyError, struct.error, OSError) as exc:
             report['error'] = type(exc).__name__
             failed = True

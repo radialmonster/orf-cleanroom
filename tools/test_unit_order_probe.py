@@ -71,6 +71,22 @@ class Tests(unittest.TestCase):
         self.assertEqual(sample['emitted'],probe.summarize(60,60,6))
         self.assertEqual(sample['swapped'],probe.summarize(60,180,6))
 
+    def test_full_frame_and_default_central_band(self):
+        row = list(range(0, 100, 10))
+        data = fixture([row] * 402)
+        for options, start, stop in (([], 51, 351), (['--all-rows'], 0, 402)):
+            with self.subTest(options=options):
+                code, report = self.run_cli(['0', '--sample', 'test', 'Synthetic', 'frame'] + options,
+                                            {'frame': data})
+                self.assertEqual(code, 0)
+                sample = report['samples'][0]
+                self.assertEqual((sample['stored_row_start'], sample['stored_row_stop']), (start, stop))
+                n = stop - start
+                self.assertEqual(sample['emitted']['selected_units'], 3*n)
+                self.assertEqual(sample['swapped']['selected_units'], 3*n)
+                self.assertEqual((sample['emitted']['within_sum'], sample['emitted']['cross_sum']), (30*n, 30*n))
+                self.assertEqual((sample['swapped']['within_sum'], sample['swapped']['cross_sum']), (30*n, 90*n))
+
     def test_actual_cli_mixed_error_retains_success(self):
         code, report = self.run_cli(['0','--sample','bad','Malformed','bad',
             '--sample','ok','Synthetic','good','--sample','missing','Missing','absent'],
