@@ -379,6 +379,9 @@ def decode_file(path, order=None, layout=None):
         r["notes"].append("compressed payload (%s bits per pixel); no decoder or padding rule is specified yet; suffix associations do not specify values, see specs/V1.md S1.1-S1.2, S1.7-S1.21, S2.3, G2, specs/V2.md S1.1-S1.2 and ROADMAP.md" % sig["bpp"])
         return r
     packing = sc
+    # 2026-10-27--radialmonster--whole-frame-unit-order-reproduction (#538):
+    # a whole-frame smoothness comparison does not establish physical pixel order
+    # or change unpacking (V0 G4).
     r.update(variant="V0", packing=packing, status=STATUS[packing])
     rb = row_bytes(packing, w)
     if not p.in_file:
