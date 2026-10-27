@@ -22,6 +22,8 @@ This is a descriptive transfer estimate, not uncertainty/significance,
 historical private-estimator reproduction, a conditional law or a decoder.
 Escape omission is selective and cannot repair unknown post-escape framing.
 Licence-check samples separately. No previews are accessed.
+Incomplete requested prefixes and input failures produce a nonzero exit;
+available aggregate reports are retained.
 """
 import argparse
 import hashlib
@@ -179,7 +181,7 @@ def main():
                       "block_tokens": BLOCK, "target_start_within_block": START,
                       "smoothing_per_outcome": 0.5, "replicates": REPLICATES,
                       "seed": SEED, "samples": reports, "failures": failures}, indent=2, allow_nan=False))
-    return 1 if failures else 0
+    return 1 if failures or any(r["prefix_shortfall"] for r in reports) else 0
 
 
 if __name__ == "__main__":

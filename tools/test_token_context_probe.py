@@ -7,6 +7,7 @@ import json
 import math
 import os
 import random
+import struct
 import sys
 import unittest
 from collections import Counter
@@ -17,6 +18,41 @@ import token_context_probe as probe
 
 
 class ContextChecks(unittest.TestCase):
+    def test_cli_complete_short_and_unreadable_inputs(self):
+        def fixture(payload):
+            tags = ((256, 8), (257, 1), (273, 62), (279, len(payload)))
+            return (b'II' + struct.pack('<HIH', 42, 8, len(tags))
+                    + b''.join(struct.pack('<HHII', tag, 4, 1, value) for tag, value in tags)
+                    + struct.pack('<I', 0) + payload)
+
+        fixtures = {'complete': fixture(b'\xff\xff'), 'short': fixture(b'\xff')}
+        original_open = open
+
+        def open_fixture(path, *args, **kwargs):
+            if path in fixtures:
+                return io.BytesIO(fixtures[path])
+            if path == 'missing':
+                raise OSError('private diagnostic')
+            return original_open(path, *args, **kwargs)
+
+        for names, expected_status, expected_shortfalls in (
+                (('complete',), 0, [0]), (('short',), 1, [1]),
+                (('complete', 'short', 'missing'), 1, [0, 1]),
+                (('missing',), 1, [])):
+            argv = ['probe']
+            for i, name in enumerate(names, 1):
+                argv += ['--sample', str(i), 'public', name]
+            output = io.StringIO()
+            with self.subTest(names=names), mock.patch.object(sys, 'argv', argv), \
+                    mock.patch.object(probe, 'LIMIT', 2), mock.patch('builtins.open', side_effect=open_fixture), \
+                    contextlib.redirect_stdout(output):
+                status = probe.main()
+                result = json.loads(output.getvalue())
+                self.assertEqual(status, expected_status)
+                self.assertEqual([r['prefix_shortfall'] for r in result['samples']], expected_shortfalls)
+                self.assertEqual(len(result['failures']), int('missing' in names))
+                self.assertNotIn('private diagnostic', output.getvalue())
+
     def test_independent_tables_and_loss(self):
         rng = random.Random(104)
         blocks = [(i, [rng.randrange(32) for _ in range(128)]) for i in (0, 3, 4, 9)]
@@ -104,10 +140,10 @@ class ContextChecks(unittest.TestCase):
     def test_cli_mixed_success_and_invalid_id(self):
         args = ["probe", "--sample", "1", "public", "valid", "--sample", "2", "public", "private-path"]
         stream = io.StringIO()
-        with mock.patch.object(sys, "argv", args), mock.patch.object(probe, "report", side_effect=[{"pixls_id": "1"}, OSError("private-path")]), contextlib.redirect_stdout(stream):
+        with mock.patch.object(sys, "argv", args), mock.patch.object(probe, "report", side_effect=[{"pixls_id": "1", "prefix_shortfall": 0}, OSError("private-path")]), contextlib.redirect_stdout(stream):
             self.assertEqual(probe.main(), 1)
         result = json.loads(stream.getvalue())
-        self.assertEqual(result["samples"], [{"pixls_id": "1"}])
+        self.assertEqual(result["samples"], [{"pixls_id": "1", "prefix_shortfall": 0}])
         self.assertEqual(result["failures"], [{"pixls_id": "2", "error": "OSError"}])
         self.assertNotIn("private-path", stream.getvalue())
         with mock.patch.object(sys, "argv", ["probe", "--sample", "0", "public", "x"]), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as caught:
