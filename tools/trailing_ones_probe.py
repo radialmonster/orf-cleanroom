@@ -4,6 +4,7 @@
 Match the frozen cohort by input SHA-256, reuse the original signature and
 contiguous payload locator, and emit only public metadata and aggregate counts.
 Standard library only; Python 3.8+.
+Each measurement snapshot must match the cohort hash before its payload is counted.
 """
 
 import argparse
@@ -21,7 +22,7 @@ if TOOLS_DIR not in sys.path:
     sys.path.insert(0, TOOLS_DIR)
 
 from orf_signature import signature
-from orf_tokens import locate
+from orf_tokens import locate_data
 
 
 # These are input-format errors raised by the original helpers, not a catch-all.
@@ -137,7 +138,7 @@ def empty_result(measured_by):
     sources = {
         "trailing_ones_probe": __file__,
         "orf_signature": signature.__code__.co_filename,
-        "orf_tokens": locate.__code__.co_filename,
+        "orf_tokens": locate_data.__code__.co_filename,
     }
     for name, path in sources.items():
         try:
@@ -187,7 +188,12 @@ def measure_sample(sample, path):
     if sig["payload_bytes"] <= 0:
         return None, "empty_payload"
     try:
-        width, height, payload = locate(path)
+        with open(path, "rb") as stream:
+            data = stream.read()
+        if hashlib.sha256(data).hexdigest() != sample["sha256"]:
+            return None, "sha256_mismatch"
+        width, height, payload = locate_data(data)
+        del data
     except OSError:
         return None, "input_unreadable"
     except PARSE_ERRORS:

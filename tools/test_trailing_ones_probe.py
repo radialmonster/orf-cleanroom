@@ -2,6 +2,7 @@
 """Independent literal-bit and synthetic CLI checks for trailing_ones_probe."""
 
 import hashlib
+import io
 import json
 import subprocess
 import sys
@@ -9,6 +10,7 @@ import tempfile
 import unittest
 from collections import Counter
 from pathlib import Path
+from unittest.mock import patch
 
 
 TOOLS_DIR = Path(__file__).resolve().parent
@@ -16,6 +18,7 @@ if str(TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(TOOLS_DIR))
 
 from test_v0_spec_check import make_orf
+import trailing_ones_probe as probe
 from trailing_ones_probe import trailing_ones_from_bytes
 
 
@@ -33,6 +36,20 @@ def literal_counts(data):
 
 
 class CounterTests(unittest.TestCase):
+    def test_measure_sample_rejects_changed_snapshot_and_retains_valid(self):
+        original = bytes(make_orf(b'\x00\xfe', 4, 4, extra=[(272, 2, [ord('T')])]).data)
+        changed = bytes(make_orf(b'\x00\xff', 4, 4, extra=[(272, 2, [ord('T')])]).data)
+        sample = {'id': '1', 'public_name': 'synthetic.orf', 'sha256': hashlib.sha256(original).hexdigest()}
+        for second, expected in ((original, None), (changed, 'sha256_mismatch')):
+            with self.subTest(expected=expected), patch('builtins.open', side_effect=[io.BytesIO(original), io.BytesIO(second)]):
+                row, failure = probe.measure_sample(sample, 'unused')
+            self.assertEqual(failure, expected)
+            if expected:
+                self.assertIsNone(row)
+            else:
+                self.assertEqual(row['input_sha256'], sample['sha256'])
+                self.assertEqual(row['full_payload_trailing_ones'], 0)
+
     def test_exhaustive_two_byte_inputs(self):
         for value in range(65536):
             data = value.to_bytes(2, "big")
@@ -84,6 +101,27 @@ class CliTests(unittest.TestCase):
             "expected_count": len(samples),
             "samples": samples,
         }
+
+    def test_mixed_snapshot_failure_keeps_later_verified_sample(self):
+        first = bytes(make_orf(b'\x00\xfe', 4, 4, extra=[(272, 2, [ord('T')])]).data)
+        changed = bytes(make_orf(b'\x00\xff', 4, 4, extra=[(272, 2, [ord('T')])]).data)
+        good = bytes(make_orf(b'\x01\xff', 4, 4, extra=[(272, 2, [ord('T')])]).data)
+        samples = [{'id': '1', 'public_name': 'first.orf', 'sha256': hashlib.sha256(first).hexdigest()},
+                   {'id': '2', 'public_name': 'good.orf', 'sha256': hashlib.sha256(good).hexdigest()}]
+        self.cohort_path.write_text(json.dumps(self.cohort(samples)), encoding='utf-8')
+        original_open = open
+        reads = {'first': iter((first, changed)), 'good': iter((good, good))}
+        def read(path, mode='r', *args, **kwargs):
+            if path in reads:
+                return io.BytesIO(next(reads[path]))
+            return original_open(path, mode, *args, **kwargs)
+        with patch.object(probe, 'index_inputs', return_value=({samples[0]['sha256']: 'first', samples[1]['sha256']: 'good'}, False)), \
+                patch('builtins.open', side_effect=read):
+            result = probe.run_measurement(str(self.cohort_path), str(self.cache), 'tester')
+        self.assertEqual(result['failures'], [{'sample_id': '1', 'category': 'sha256_mismatch'}])
+        self.assertEqual([row['sample_id'] for row in result['samples']], ['2'])
+        self.assertEqual(result['samples'][0]['full_payload_trailing_ones'], 9)
+        self.assertEqual(result['summary']['sample_count'], 1)
 
     def run_probe(self, cohort_text):
         cohort_bytes = cohort_text.encode("utf-8")
