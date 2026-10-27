@@ -15,7 +15,7 @@ Usage:
   python pixls_samples.py download DIR [--model M] [--max N]
                                                   # CC0 only, SHA-256 verified;
                                                   # DIR must be outside the repo;
-                                                  # exits 1 if any downloaded hash mismatches
+                                                  # exits 1 on hash mismatch or local file error
 """
 import argparse
 import csv
@@ -215,15 +215,26 @@ def cmd_download(a):
         if a.max is not None and n >= a.max:
             break
         path = os.path.join(dest, r["local_name"])
-        if not (os.path.exists(path) and sha256_file(path) == r["sha256"]):
+        try:
+            reuse = os.path.exists(path) and sha256_file(path) == r["sha256"]
+        except OSError as exc:
+            print("local file error, skipped: %s (%s)" % (r["local_name"], type(exc).__name__), file=sys.stderr)
+            bad = True
+            continue
+        if not reuse:
             url = urllib.parse.quote(r["url"], safe=":/")
             data = fetch(url)
             if hashlib.sha256(data).hexdigest() != r["sha256"]:
                 print("hash mismatch, skipped: %s" % r["name"], file=sys.stderr)
                 bad = True
                 continue
-            with open(path, "wb") as f:
-                f.write(data)
+            try:
+                with open(path, "wb") as f:
+                    f.write(data)
+            except OSError as exc:
+                print("local file error, skipped: %s (%s)" % (r["local_name"], type(exc).__name__), file=sys.stderr)
+                bad = True
+                continue
         print("CC0  %s" % path)
         n += 1
     if bad:

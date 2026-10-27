@@ -174,6 +174,60 @@ class SampleTools(unittest.TestCase):
                 with open(os.path.join(scratch, "out.csv"), newline="", encoding="utf-8") as f:
                     self.assertEqual(len(list(csv.reader(f))), 1)
 
+    def test_download_write_failure_preserves_later_download(self):
+        contents = {'https://example.invalid/first': b'first synthetic',
+                    'https://example.invalid/second': b'second synthetic'}
+        records = [dict(id=str(i), name=name, local_name=name, url=url,
+                        sha256=hashlib.sha256(contents[url]).hexdigest(), licence='CC0')
+                   for i, name, url in ((1, 'blocked.ORF', 'https://example.invalid/first'),
+                                        (2, 'good.ORF', 'https://example.invalid/second'))]
+        with tempfile.TemporaryDirectory(dir=str(WORK)) as folder:
+            original_open = open
+            def opening(path, mode='r', *args, **kwargs):
+                if str(path) == str(Path(folder) / 'blocked.ORF') and mode == 'wb':
+                    raise PermissionError('synthetic write failure')
+                return original_open(path, mode, *args, **kwargs)
+            output, error = io.StringIO(), io.StringIO()
+            with mock.patch.object(pixls, 'rows', return_value=records), \
+                    mock.patch.object(pixls.os.path, 'commonpath', return_value='outside-repo'), \
+                    mock.patch.object(pixls, 'fetch', side_effect=contents.__getitem__), \
+                    mock.patch('builtins.open', side_effect=opening), \
+                    mock.patch.object(sys, 'argv', ['pixls_samples', 'download', folder]), \
+                    mock.patch.object(sys, 'stdout', output), mock.patch.object(sys, 'stderr', error):
+                with self.assertRaises(SystemExit) as result:
+                    pixls.main()
+            self.assertEqual(result.exception.code, 1)
+            self.assertEqual((Path(folder) / 'good.ORF').read_bytes(), contents[records[1]['url']])
+            self.assertIn('good.ORF', output.getvalue())
+            self.assertIn('blocked.ORF', error.getvalue())
+            self.assertNotIn('blocked.ORF', output.getvalue())
+            self.assertIn('PermissionError', error.getvalue())
+            self.assertNotIn('synthetic write failure', error.getvalue())
+            self.assertNotIn(folder, error.getvalue())
+
+    def test_download_unreadable_existing_path_preserves_later_download(self):
+        data = b'synthetic'
+        records = [dict(id=str(i), name=name, local_name=name, url='https://example.invalid/' + name,
+                        sha256=hashlib.sha256(data).hexdigest(), licence='CC0')
+                   for i, name in ((1, 'blocked.ORF'), (2, 'good.ORF'))]
+        with tempfile.TemporaryDirectory(dir=str(WORK)) as folder:
+            (Path(folder) / 'blocked.ORF').mkdir()
+            output, error = io.StringIO(), io.StringIO()
+            with mock.patch.object(pixls, 'rows', return_value=records), \
+                    mock.patch.object(pixls.os.path, 'commonpath', return_value='outside-repo'), \
+                    mock.patch.object(pixls, 'fetch', return_value=data) as fetch, \
+                    mock.patch.object(sys, 'argv', ['pixls_samples', 'download', folder]), \
+                    mock.patch.object(sys, 'stdout', output), mock.patch.object(sys, 'stderr', error):
+                with self.assertRaises(SystemExit) as result:
+                    pixls.main()
+            self.assertEqual(result.exception.code, 1)
+            fetch.assert_called_once_with(records[1]['url'])
+            self.assertEqual((Path(folder) / 'good.ORF').read_bytes(), data)
+            self.assertIn('blocked.ORF', error.getvalue())
+            self.assertNotIn('blocked.ORF', output.getvalue())
+            self.assertRegex(error.getvalue(), r'\((IsADirectoryError|PermissionError)\)')
+            self.assertNotIn(folder, error.getvalue())
+
     def test_download_hash_mismatch_fails_batch_after_other_results(self):
         good_data, late_data = b'good synthetic', b'late synthetic'
         records = [dict(id='1', name='bad.ORF', local_name='bad.ORF', url='https://example.invalid/bad',
