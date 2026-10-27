@@ -174,6 +174,11 @@ jobs:
         run: |
           python -I -B tools/test_bayer_grid_probe.py
           python -I -B tools/test_orf_v0_unpack.py
+      - name: Synthetic unit order and trailing-bit tests
+        run: |
+          mkdir -p work/ci-tmp
+          TMPDIR="$PWD/work/ci-tmp" python -I -B tools/test_unit_order_probe.py
+          TMPDIR="$PWD/work/ci-tmp" python -I -B tools/test_trailing_ones_probe.py
       - name: Synthetic sensor rejection controls
         run: |
           python -I -B tools/test_v0_sensor_controls.py
