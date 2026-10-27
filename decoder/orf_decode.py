@@ -337,6 +337,8 @@ def decode_file(path, order=None, layout=None):
         # they specify no value assembly or compressed decode step (V2 S1.1).
         # F_NULL_CORRECTED (Partial for #231): corrected fixed-prefix q0 null
         # separation specifies neither entropy-code boundaries nor values (V1 S1.12).
+        # 2026-10-27--radialmonster--q-parity-lag-reproduction (#585):
+        # token-index parity means do not identify physical causes (V2 S1.5).
         # 2026-10-27--radialmonster--whole-q47-family-null (#581):
         # whole candidate counts do not identify a codec or V2 (V2 S1.4).
         # 2026-10-27--radialmonster--q47-family-null-reproduction (#577):
