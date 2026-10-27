@@ -21,6 +21,8 @@ Six public E-M5 Mark II dark captures retain four declared real-versus-shuffled 
 
 Shared unassigned Rice stop-1 k=5 counts reproduce on public ids 1993 and 7804, with a predeclared 7803 extension (finding `2026-10-27--mtakemoto--rice-counts-public-files`, Partial for #339; V1 S1.8). The original 1993 zlib-9 prefix ratios also reproduce, with a separate 7803 extension (finding `2026-10-27--mtakemoto--zlib-public-prefix-reproduction`, Partial for #339); an earlier conflicting review result remains unexplained. These observations establish neither codec nor pixel correspondence; other #339 claims remain open.
 
+The original three public OM-3 controlled white/dark files' 4MB zlib, bzip2 and LZMA real/shuffled ratios reproduce, with a separate E-M5 Mark II dark extension (`2026-10-27--mtakemoto--controlled-flat-recompression`, Partial for #339). The sizes do not establish a codec or the broader efficient-coder interpretation.
+
 The shared unassigned bounded decompression screen reproduces 25/22 complete raw-DEFLATE hits for 7804 real/shuffled; predeclared 6344 gives 13/18, with no partial or other-format complete hits (finding `2026-10-27--mtakemoto--public-container-screen-reproduction`, Partial for #339; V1 S1.8). This does not exclude other framing or offsets.
 
 Eight further whole-payload candidate-family count rows reproduce on public 1993/7804 real and shuffled, with predeclared 6344 separately reported (finding `2026-10-27--mtakemoto--public-code-family-counts`, Partial for #339; V1 S1.8). Real Elias delta completes zero words on these files; no codec or pixel mapping follows.
