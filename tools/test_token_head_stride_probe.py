@@ -14,6 +14,37 @@ import token_head_stride_probe as P
 
 
 class Tests(unittest.TestCase):
+    def test_public_identity_before_measurement(self):
+        def args(pairs):
+            return sum((["--sample", sid, name, "0" * 64, "5", "unused"] for sid, name in pairs), []) + ["--radius", "0", "--head", "1"]
+        for pairs in ([('1', 'ok'), ('01', 'ok')], [('0', 'ok')], [('\u0661', 'ok')],
+                      [('-1', 'ok')], [('1', 'ok'), ('2', '')],
+                      [('1', 'ok'), ('2', 'private/name')], [('1', 'ok'), ('2', 'private\\name')],
+                      [('1', 'ok'), ('2', 'private\nname')]):
+            with self.subTest(pairs=pairs):
+                output, error = io.StringIO(), io.StringIO()
+                with mock.patch.object(P, 'measure') as measure, contextlib.redirect_stdout(output), \
+                        contextlib.redirect_stderr(error), self.assertRaises(SystemExit) as raised:
+                    P.main(args(pairs))
+                self.assertEqual(raised.exception.code, 2)
+                measure.assert_not_called()
+                self.assertEqual(output.getvalue(), '')
+                self.assertNotIn('private', error.getvalue())
+        with mock.patch.object(P, 'int', side_effect=ValueError('private detail'), create=True), \
+                mock.patch.object(P, 'measure') as measure, contextlib.redirect_stderr(io.StringIO()) as error, \
+                self.assertRaises(SystemExit) as raised:
+            P.main(args([('1', 'ok')]))
+        self.assertEqual(raised.exception.code, 2)
+        self.assertNotIn('private detail', error.getvalue())
+        measure.assert_not_called()
+        output = io.StringIO()
+        with mock.patch.object(P, 'measure', return_value={'complete': True, 'token_shortfall': 0}), \
+                contextlib.redirect_stdout(output):
+            self.assertEqual(P.main(args([('01', 'Camera "é" (4:3), +.ORF')])), 0)
+        self.assertEqual((json.loads(output.getvalue())['samples'][0]['pixls_id'],
+                          json.loads(output.getvalue())['samples'][0]['pixls_name']),
+                         ('01', 'Camera "é" (4:3), +.ORF'))
+
     def test_every_cell_and_brute_force(self):
         qs = P.B.array.array("B", [(i*7+i//3)%41 for i in range(300)])
         report = P.diagnostic(qs, [7, 9, 8], [1, 3], 5)
