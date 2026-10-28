@@ -110,7 +110,11 @@ class GateTests(unittest.TestCase):
         with patch.object(probe, "report", return_value={"ok": 1, "token_shortfall": 0}) as mocked:
             with contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(probe.main(["--q-stratified", "--sample", "1", "a", "hidden"]), 0)
-            mocked.assert_called_once_with("1", "a", "hidden", True)
+        mocked.assert_called_once_with("1", "a", "hidden", True)
+        with patch.object(probe, "report", return_value={"ok": 1, "token_shortfall": 0}) as mocked:
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(probe.main(["--q-stratified", "--sample", "1", "a", "hidden", "--tokens", "524288"]), 0)
+        mocked.assert_called_once_with("1", "a", "hidden", True, 524288)
 
     def test_all_suffixes_and_empty(self):
         result = probe.measure([(0, s) for s in range(32)])
@@ -174,6 +178,11 @@ class GateTests(unittest.TestCase):
             self.assertEqual(result["returned_tokens"], 4)
             self.assertEqual(result["bits_consumed"], len(bits))
             self.assertEqual(result["statistics"], probe.measure(tokens))
+            with patch("builtins.open", return_value=io.BytesIO(data)):
+                limited = probe.report("1", "synthetic", path, limit=2)
+            self.assertEqual((limited["requested_tokens"], limited["returned_tokens"],
+                              limited["token_shortfall"], limited["bits_consumed"]), (2, 2, 0, 13))
+            self.assertEqual(limited["statistics"], probe.measure(tokens[:2]))
 
     def test_cli_real_synthetic_shortfall_and_complete_reports(self):
         def tiff(payload):
