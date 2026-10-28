@@ -49,6 +49,8 @@ Fixed nominal-position controls reproduce on two public files and extend to four
 
 Fixed candidate-token lag bands reproduce on two public files and extend to a fifth band on four files (`2026-10-28--radialmonster--candidate-lag-bands`). The shared unassigned rank comparison does not establish stationarity or physical framing (V1 S1.6/G3).
 
+Conditional and unconditional lag-3 information on the same candidate-token positions reproduces on two files and is reported on wider prefixes of four (`2026-10-28--radialmonster--conditional-lag-three`). These shared unassigned associations do not identify a codec state or physical structure (V1 S1.6/G3).
+
 Common-q b4 contrasts reproduce on four previously studied files and are reported on wider prefixes (`2026-10-28--radialmonster--common-q-b4-contrasts`). Wider support includes a sparse 1/1 stratum and 241's low4 contrast changes sign; this unassigned comparison does not establish a physical gate (V1 S1.14/G3).
 
 The fixed global-versus-within-row candidate loop shuffle comparison reproduces and extends to four public files (`2026-10-28--radialmonster--global-loop-shuffle-controls`); its four shuffles are descriptive, not predictor or physical-row evidence (V1 G2/G3).

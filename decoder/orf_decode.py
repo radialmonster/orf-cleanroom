@@ -347,6 +347,8 @@ def decode_file(path, order=None, layout=None):
         # q-class match is not full context or a physical escape mechanism.
         # 2026-10-28--radialmonster--candidate-lag-bands: candidate-token
         # lag ranks do not establish stationarity or physical framing.
+        # 2026-10-28--radialmonster--conditional-lag-three: conditional
+        # candidate-token association does not establish a codec state.
         # 2026-10-28--radialmonster--global-loop-shuffle-controls: global and
         # within-row surrogates do not establish physical framing or a predictor.
         # 2026-10-28--radialmonster--em5-dark-candidate-family-counts:
