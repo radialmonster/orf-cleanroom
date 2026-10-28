@@ -1,5 +1,19 @@
 # tools
 
+**`rice_iid_count_moments.py`** extends the small exact synthetic joint null
+with floating-point mean and central variance of the number of completed
+stop-1 Rice words for an externally supplied iid stop probability. Binary
+block composition uses k+1 states and normalizes each probability row after
+composition; zero-weight paths are excluded and variances are not clipped.
+N is at most 1,000,000,000, k is 0 through 8, and the rational probability's
+denominator is at most 1000. Selected small exact and large high-precision
+checks do not establish a uniform numerical error bound. This is not a joint
+distribution, a camera significance test, or a calibrated test using p fitted
+from the same data.
+
+    python -I -B tools/rice_iid_count_moments.py --bits 1000000 --k 5 --stop-probability 1/3
+    python -I -B tools/test_rice_iid_count_moments.py
+
 **`prefix_whole_null_probe.py`** compares #106's fixed 1,500,000-token
 candidate prefix with a complete bounded parse of the same payload. It uses
 stop 1, five suffix bits, no extra escape skip, q capped at 8 and pair-centered
