@@ -45,6 +45,8 @@ The nine candidate-family counts and k=5 endpoints also reproduce on the origina
 
 Six previously exposed public OM-3 dark files give differing 1.5-million-token null projections across their recorded sensitivity groups (`2026-10-28--radialmonster--om3-dark-prefix-projections`); these are prefix estimates, not evidence that sensitivity causes the difference (V1 S1.11a, G12).
 
+Fixed nominal-position controls reproduce on two public files and extend to four wider prefixes (`2026-10-28--radialmonster--nominal-position-controls`). On 6343 zero ranks highest for both fields while its contrasts are negative; this shared unassigned observation does not establish physical rows (V1 S1.6/G3).
+
 On the same six files, prefix and whole candidate parses give null projections equal to four displayed decimal places, while exact fractions and lag correlations differ (`2026-10-28--radialmonster--om3-dark-prefix-whole`). This shared unassigned observation does not establish equivalence or physical framing (V1 S1.11a, G11/G12).
 
 - Container: the frozen 100-file public variable-size audit found a single strip in every selected IFD (`2026-10-28--radialmonster--single-strip-selected-ifds`); it did not test multi-strip adjacency. Public multi-strip examples and independent framing evidence remain needed (V0 G1, V1 G3).
