@@ -1,5 +1,17 @@
 # tools
 
+**`synthetic_phase_exact_null.py`** illustrates the nested phase-change
+control in #296 on eight synthetic bits containing four ones. It fits fixed
+period-two phase and a phase change at the midpoint on the same observations,
+then refits both on all 70 distinct orderings. The exact upper-tail rank includes
+ties and the observed ordering; superuniformity assumes the stated uniform
+conditional orbit. Positive fitted gain can occur under that null. This toy is
+not a held-out prediction or a claim about camera data or exchangeability.
+
+    python -I -B tools/synthetic_phase_exact_null.py --observed 10100101
+    python -I -B tools/test_synthetic_phase_exact_null.py
+
+
 **`token_phase_rotation_control.py`** supports #144, building on #508. It
 refits joint period/phase and fixed-period phase for the observed sequence and
 each conditional block rotation, then compares their exact common-interval
