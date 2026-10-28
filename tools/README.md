@@ -1,5 +1,19 @@
 # tools
 
+**`token_position_control_probe.py`** compares 24-token windows at nominal
+positions zero, floor(W/4), floor(W/2) and floor(3W/4), each against its own
+row complement. Rows are W candidate tokens from token zero; W is the payload
+width, not an established physical stride. q>=17 tokens are omitted without
+index compaction. Per-row q and unsigned-suffix contrasts are equally weighted
+only where both windows and complements are nonempty; the main comparison
+uses the common valid-row intersection across all four offsets. Undefined
+rows, ties, prefix shortfalls, tail tokens and escape counts are retained.
+This fixed control is descriptive, not a calibrated null or the historical
+unspecified statistic in #29. Verify retained public provenance and hashes.
+
+    python -I -B tools/token_position_control_probe.py --sample PUBLIC_NAME SHA256 FILE --tokens 262144
+    python -I -B tools/test_token_position_control_probe.py
+
 **`rice_fixed_ones_count_tail.py`** computes an exact synthetic upper tail for
 the number of complete stop-1 Rice words in a uniformly ordered N-bit stream
 with exactly K ones, including ones in suffix bits. It supports N up to 4096,

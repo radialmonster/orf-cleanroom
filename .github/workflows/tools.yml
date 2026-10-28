@@ -178,6 +178,8 @@ jobs:
         run: python -I -B tools/test_rice_iid_count_moments.py
       - name: Synthetic fixed-ones Rice count tail tests
         run: python -I -B tools/test_rice_fixed_ones_count_tail.py
+      - name: Synthetic token position control tests
+        run: python -I -B tools/test_token_position_control_probe.py
       - name: Synthetic exact phase null tests
         run: python -I -B tools/test_synthetic_phase_exact_null.py
       - name: Synthetic payload-band and donor-lag tests
