@@ -1,5 +1,15 @@
 # tools
 
+**`token_fixed_prefix_probe.py`** tests a fixed-value candidate at nominal
+row-start token boundaries: 8, 16, 32 and 72-bit prefixes at offsets 0, 24 and
+48 tokens, using the same eligible nominal rows for every cell. It emits only
+distinct-window, modal multiplicity and equal-row-pair counts, never bit values.
+This narrower candidate does not exclude a varying fixed-length header or
+establish physical rows; it does not reproduce the private historical test.
+
+    python -I -B tools/token_fixed_prefix_probe.py --sample ID PUBLIC_NAME FILE --rows 300
+    python -I -B tools/test_token_fixed_prefix_probe.py
+
 **`token_haar_control_probe.py`** reports separate unnormalized 2 by 2 Haar
 horizontal, vertical and diagonal squared-contrast totals on fixed nominal
 token blocks from origin zero, with within-row and global shuffle controls.
