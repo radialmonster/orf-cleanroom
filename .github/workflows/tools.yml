@@ -173,6 +173,7 @@ jobs:
           python -I -B tools/test_token_lag_band_probe.py
           python -I -B tools/test_token_lag3_conditional_probe.py
           python -I -B tools/test_token_lag3_heldout_probe.py
+          python -I -B tools/test_token_lag3_transfer_probe.py
           python -I -B tools/test_token_position_probe.py
       - name: Synthetic prefix and whole null tests
         run: python -I -B tools/test_prefix_whole_null_probe.py
