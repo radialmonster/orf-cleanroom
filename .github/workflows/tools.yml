@@ -46,6 +46,8 @@ jobs:
           python -I -B tools/suffix_joint_probe.py --self-test
       - name: Token count closure tests
         run: python -I -B tools/test_token_count_closure.py
+      - name: Strip contiguity audit tests
+        run: python -I -B tools/test_strip_contiguity_audit.py
       - name: orf signature tests
         run: python -I -B tools/test_orf_signature.py
       - name: Active area metadata tests
