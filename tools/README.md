@@ -1,5 +1,17 @@
 # tools
 
+**`escape_context_match_probe.py`** compares the earlier suffix-only control
+with a stricter control matching the preceding candidate-token q class (0,
+1..16, or >=17), on the same eligible escape anchors. Controls must finish
+both 24-word horizons before the escape; all horizons stop at the frozen
+prefix endpoint. Original eligibility, exclusions, reuse and exact contrasts
+are retained. No-control and short-horizon exclusions precede context checks,
+so an index-zero escape is counted as no-control. This descriptive sensitivity
+comparison does not establish physical framing or escape syntax.
+
+    python -I -B tools/escape_context_match_probe.py --sample PUBLIC_NAME SHA256 FILE --tokens 262144
+    python -I -B tools/test_escape_context_match_probe.py
+
 **`escape_matched_control_probe.py`** compares q=0 counts in 24 candidate
 words after q>=17 anchors at skips 0 and 12 bits, against the nearest earlier
 q=0 anchor with the same suffix whose two horizons end before that escape.
