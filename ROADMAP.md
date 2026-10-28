@@ -53,6 +53,8 @@ The fixed global-versus-within-row candidate loop shuffle comparison reproduces 
 
 A fixed matched-anchor candidate skip comparison reproduces opposite signs on two OM-1 files and extends to two OM-5 files (`2026-10-28--radialmonster--matched-escape-anchor-controls`). The result is descriptive; physical framing and matched-context controls remain open (V1 G3).
 
+A previous-q-class control changes matched-anchor scores on the same eligible anchors (`2026-10-28--radialmonster--previous-q-context-controls`). This shared unassigned sensitivity does not identify escape syntax; full context and physical framing remain open (V1 G3).
+
 On the same six files, prefix and whole candidate parses give null projections equal to four displayed decimal places, while exact fractions and lag correlations differ (`2026-10-28--radialmonster--om3-dark-prefix-whole`). This shared unassigned observation does not establish equivalence or physical framing (V1 S1.11a, G11/G12).
 
 - Container: the frozen 100-file public variable-size audit found a single strip in every selected IFD (`2026-10-28--radialmonster--single-strip-selected-ifds`); it did not test multi-strip adjacency. Public multi-strip examples and independent framing evidence remain needed (V0 G1, V1 G3).
