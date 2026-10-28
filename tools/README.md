@@ -937,6 +937,20 @@ or token-prefix shortfalls exit nonzero while retaining aggregate records.
     python -I -B tools/token_b4_gate_probe.py --sample ID PUBLIC_NAME path/to/file.ORF
     python -I -B tools/test_token_b4_gate_probe.py
 
+Optional `--tokens 524288` requests a wider prefix; the default remains
+262144. `b4_common_q_support.py` reads a four-sample `--q-stratified` aggregate
+report and computes exact equally weighted contrasts on q strata with both b4
+groups present in every file. Its direction is **mean(b4=1) minus mean(b4=0)**,
+opposite the existing probe's emitted 0-minus-1 field. It also emits each
+file's equal-weight baseline on that file's own eligible q strata in the same
+1-minus-0 direction, plus counts, missing-group reasons and exact per-q values.
+Empty common support is undefined. Sparse cells receive equal weight; neither
+the common support nor its contrast is a calibrated or causal camera claim.
+
+    python -I -B tools/token_b4_gate_probe.py --q-stratified --tokens 524288 --sample ID PUBLIC_NAME FILE
+    python -I -B tools/b4_common_q_support.py AGGREGATE_REPORT.json
+    python -I -B tools/test_b4_common_q_support.py
+
 **`suffix_width_probe.py`** supports the committed candidate k-scan requested
 in V1 G8 and relates to lead #29 item 1. For each whole payload it reports
 all k=2..8 and both stop-bit conventions: q opposite bits, one stop bit,

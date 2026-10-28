@@ -162,6 +162,7 @@ jobs:
         run: |
           python -I -B tools/test_token_affine_probe.py
           python -I -B tools/test_token_b4_gate_probe.py
+          python -I -B tools/test_b4_common_q_support.py
       - name: Synthetic token scale and bridge tests
         run: |
           python -I -B tools/test_token_scale_probe.py

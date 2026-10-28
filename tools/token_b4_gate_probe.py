@@ -121,7 +121,8 @@ def measure(tokens, q_stratified=False):
     return result
 
 
-def report(sample_id, name, path, q_stratified=False):
+def report(sample_id, name, path, q_stratified=False, limit=None):
+    if limit is None: limit = LIMIT
     with open(path, "rb") as handle:
         data = handle.read()
     best = max(Tiff(data).all_ifds(), key=lambda d: sum(d.get(0x117) or []))
@@ -134,13 +135,13 @@ def report(sample_id, name, path, q_stratified=False):
     width, height = best[0x100][0], best[0x101][0]
     if width <= 0 or height <= 0 or size_class(count, width, height) != "variable":
         raise ValueError("positive variable-size payload required")
-    tokens, end = scan_prefix(data[off:off + count], LIMIT)
+    tokens, end = scan_prefix(data[off:off + count], limit)
     return {"pixls_id": sample_id, "pixls_name": name,
             "sha256": hashlib.sha256(data).hexdigest(), "variant": "unassigned",
             "payload_w": width, "payload_h": height, "payload_offset": off,
             "payload_bytes": count, "size_class": "variable",
-            "requested_tokens": LIMIT, "returned_tokens": len(tokens),
-            "token_shortfall": LIMIT - len(tokens), "bits_consumed": end,
+            "requested_tokens": limit, "returned_tokens": len(tokens),
+            "token_shortfall": limit - len(tokens), "bits_consumed": end,
             "statistics": measure(tokens, q_stratified)}
 
 
@@ -150,6 +151,8 @@ def main(argv=None):
                         metavar=("ID", "PUBLIC_NAME", "FILE"))
     parser.add_argument("--q-stratified", action="store_true",
                         help="add exact within-q contrasts and per-file equal-weight summary")
+    parser.add_argument("--tokens", type=int, choices=(262144, 524288), default=None,
+                        help="candidate-token prefix (default: 262144)")
     args = parser.parse_args(argv)
     ids = [row[0] for row in args.sample]
     try:
@@ -163,7 +166,10 @@ def main(argv=None):
     reports, failures = [], []
     for sample_id, name, path in args.sample:
         try:
-            reports.append(report(sample_id, name, path, args.q_stratified))
+            if args.tokens is None:
+                reports.append(report(sample_id, name, path, args.q_stratified))
+            else:
+                reports.append(report(sample_id, name, path, args.q_stratified, args.tokens))
         except (OSError, ValueError, KeyError, IndexError, TypeError, struct.error) as exc:
             failures.append({"pixls_id": sample_id, "error_type": type(exc).__name__})
     hashes = {}
