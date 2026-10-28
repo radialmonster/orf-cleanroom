@@ -69,6 +69,8 @@ The nominal-offset finding prose is corrected: selected payload width is 5240 fo
 
 Fixed row-centered candidate-block energies reproduce on two files and extend to four wider prefixes (`2026-10-28--radialmonster--nominal-centered-block-energy`); this descriptive proxy does not establish physical rows or reproduce the private rectangle-bound metric (V1 G2/G3).
 
+Fixed nominal 2 by 2 candidate contrast controls reproduce on two files and extend to four wider prefixes (`2026-10-28--radialmonster--nominal-haar-controls`); this surrogate does not establish physical rows or reproduce the private Haar/lifting ratio (V1 G2/G3).
+
 A fixed matched-anchor candidate skip comparison reproduces opposite signs on two OM-1 files and extends to two OM-5 files (`2026-10-28--radialmonster--matched-escape-anchor-controls`). The result is descriptive; physical framing and matched-context controls remain open (V1 G3).
 
 A previous-q-class control changes matched-anchor scores on the same eligible anchors (`2026-10-28--radialmonster--previous-q-context-controls`). This shared unassigned sensitivity does not identify escape syntax; full context and physical framing remain open (V1 G3).
