@@ -1,5 +1,14 @@
 # tools
 
+**`token_row_dpcm_probe.py`** compares prior nominal-row and two-row mapped
+value squared differences against four within-row and global shuffles. W-1/W+1
+offsets provide fixed neighboring controls on identical target indices. Exact
+pair counts, sums and real-over-mean-null ratios are reported; a zero null
+denominator is undefined. Nominal rows do not establish physical framing.
+
+    python -I -B tools/token_row_dpcm_probe.py --sample ID PUBLIC_NAME FILE --rows 300
+    python -I -B tools/test_token_row_dpcm_probe.py
+
 **`token_lag3_transfer_probe.py`** evaluates a fixed cross-file KT table
 transfer matrix from direct aggregate `report()` JSON objects produced by
 `token_lag3_heldout_probe.py` (not its CLI envelope). It retains training,
