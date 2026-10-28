@@ -1,5 +1,14 @@
 # tools
 
+**`token_lag3_conditional_probe.py`** measures the lag-3 binary candidate
+q>0 and suffix-b0 association conditional on the two intervening same-field
+bits, with 16 whole-token within-block shuffles. Exact joint counts and
+same-position unconditional and conditional MI are reported. This fixed
+descriptive control does not establish causal links or physical codec state.
+
+    python -I -B tools/token_lag3_conditional_probe.py --sample ID PUBLIC_NAME FILE --tokens 262144
+    python -I -B tools/test_token_lag3_conditional_probe.py
+
 **`token_lag_band_probe.py`** extends the fixed #29 candidate-token lag
 comparison to disjoint 262144-token bands, using the existing 128-token
 block exclusion and 16 within-block permutation controls. It emits all five
