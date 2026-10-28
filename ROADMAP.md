@@ -61,6 +61,8 @@ Common-q b4 contrasts reproduce on four previously studied files and are reporte
 
 The fixed global-versus-within-row candidate loop shuffle comparison reproduces and extends to four public files (`2026-10-28--radialmonster--global-loop-shuffle-controls`); its four shuffles are descriptive, not predictor or physical-row evidence (V1 G2/G3).
 
+Fixed nominal W and 2W candidate difference energies reproduce on two files and extend to four wider prefixes (`2026-10-28--radialmonster--nominal-row-difference-energy`). Adjacent offsets and both shuffle modes are retained; they do not establish physical rows or a predictor (V1 G2/G3).
+
 A fixed matched-anchor candidate skip comparison reproduces opposite signs on two OM-1 files and extends to two OM-5 files (`2026-10-28--radialmonster--matched-escape-anchor-controls`). The result is descriptive; physical framing and matched-context controls remain open (V1 G3).
 
 A previous-q-class control changes matched-anchor scores on the same eligible anchors (`2026-10-28--radialmonster--previous-q-context-controls`). This shared unassigned sensitivity does not identify escape syntax; full context and physical framing remain open (V1 G3).
