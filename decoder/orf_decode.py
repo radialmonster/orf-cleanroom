@@ -161,6 +161,8 @@ class Payload:
         # The payload is the strips read one after another in tag order (TIFF 6.0). Strips need
         # not touch: in the 6 plain-order packed-12 CC0 files there is a gap between two strips
         # (unverified observation of this decoder, see specs/V0.md gap G1), so read per strip.
+        # The frozen 100-file variable-size container audit selected only single-strip IFDs
+        # (2026-10-28--radialmonster--single-strip-selected-ifds); it did not test adjacency.
         self.strips = list(zip(offs, cnts))
         self.offset = offs[0] if offs else 0
         self.nbytes = sum(cnts)
