@@ -12,6 +12,13 @@ significance test, framing identification or physical-row claim.
     python -I -B tools/rice_finite_count_null.py --bits 16 --k 5 --stop-probability 1/2
     python -I -B tools/test_rice_finite_count_null.py
 
+The separate `--ones K` option counts all N bits (including suffixes) and
+computes the exact joint integer counts under uniform order conditioned on K.
+This is a different null from iid bits using p=K/N; uniform ordering is an
+assumption and is not established for camera streams.
+
+    python -I -B tools/rice_finite_count_null.py --bits 4 --k 1 --ones 2
+
 
 **`synthetic_phase_exact_null.py`** illustrates the nested phase-change
 control in #296 on eight synthetic bits containing four ones. It fits fixed
