@@ -18,6 +18,18 @@ The first embodiment describes 48 zero bits as a control marker, with preceding 
 
 The independently reported 87-file initial-token census in `2026-10-21--radialmonster--four-payloads-start-q47` found 39 initial zero bits followed by one on 83 files and 47 followed by one on four. These literal prefixes coincide with the two illustrated run lengths. The census used a k=5 candidate parse that consumes five suffix bits after the one; the patent's second-embodiment marker itself ends at that one and then the next encoded data begin. Therefore the existing token count does not establish a marker boundary or prove the patent grammar. Initial padding, strip placement and other bitstream explanations remain possible; inventor/assignee and a pattern match do not establish implementation. The patent does not specify that a marker must recur within each payload or fix its insertion schedule.
 
+The observed first-word bits in `2026-10-28--radialmonster--fixed-capped-prefix-first-escape` also give a **post-hoc conditional bound**, without another sample scan. Assume the second-embodiment marker at payload bit zero, fixed k=5 and fixed D. The marker formula permits max-prefix A=10..17 for D=15/47 zeros and A=8..15 for D=12/39 zeros. Under the A=12 test, the observed word begins with twelve zeros followed by the D-bit value v. For another A, if A<12 then the candidate D-bit value is `v >> (12-A)`; if A>=12 and the extra A-12 observed bits are zero, its range is `v << (A-12)` through `(v << (A-12)) + 2**(A-12)-1`, since trailing bits beyond the measured word are unknown. The escape branch requires a value of at least `32*A`.
+
+| D | Observed v | Files | Conditional result among marker-compatible A |
+|---:|---:|---|---|
+| 15 | 0 | 7267, 7269, 7801 | All A=10..17 impossible under this fixed single-block assumption. |
+| 15 | 256 | 7803 | A=10..12 impossible; A=13..17 not ruled out by these bits. |
+| 12 | 33 | 1995 | All A=8..15 impossible under this fixed single-block assumption. |
+| 12 | 65 | 1993, 1997 | A=8..14 impossible; A=15 gives the possible interval 520..527. |
+| 12 | 0 | 1998 | All A=8..15 impossible under this fixed single-block assumption. |
+
+These bounds retain every completion of the unknown trailing bits; a permitted range is not evidence that the corresponding parameter occurs. They do not address different marker alignment, D, k, interior controls or adaptation, and do not assign decoded values or establish a camera codec. The D=12 choice and this range analysis follow already observed data, so neither is blind confirmation.
+
 A useful next test would first freeze exact candidate parameters, initial alignment, escape branch, and expected marker scheduling from a stated source or independent metadata; preserve initial and interior marker candidates separately, use matched null controls and held-out captures, and report mismatches and undefined cases. Searching for a preferred long zero run or shifting the parse after seeing these known prefixes would not independently establish framing. No sample was newly measured in this source review.
 
 ### JP2008312193A: RAW analysis feeding JPEG parameters
