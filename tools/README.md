@@ -1,5 +1,17 @@
 # tools
 
+**`payload_zero_run_probe.py`** counts literal maximal zero runs of exact
+length 39, exact length 47 and at least 39 ending in a one, without token
+parsing. Startup takes precedence; other runs are partitioned before the
+48-bit seam, across it (including a terminating one at bit 48), or later.
+EOF-censored zero runs are separate; their region uses the last zero bit.
+Four controls fix the first six bytes and shuffle the entire remaining byte
+tail, preserving its byte histogram but not its run lengths. This descriptive
+census does not identify a marker, restart or calibrated significance.
+
+    python -I -B tools/payload_zero_run_probe.py --sample ID PUBLIC_NAME SHA256 FILE
+    python -I -B tools/test_payload_zero_run_probe.py
+
 **`b4_q_mixture_probe.py`** consumes the fixed four q-stratified aggregate
 reports and decomposes pooled b4=1 minus b4=0 low-bit means into symmetric
 within-q and composition terms on fixed q=0..8 plus an outside-support term.

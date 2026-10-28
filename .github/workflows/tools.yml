@@ -179,6 +179,7 @@ jobs:
           python -I -B tools/test_token_haar_control_probe.py
           python -I -B tools/test_token_fixed_prefix_probe.py
           python -I -B tools/test_b4_q_mixture_probe.py
+          python -I -B tools/test_payload_zero_run_probe.py
           python -I -B tools/test_token_planar_control_probe.py
           python -I -B tools/test_token_position_probe.py
       - name: Synthetic prefix and whole null tests
