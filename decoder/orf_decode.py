@@ -361,6 +361,8 @@ def decode_file(path, order=None, layout=None):
         # offset energies do not establish physical rows or a predictor.
         # 2026-10-28--radialmonster--nominal-half-width-energy: half-width
         # candidate offsets do not establish physical rows or a predictor.
+        # 2026-10-28--radialmonster--correct-6343-payload-width: selected
+        # payload width 6343 is 5240; earlier numeric offsets used 5240.
         # 2026-10-28--radialmonster--nominal-centered-block-energy: nominal
         # block energies do not establish physical rows or a predictor.
         # 2026-10-28--radialmonster--em5-dark-candidate-family-counts:

@@ -65,6 +65,8 @@ Fixed nominal W and 2W candidate difference energies reproduce on two files and 
 
 Fixed nominal half-width difference energies reproduce on two files and extend to four wider prefixes (`2026-10-28--radialmonster--nominal-half-width-energy`); these candidate comparisons do not establish physical rows or a predictor (V1 G2/G3).
 
+The nominal-offset finding prose is corrected: selected payload width is 5240 for 6343 and 5220 for 5283; the original 6343 offset tables used 5240 (`2026-10-28--radialmonster--correct-6343-payload-width`; V1 G2/G3).
+
 Fixed row-centered candidate-block energies reproduce on two files and extend to four wider prefixes (`2026-10-28--radialmonster--nominal-centered-block-energy`); this descriptive proxy does not establish physical rows or reproduce the private rectangle-bound metric (V1 G2/G3).
 
 A fixed matched-anchor candidate skip comparison reproduces opposite signs on two OM-1 files and extends to two OM-5 files (`2026-10-28--radialmonster--matched-escape-anchor-controls`). The result is descriptive; physical framing and matched-context controls remain open (V1 G3).
