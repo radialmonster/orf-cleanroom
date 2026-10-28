@@ -1,5 +1,14 @@
 # tools
 
+**`b4_q_mixture_probe.py`** consumes the fixed four q-stratified aggregate
+reports and decomposes pooled b4=1 minus b4=0 low-bit means into symmetric
+within-q and composition terms on fixed q=0..8 plus an outside-support term.
+All results are exact fractions. Missing required groups are undefined. This
+is descriptive, not causal adjustment or the equal-q average.
+
+    python -I -B tools/b4_q_mixture_probe.py AGGREGATE_REPORT.json
+    python -I -B tools/test_b4_q_mixture_probe.py
+
 **`token_fixed_prefix_probe.py`** tests a fixed-value candidate at nominal
 row-start token boundaries: 8, 16, 32 and 72-bit prefixes at offsets 0, 24 and
 48 tokens, using the same eligible nominal rows for every cell. It emits only
