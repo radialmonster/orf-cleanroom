@@ -359,6 +359,8 @@ def decode_file(path, order=None, layout=None):
         # within-row surrogates do not establish physical framing or a predictor.
         # 2026-10-28--radialmonster--nominal-row-difference-energy: candidate
         # offset energies do not establish physical rows or a predictor.
+        # 2026-10-28--radialmonster--nominal-half-width-energy: half-width
+        # candidate offsets do not establish physical rows or a predictor.
         # 2026-10-28--radialmonster--em5-dark-candidate-family-counts:
         # six dark-file literal counts identify neither a codec nor pixel mapping.
         # 2026-10-28--radialmonster--om3-dark-prefix-projections: six selected
