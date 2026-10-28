@@ -119,11 +119,14 @@ not an ORF residual specification.
   first-run and end-of-block codes, but does not establish how this example's
   decoder obtains m or those code definitions. This is not an ORF grammar.
 - [JP2006067117A](https://patents.google.com/patent/JP2006067117A/en), Canon:
-  its abstract concerns target-size encoding with lossy/lossless paths and
-  re-encoding. JP4869149B2 lists
-  [JP4533043B2](https://patents.google.com/patent/JP4533043B2/en), the grant
-  corresponding to this A publication, in its family citations. No direct
-  citation of the A publication was verified.
+  a copier example encodes 8×8 blocks in parallel using lossy JPEG and lossless
+  JPEG-LS, selects the shorter block and retains lossless data for re-encoding.
+  If the target size is exceeded, it updates JPEG quantization and re-encodes
+  stored blocks. The example adds a per-block identification bit; its polarity
+  is not specified in the inspected passages. This is routing and size control,
+  not a new entropy grammar or an ORF specification. JP4869149B2 lists the
+  corresponding [JP4533043B2 grant](https://patents.google.com/patent/JP4533043B2/en)
+  in its family citations; a direct citation of this A publication was not verified.
 
 ## Sources only triaged or not reviewed
 
