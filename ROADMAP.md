@@ -35,6 +35,8 @@ The original three public OM-3 controlled files and public 1993 reproduce their 
 
 Eight further whole-payload candidate-family count rows reproduce on public 1993/7804 real and shuffled, with predeclared 6344 separately reported (finding `2026-10-27--mtakemoto--public-code-family-counts`, Partial for #339; V1 S1.8). Real Elias delta completes zero words on these files; no codec or pixel mapping follows.
 
+Six public E-M5 Mark II dark files give real literal Rice stop-1 k=5 counts 3 to 8 above the stored-site count (`2026-10-28--radialmonster--em5-dark-candidate-family-counts`); nine-family and seeded-shuffle outcomes are descriptive and do not establish codec syntax or sensitivity causality (V1 S1.8, G11/G12).
+
 The nine candidate-family counts and k=5 endpoints also reproduce on the original three public OM-3 controlled white/dark files; predeclared 7797 is a separate busy High Res extension (`2026-10-27--mtakemoto--controlled-flat-family-counts`, Partial for #339). Real Elias delta completes no words; flat-file recompression and container claims remain outside this result.
 
 Six previously exposed public OM-3 dark files give differing 1.5-million-token null projections across their recorded sensitivity groups (`2026-10-28--radialmonster--om3-dark-prefix-projections`); these are prefix estimates, not evidence that sensitivity causes the difference (V1 S1.11a, G12).
