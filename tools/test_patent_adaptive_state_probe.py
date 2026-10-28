@@ -107,6 +107,21 @@ class TestAdaptiveState(unittest.TestCase):
         self.assertEqual(p.value_comparison(left, right, 3), (1, 0))
         right[8] = (4, 7, (0,2,2,0))
         self.assertEqual(p.value_comparison(left, right, 3), (0, 0))
+    def test_phase_offset_can_hide_in_identical_shared_suffix(self):
+        first = (5, 0, 0, 0)
+        second = p.next_state(first, 16, 64)
+        self.assertEqual(second, (5, 0, 0, 1))
+        for _ in range(128):
+            self.assertEqual(first[:3], second[:3])
+            self.assertEqual(first[:3], (5, 0, 0))
+            self.assertEqual((second[3] - first[3]) % 64, 1)
+            k = first[0]
+            word = '0' * (16 >> k) + '1' + format(16 & ((1 << k)-1), '0%db' % k)
+            self.assertEqual(word, '110000')
+            first = p.next_state(first, 16, 64)
+            second = p.next_state(second, 16, 64)
+
+
     def test_wrong_law_self_recovery_is_not_truth_recovery(self):
         bits = p.encode([0] * 256)
         result = p.trial(bits, 'adaptive32', 17, 'flip', truth_reference=True)
