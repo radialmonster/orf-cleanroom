@@ -29,14 +29,16 @@ Growth is the peak-to-peak range (max-min) of the reconstructed sequence. The
 initial zero state is excluded from this range. Even for nonnegative values,
 the range need not be invariant under a within-row permutation (although the
 final row sum is invariant).
-The null shuffles the mapped values within each nominal row with a fixed seed and
-repeats the same loops. Reports contain aggregate ranges only: no token or
-pixel values, no images, no paths.
+The default null shuffles mapped values within each nominal row; the optional
+global null shuffles the entire selected mapped prefix. Both use fixed seeds
+and repeat the same loops. Global shuffling changes row allocation and means;
+neither null is calibrated for camera data. Reports contain aggregate ranges
+only: no token or pixel values, no images, no paths.
 
 The double/Lorenzo cells report whether the real/null ratio is at least 1.5.
 The running-sum cells report whether it is within the predeclared 0.5..1.5
 "equal to null" band. Both readings are descriptive comparisons with the
-same-token within-row null, not significance tests.
+same-token selected null, not significance tests.
 
 The tool reads files, prints JSON to stdout and writes nothing. Standard
 library only, Python 3.8+.
@@ -251,11 +253,18 @@ def shuffled_rows(values, w, rows, rng):
     return out
 
 
+def shuffled_global(values, rng):
+    """Shuffle the whole selected mapped prefix, preserving its multiset."""
+    out = list(values)
+    rng.shuffle(out)
+    return out
+
+
 def mean(values):
     return sum(values) / float(len(values)) if values else None
 
 
-def measure_sample(sample_id, public_name, path, rows, perms):
+def measure_sample(sample_id, public_name, path, rows, perms, null_mode="within-row"):
     sig = orf_signature.signature(path)
     if sig.get("size_class") != "variable":
         raise ProbeError("sample is not a compressed variable-size payload")
@@ -315,7 +324,12 @@ def measure_sample(sample_id, public_name, path, rows, perms):
         null_ranges = {name: [] for name in LOOPS}
         for perm in range(perms):
             seed = SEED_BASE + 1000 * int(sample_id) + 10 * mi + perm
-            shuffled = shuffled_rows(values, w, used_rows, random.Random(seed))
+            if null_mode == "within-row":
+                shuffled = shuffled_rows(values, w, used_rows, random.Random(seed))
+            elif null_mode == "global":
+                shuffled = shuffled_global(values, random.Random(seed))
+            else:
+                raise ProbeError("unknown null mode")
             nr = all_ranges(shuffled, w, used_rows)
             for name in LOOPS:
                 null_ranges[name].append(nr[name])
@@ -364,11 +378,13 @@ def main(argv=None):
     ap.add_argument("--rows", type=int, default=DEFAULT_ROWS,
                     help="nominal W-token rows to parse (default: 300)")
     ap.add_argument("--perms", type=int, default=DEFAULT_PERMS,
-                    help="within-row shuffles per cell (default: 4)")
+                    help="shuffles per cell (default: 4)")
+    ap.add_argument("--null-mode", choices=("within-row", "global"), default="within-row",
+                    help="shuffle within each nominal row (default) or the entire selected prefix")
     args = ap.parse_args(argv)
 
     if args.self_test:
-        if args.sample or args.rows != DEFAULT_ROWS or args.perms != DEFAULT_PERMS:
+        if args.sample or args.rows != DEFAULT_ROWS or args.perms != DEFAULT_PERMS or args.null_mode != "within-row":
             ap.error("--self-test cannot be combined with measurement options")
         import unittest
         import test_token_loop_probe
@@ -399,7 +415,7 @@ def main(argv=None):
         selected.append((numeric_id, public_name, path))
 
     try:
-        samples = [measure_sample(sid, name, path, args.rows, args.perms)
+        samples = [measure_sample(sid, name, path, args.rows, args.perms, args.null_mode)
                    for sid, name, path in selected]
     except ProbeError as exc:
         print("measurement failed: " + str(exc), file=sys.stderr)
@@ -415,6 +431,7 @@ def main(argv=None):
         "settings": {
             "rows": args.rows,
             "perms": args.perms,
+            "null_mode": args.null_mode,
             "seed_base": SEED_BASE,
             "escape_q_min": ESC_Q,
             "escape_extra": 0,
