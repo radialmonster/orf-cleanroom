@@ -10,6 +10,16 @@ publications only. The user's earlier discovery process was not audited.
 
 ## Olympus sources
 
+### US7259698B2: bounded-prefix codes and control markers
+
+[Publication text](https://patents.google.com/patent/US7259698B2/en), read 2026-10-28; original assignee Olympus Imaging and inventor Takashi Ishikawa are as listed in the publication record. The described encoder uses a capped zero prefix and a second encoding for larger upper-part values; it retains a fixed-width lower part. In its stated example, D=15, k=5 and max_prefix=12. This is a conditional example, not an ORF specification.
+
+The first embodiment describes 48 zero bits as a control marker, with preceding packing to a byte boundary. The second describes a 48-bit marker of 47 zero bits followed by one, followed by encoded data; it also describes packing before an inserted marker. Its general second-embodiment expression makes the zero-run length `8 * floor((max_prefix + 2*D)/8) + 7`. With the patent's D=15 and max_prefix=12 this gives 47; with the hypothetical D=12 and max_prefix=12 it gives 39. The latter parameter choice is an arithmetic illustration, not a parameter assignment stated for an ORF file.
+
+The independently reported 87-file initial-token census in `2026-10-21--radialmonster--four-payloads-start-q47` found 39 initial zero bits followed by one on 83 files and 47 followed by one on four. These literal prefixes coincide with the two illustrated run lengths. The census used a k=5 candidate parse that consumes five suffix bits after the one; the patent's second-embodiment marker itself ends at that one and then the next encoded data begin. Therefore the existing token count does not establish a marker boundary or prove the patent grammar. Initial padding, strip placement and other bitstream explanations remain possible; inventor/assignee and a pattern match do not establish implementation. The patent does not specify that a marker must recur within each payload or fix its insertion schedule.
+
+A useful next test would first freeze exact candidate parameters, initial alignment, escape branch, and expected marker scheduling from a stated source or independent metadata; preserve initial and interior marker candidates separately, use matched null controls and held-out captures, and report mismatches and undefined cases. Searching for a preferred long zero run or shifting the parse after seeing these known prefixes would not independently establish framing. No sample was newly measured in this source review.
+
 ### JP2008312193A: RAW analysis feeding JPEG parameters
 
 [Publication text](https://patents.google.com/patent/JP2008312193A/en).
