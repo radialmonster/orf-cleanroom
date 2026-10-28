@@ -182,6 +182,7 @@ jobs:
         run: |
           python -I -B tools/test_token_position_control_probe.py
           python -I -B tools/test_escape_matched_control_probe.py
+          python -I -B tools/test_escape_context_match_probe.py
       - name: Synthetic exact phase null tests
         run: python -I -B tools/test_synthetic_phase_exact_null.py
       - name: Synthetic payload-band and donor-lag tests
