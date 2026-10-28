@@ -29,6 +29,21 @@ class TestEnergy(unittest.TestCase):
      self.assertTrue(all(e["pairs"]==15 for e in r["energies"].values()))
  def test_reject_short(self):
   with self.assertRaises(ValueError):probe.measure([(0,0)]*11,4,3,"1993")
+ def test_half_offsets_even_odd_and_default(self):
+  for w in (6,7):
+   values=list(range(w*4));n=len(values)-(2*w+1);h=w//2
+   got=probe.energies(values,w,"half")
+   self.assertEqual(set(got),{str(h-1),str(h),str(h+1)})
+   for lag,item in got.items():self.assertEqual(item,{"pairs":n,"squared_error_sum":n*int(lag)**2})
+   self.assertEqual(probe.energies(values,w),probe.energies(values,w,"row"))
+  with self.assertRaises(ValueError):probe.energies(list(range(12)),3,"half")
+ def test_half_zero_null_and_fixed_support(self):
+  out=probe.measure([(0,7)]*28,7,4,"1","half")
+  self.assertEqual((out["target_start"],out["target_end"]),(15,28))
+  for cell in out["mappings"].values():
+   self.assertEqual(set(cell["real"]),{"2","3","4"})
+   self.assertTrue(all(x["pairs"]==13 for x in cell["real"].values()))
+   for ratios in cell["real_over_mean_null"].values():self.assertTrue(all(x is None for x in ratios.values()))
  def test_zero_null_and_escape_retention(self):
   out=probe.measure([(17,0)]*24,4,6,"1")
   self.assertEqual(out["escape_count"],24)
@@ -59,5 +74,8 @@ class TestEnergy(unittest.TestCase):
     self.assertEqual(probe.main(),expected)
     if not expected:
      result=json.loads(out.getvalue());self.assertEqual(result["sample"]["result"]["tokens"],1200);self.assertIn("token_row_dpcm_probe.py",result["source_sha256"])
+  def read(path):return tiff(payload) if str(path)=="synthetic" else original(path)
+  with mock.patch.object(Path,"read_bytes",read),mock.patch.object(sys,"argv",["probe","--sample","1","public","synthetic","--rows","300","--offset-family","half"]),contextlib.redirect_stdout(io.StringIO()) as out:
+   self.assertEqual(probe.main(),0);result=json.loads(out.getvalue());self.assertEqual(result["offset_family"],"half");self.assertEqual(set(result["sample"]["result"]["mappings"]["u"]["real"]),{"1","2","3"})
 
 if __name__=="__main__":unittest.main()

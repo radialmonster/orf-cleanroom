@@ -5,6 +5,8 @@ value squared differences against four within-row and global shuffles. W-1/W+1
 offsets provide fixed neighboring controls on identical target indices. Exact
 pair counts, sums and real-over-mean-null ratios are reported; a zero null
 denominator is undefined. Nominal rows do not establish physical framing.
+The optional `--offset-family half` selects floor(W/2) and its two neighbors
+on the same target interval; the default row offsets are unchanged.
 
     python -I -B tools/token_row_dpcm_probe.py --sample ID PUBLIC_NAME FILE --rows 300
     python -I -B tools/test_token_row_dpcm_probe.py
