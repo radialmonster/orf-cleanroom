@@ -8,6 +8,18 @@ not establish physical image rows or reproduce the private historical metric.
 
     python -I -B tools/token_haar_control_probe.py --sample ID PUBLIC_NAME FILE --rows 300
     python -I -B tools/test_token_haar_control_probe.py
+**`token_planar_control_probe.py`** reports sums of squared row-centered
+128 by 128 nominal-token block sums against four within-row and global
+shuffles. Each row mean uses all W entries, including tail columns outside
+complete blocks, and is recomputed after every shuffle. The reported integer
+numerators are W times the centered block sums, so their squared totals are
+scaled by W squared. Incomplete block rows and columns are excluded from the
+block totals. This proxy does not reproduce the unavailable historical bound
+or establish physical rows.
+
+    python -I -B tools/token_planar_control_probe.py --sample ID PUBLIC_NAME FILE --rows 300
+    python -I -B tools/test_token_planar_control_probe.py
+
 
 **`token_row_dpcm_probe.py`** compares prior nominal-row and two-row mapped
 value squared differences against four within-row and global shuffles. W-1/W+1
