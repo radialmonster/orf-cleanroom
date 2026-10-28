@@ -337,6 +337,8 @@ def decode_file(path, order=None, layout=None):
         # F_NULL_BPP and F_NULL_BPP_2 (Partial for #106) measure only the k=5
         # tokens-per-pixel distance from a Bernoulli null and its bpp/body relation;
         # they specify no value assembly or compressed decode step (V2 S1.1).
+        # 2026-10-28--radialmonster--fixed-capped-prefix-first-escape:
+        # the fixed single-block candidate fails; other marker/adaptive rules remain open.
         # 2026-10-28--radialmonster--em5-dark-candidate-family-counts:
         # six dark-file literal counts identify neither a codec nor pixel mapping.
         # 2026-10-28--radialmonster--om3-dark-prefix-projections: six selected
