@@ -345,6 +345,8 @@ def decode_file(path, order=None, layout=None):
         # candidate skip comparisons do not establish escape syntax or framing.
         # 2026-10-28--radialmonster--previous-q-context-controls: a preceding
         # q-class match is not full context or a physical escape mechanism.
+        # 2026-10-28--radialmonster--fixed-candidate-prefix-identity: fixed
+        # candidate values do not establish or exclude variable header framing.
         # 2026-10-28--radialmonster--candidate-lag-bands: candidate-token
         # lag ranks do not establish stationarity or physical framing.
         # 2026-10-28--radialmonster--conditional-lag-three: conditional
