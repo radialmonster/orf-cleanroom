@@ -53,6 +53,8 @@ Conditional and unconditional lag-3 information on the same candidate-token posi
 
 A fixed held-out candidate-token KT comparison reproduces on two files and extends to a later test band on four (`2026-10-28--radialmonster--heldout-lag-three`); its q>0 gains are positive while the suffix-b0 control changes sign across the later cases. This shared unassigned observation does not establish a physical predictor (V1 S1.6/G3).
 
+Fixed cross-file candidate-table transfer reproduces and extends to four later-band targets (`2026-10-28--radialmonster--candidate-table-transfer`). Positive gain can coexist with worse absolute transfer loss, and marginal/context differences confound interpretation (V1 S1.6/G3).
+
 Common-q b4 contrasts reproduce on four previously studied files and are reported on wider prefixes (`2026-10-28--radialmonster--common-q-b4-contrasts`). Wider support includes a sparse 1/1 stratum and 241's low4 contrast changes sign; this unassigned comparison does not establish a physical gate (V1 S1.14/G3).
 
 The fixed global-versus-within-row candidate loop shuffle comparison reproduces and extends to four public files (`2026-10-28--radialmonster--global-loop-shuffle-controls`); its four shuffles are descriptive, not predictor or physical-row evidence (V1 G2/G3).
