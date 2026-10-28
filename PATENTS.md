@@ -111,8 +111,13 @@ not an ORF residual specification.
   Claims 1/4 concern slice DC differences and Golomb-Rice coding. This is a
   generic transform-domain algorithm reference; steps 604/608 describe zero
   runs, and step 612 selects the coding parameter from run length.
-  Equations rendered as images were not
-  inspected; this review does not certify an exact formula or update rule.
+  On the original PDF page 16, example equations (4)–(7) give
+  `m = ceil(log2(n))`, `Q = floor(n / 2**m)`, `R = n - 2**m * Q`,
+  and `y = 2*x` for x >= 0, otherwise `2*abs(x)-1`. Here n is a
+  positive zero-run length and m is selected from n in the stated example;
+  Q and the m-bit R are concatenated. The inspected text also mentions special
+  first-run and end-of-block codes, but does not establish how this example's
+  decoder obtains m or those code definitions. This is not an ORF grammar.
 - [JP2006067117A](https://patents.google.com/patent/JP2006067117A/en), Canon:
   its abstract concerns target-size encoding with lossy/lossless paths and
   re-encoding. JP4869149B2 lists
