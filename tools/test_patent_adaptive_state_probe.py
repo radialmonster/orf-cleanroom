@@ -86,6 +86,27 @@ class TestAdaptiveState(unittest.TestCase):
         mutant = {20:(15,9,None), 26:(21,7,None), 32:(28,4,None)}
         self.assertEqual(p.value_comparison(original, mutant, 17), (1,1))
 
+    def test_unchanged_matching_spans_do_not_imply_state_match(self):
+        tokens, tail = p.parse('100000100011', 'fixed5')
+        self.assertEqual(tail, 0)
+        original = [(s, e, v, (5, 1, 1, 1)) for s, e, v, _ in tokens]
+        changed = [(s, e, v, (5, 7, 7, 7)) for s, e, v, _ in tokens]
+        compared = p.compare_tokens(original, changed, -1, 0, 12, False)
+        self.assertEqual((compared['comparable_values'], compared['value_mismatches']), (2, 0))
+        self.assertEqual(compared['transient_state_hits'], 0)
+        # The first word crosses the edit and must not be compared as unchanged.
+        self.assertEqual(p.value_comparison({6:(0,0,None)}, {6:(0,1,None)}, 3), (0,0))
+    def test_zero_k_and_unequal_start_common_end(self):
+        # Literal k=0 Rice word 001 has q=2 and value 2.
+        word = '001'
+        stop = word.index('1')
+        value = stop << (len(word) - stop - 1)
+        self.assertEqual((stop, len(word) - stop - 1, value), (2, 0, 2))
+        left = {8:(5, value, (0,1,1,0))}
+        right = {8:(5, value, (0,2,2,0))}
+        self.assertEqual(p.value_comparison(left, right, 3), (1, 0))
+        right[8] = (4, 7, (0,2,2,0))
+        self.assertEqual(p.value_comparison(left, right, 3), (0, 0))
     def test_wrong_law_self_recovery_is_not_truth_recovery(self):
         bits = p.encode([0] * 256)
         result = p.trial(bits, 'adaptive32', 17, 'flip', truth_reference=True)
