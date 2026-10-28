@@ -1,5 +1,17 @@
 # tools
 
+**`rice_fixed_ones_count_tail.py`** computes an exact synthetic upper tail for
+the number of complete stop-1 Rice words in a uniformly ordered N-bit stream
+with exactly K ones, including ones in suffix bits. It supports N up to 4096,
+k from 0 through 8 and nonnegative target counts. Its hypergeometric draws
+represent an adaptive reveal of unary bits, not a literal bitstream prefix.
+The assumed uniform fixed-ones ordering is not established for camera data;
+this is a null-model control, not a camera significance test. It extends the
+small exact joint count/residual model with a count-only tail at larger N.
+
+    python -I -B tools/rice_fixed_ones_count_tail.py --bits 4 --k 1 --ones 2 --count 2
+    python -I -B tools/test_rice_fixed_ones_count_tail.py
+
 **`rice_iid_count_moments.py`** extends the small exact synthetic joint null
 with floating-point mean and central variance of the number of completed
 stop-1 Rice words for an externally supplied iid stop probability. Binary
