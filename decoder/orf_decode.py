@@ -343,6 +343,8 @@ def decode_file(path, order=None, layout=None):
         # the fixed single-block candidate fails; other marker/adaptive rules remain open.
         # 2026-10-28--radialmonster--matched-escape-anchor-controls: matched
         # candidate skip comparisons do not establish escape syntax or framing.
+        # 2026-10-28--radialmonster--global-loop-shuffle-controls: global and
+        # within-row surrogates do not establish physical framing or a predictor.
         # 2026-10-28--radialmonster--em5-dark-candidate-family-counts:
         # six dark-file literal counts identify neither a codec nor pixel mapping.
         # 2026-10-28--radialmonster--om3-dark-prefix-projections: six selected
