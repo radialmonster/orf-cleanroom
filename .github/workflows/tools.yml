@@ -122,6 +122,7 @@ jobs:
           python -I -B tools/test_token_framing_probe.py
           python -I -B tools/test_token_anchor_sync_probe.py
           python -I -B tools/test_patent_capped_prefix_probe.py
+          python -I -B tools/test_patent_adaptive_state_probe.py
       - name: Synthetic escape and run accounting tests
         run: |
           python -I -B tools/test_escape_balance_probe.py
