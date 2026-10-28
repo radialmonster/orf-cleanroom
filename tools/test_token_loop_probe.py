@@ -63,6 +63,45 @@ class MappingTests(unittest.TestCase):
 
 
 class LoopTests(unittest.TestCase):
+    def test_global_shuffle_is_deterministic_and_crosses_rows(self):
+        values = [0, 0, 0, 0, 1, 1, 1, 1]
+        result = probe.shuffled_global(values, random.Random(7))
+        self.assertEqual(result, probe.shuffled_global(values, random.Random(7)))
+        self.assertEqual(sorted(result), sorted(values))
+        self.assertNotEqual(result[:4], values[:4])
+        self.assertEqual(values, [0, 0, 0, 0, 1, 1, 1, 1])
+
+    def test_cli_selects_global_mode(self):
+        output = io.StringIO()
+        with patch.object(probe, 'measure_sample', return_value={'prefix_complete': True, 'mappings': {}}) as measured, contextlib.redirect_stdout(output):
+            self.assertEqual(probe.main(['--sample', '1', 'public', 'unused', '--null-mode', 'global']), 0)
+        self.assertEqual(measured.call_args.args[-1], 'global')
+        self.assertEqual(json.loads(output.getvalue())['settings']['null_mode'], 'global')
+
+    def test_measurement_global_null_and_default(self):
+        sig = {'size_class': 'variable', 'compression_tag': 1, 'payload_w': 4,
+               'payload_h': 2, 'payload_bytes': 8, 'payload_offset': 0,
+               'sha256': 'x', 'bpp': 8}
+        q = [0] * 8; suffix = [0] * 4 + [1] * 4
+        with patch.object(probe.orf_signature, 'signature', return_value=sig), \
+             patch.object(probe.orf_tokens, 'locate', return_value=(4, 2, b'12345678')), \
+             patch.object(probe.orf_tokens, 'parse', return_value=(q, suffix, [], 48)), \
+             patch.object(probe, 'sha256_file', return_value='x'):
+            default = probe.measure_sample(1, 'fixture', 'unused', 2, 1)
+            explicit = probe.measure_sample(1, 'fixture', 'unused', 2, 1, 'within-row')
+            global_result = probe.measure_sample(1, 'fixture', 'unused', 2, 1, 'global')
+        self.assertEqual(default, explicit)
+        vals = list(suffix); random.Random(probe.SEED_BASE + 1000).shuffle(vals)
+        self.assertNotEqual(vals[:4], suffix[:4])
+        outputs = []
+        for row in (vals[:4], vals[4:]):
+            prev = prev2 = 0
+            for value in row:
+                current = 2 * prev - prev2 + value
+                outputs.append(current); prev2, prev = prev, current
+        self.assertEqual(global_result['mappings']['u']['P1']['null_ranges'],
+                         [max(outputs) - min(outputs)])
+
     def test_p1_constant(self):
         self.assertEqual(probe.range_p1([1, 1, 1, 1], 4, 1), 9)
 

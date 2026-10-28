@@ -358,6 +358,14 @@ private figures. Stdlib only, aggregates only; no images or raw values.
     python -I -B tools/token_loop_probe.py --sample ID PUBLIC_NAME path/to/file.ORF
     python -I -B tools/test_token_loop_probe.py
 
+Optional `--null-mode global` shuffles all mapped values in the selected
+prefix with the same fixed seed rule; the default remains `within-row`.
+Global shuffling changes nominal-row allocation and row means, while the
+within-row control preserves both. Both are descriptive surrogates, not
+calibrated significance tests, physical-row evidence or a reconstruction.
+
+    python -I -B tools/token_loop_probe.py --sample ID PUBLIC_NAME FILE --rows 300 --perms 4 --null-mode global
+
 **`flat_predictor_screen.py`** reproduces the bounded #31 flat-capture candidate
 search. The raster, channel, value and 254 dark anchor are assumptions, not a
 codec or established per-channel calibration. Results report incomplete
