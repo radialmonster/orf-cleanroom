@@ -1,5 +1,19 @@
 # tools
 
+**`prefix_whole_null_probe.py`** compares #106's fixed 1,500,000-token
+candidate prefix with a complete bounded parse of the same payload. It uses
+stop 1, five suffix bits, no extra escape skip, q capped at 8 and pair-centered
+integer lag moments. Density counts only complete bytes before each endpoint;
+the prefix projection uses the full payload length as in #594. Null projections
+are undefined at density 0 or 1, matching the historical CLI. A prefix shortfall,
+partial final word or zero variance remains explicit. These are descriptive
+candidate-token projections, not a codec, physical row, pixel or ISO-cause test.
+Verify retained CC0 identity and manifest before each hash-checked snapshot.
+
+    python -I -B tools/prefix_whole_null_probe.py --sample PUBLIC_NAME SHA256 FILE
+    python -I -B tools/test_prefix_whole_null_probe.py
+
+
 **`rice_finite_count_null.py`** extends the finite terminal-residual model of
 #87 with a joint completed-word-count and residual-length distribution for a
 synthetic iid bit stream. It uses exact rational arithmetic for fixed N up to
