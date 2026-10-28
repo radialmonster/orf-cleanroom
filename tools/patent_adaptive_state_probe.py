@@ -76,7 +76,12 @@ def suffix_stable(original, mutant, end, anchor, require_state):
 
 
 def value_comparison(original, mutant, anchor):
-    """Compare only complete matching spans wholly after the edit."""
+    """Compare matching unchanged spans; zero mismatches are structural.
+
+    The first stop and common complete span length determine q and k, so
+    identical mapped bits force the same Rice value, including k=0. This
+    sanity check is not independent evidence of state or value recovery.
+    """
     common = original.keys() & mutant.keys()
     comparable = [b for b in common if original[b][0] > anchor and
                   mutant[b][0] > anchor and original[b][0] == mutant[b][0]]
