@@ -1,5 +1,15 @@
 # tools
 
+**`token_lag_band_probe.py`** extends the fixed #29 candidate-token lag
+comparison to disjoint 262144-token bands, using the existing 128-token
+block exclusion and 16 within-block permutation controls. It emits all five
+lag tables, observed and permuted MI, and rankings. Ties use exact equality
+of the computed Python floating-point values.
+These descriptive bands are not physical rows or a stationarity test.
+
+    python -I -B tools/token_lag_band_probe.py --sample ID PUBLIC_NAME FILE --bands 0 1 2 3
+    python -I -B tools/test_token_lag_band_probe.py
+
 **`escape_context_match_probe.py`** compares the earlier suffix-only control
 with a stricter control matching the preceding candidate-token q class (0,
 1..16, or >=17), on the same eligible escape anchors. Controls must finish
