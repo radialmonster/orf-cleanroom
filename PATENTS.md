@@ -42,6 +42,13 @@ For example, starting with previous correction zero, errors `(-3,-1,0,1,3)` give
 
 The described example also derives k from the preceding absolute corrected error and two run-length thresholds, resetting the runs at line boundaries. The publication discusses sign and low-bit data separately from the Golomb-Rice magnitude; the reviewed passages do not establish their ORF byte/bit placement, an ORF initial k, or physical line boundaries. The source offers alternative predictors and mappings. A reproducible ORF hypothesis would need independently justified side-stream placement, startup and row/reset behavior and held-out controls; it must not splice this publication to US7259698B2 merely because both use Golomb-Rice terminology. No sample was newly measured in this source review.
 
+### JP2006345321A: adaptive category-table example
+
+[Publication text](https://patents.google.com/patent/JP2006345321A/en), Olympus Imaging and inventor Takashi Ishikawa; application JP2005170123A, published 2006. This is a distinct method, not an established ORF format or a component of the other patents above.
+
+The example uses absolute prediction errors for flatness statistics and adaptive Huffman-table selection. Its Figure 4 and S17 retain a separate path for encoding the original prediction error; the absolute-value statistic does not establish that its sign is discarded. Claim 3 and Figures 20–22 describe category codes and significant bits: in one positive example, 11 has category 4 and code `101` followed by `1011`, yielding `1011011`. Figures 23–24 and their accompanying text describe per-block table information or a compact identifier in a tag area.
+
+The text describes reproducing the prediction error and adding it to the predictor. The inspected portions, including the corresponding [grant](https://patents.google.com/patent/JP4493552B2/en), do not specify a complete negative-value serialization or numeric tag layout, so they do not provide an independently reproducible signed bitstream contract. These observations do not assign a camera codec or establish compatibility with the Figure 8 table in #196.
 ### JP2008312193A: RAW analysis feeding JPEG parameters
 
 [Publication text](https://patents.google.com/patent/JP2008312193A/en).
