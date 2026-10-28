@@ -1,5 +1,15 @@
 # tools
 
+**`token_lag3_heldout_probe.py`** fits fixed half-count order-0/2/3
+models on candidate-token band 0 and reports held-out loss on band 1 or 2,
+using the same within-block targets and 16 independently seeded train/test
+whole-token shuffles. Unseen contexts use probability 0.5; if training or
+test has no eligible targets, loss and gain are undefined. These candidate
+comparisons do not establish physical codec state or calibrated significance.
+
+    python -I -B tools/token_lag3_heldout_probe.py --sample ID PUBLIC_NAME FILE --test-band 1
+    python -I -B tools/test_token_lag3_heldout_probe.py
+
 **`token_lag3_conditional_probe.py`** measures the lag-3 binary candidate
 q>0 and suffix-b0 association conditional on the two intervening same-field
 bits, with 16 whole-token within-block shuffles. Exact joint counts and
