@@ -1,5 +1,17 @@
 # tools
 
+**`escape_matched_control_probe.py`** compares q=0 counts in 24 candidate
+words after q>=17 anchors at skips 0 and 12 bits, against the nearest earlier
+q=0 anchor with the same suffix whose two horizons end before that escape.
+All horizons stop at the requested complete-token prefix endpoint. Output
+retains individual counts, unmatched and incomplete cases, and control reuse.
+This descriptive comparison does not establish escape syntax or independent
+physical alignment; matching the suffix does not match neighboring context.
+Verify public provenance and the sample hash before use.
+
+    python -I -B tools/escape_matched_control_probe.py --sample PUBLIC_NAME SHA256 FILE --tokens 262144
+    python -I -B tools/test_escape_matched_control_probe.py
+
 **`token_position_control_probe.py`** compares 24-token windows at nominal
 positions zero, floor(W/4), floor(W/2) and floor(3W/4), each against its own
 row complement. Rows are W candidate tokens from token zero; W is the payload
