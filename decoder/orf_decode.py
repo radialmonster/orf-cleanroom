@@ -349,6 +349,10 @@ def decode_file(path, order=None, layout=None):
         # lag ranks do not establish stationarity or physical framing.
         # 2026-10-28--radialmonster--conditional-lag-three: conditional
         # candidate-token association does not establish a codec state.
+        # 2026-10-28--radialmonster--heldout-lag-three: held-out candidate
+        # comparisons do not establish a physical predictor or framing.
+        # 2026-10-28--radialmonster--candidate-table-transfer: cross-file
+        # candidate-table losses do not establish a physical codec.
         # 2026-10-28--radialmonster--global-loop-shuffle-controls: global and
         # within-row surrogates do not establish physical framing or a predictor.
         # 2026-10-28--radialmonster--em5-dark-candidate-family-counts:

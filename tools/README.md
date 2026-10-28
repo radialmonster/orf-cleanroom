@@ -9,6 +9,15 @@ or test yields undefined loss; unseen contexts under nonempty training use
 
     python -I -B tools/token_phase3_heldout_probe.py --sample ID PUBLIC_NAME FILE --test-band 1
     python -I -B tools/test_token_phase3_heldout_probe.py
+**`token_lag3_transfer_probe.py`** evaluates a fixed cross-file KT table
+transfer matrix from direct aggregate `report()` JSON objects produced by
+`token_lag3_heldout_probe.py` (not its CLI envelope). It retains training,
+test and recipient-local tables, same-target losses and signed differences.
+Verify report provenance: source and per-input report hashes are emitted.
+The results do not establish physical framing or causality.
+
+    python -I -B tools/token_lag3_transfer_probe.py REPORT1993 REPORT5283
+    python -I -B tools/test_token_lag3_transfer_probe.py
 
 **`token_lag3_heldout_probe.py`** fits fixed half-count order-0/2/3
 models on candidate-token band 0 and reports held-out loss on band 1 or 2,
