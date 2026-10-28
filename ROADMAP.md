@@ -47,6 +47,8 @@ Six previously exposed public OM-3 dark files give differing 1.5-million-token n
 
 Fixed nominal-position controls reproduce on two public files and extend to four wider prefixes (`2026-10-28--radialmonster--nominal-position-controls`). On 6343 zero ranks highest for both fields while its contrasts are negative; this shared unassigned observation does not establish physical rows (V1 S1.6/G3).
 
+Common-q b4 contrasts reproduce on four previously studied files and are reported on wider prefixes (`2026-10-28--radialmonster--common-q-b4-contrasts`). Wider support includes a sparse 1/1 stratum and 241's low4 contrast changes sign; this unassigned comparison does not establish a physical gate (V1 S1.14/G3).
+
 The fixed global-versus-within-row candidate loop shuffle comparison reproduces and extends to four public files (`2026-10-28--radialmonster--global-loop-shuffle-controls`); its four shuffles are descriptive, not predictor or physical-row evidence (V1 G2/G3).
 
 A fixed matched-anchor candidate skip comparison reproduces opposite signs on two OM-1 files and extends to two OM-5 files (`2026-10-28--radialmonster--matched-escape-anchor-controls`). The result is descriptive; physical framing and matched-context controls remain open (V1 G3).
