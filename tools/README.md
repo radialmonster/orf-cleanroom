@@ -9,6 +9,16 @@ denominator is undefined. Nominal rows do not establish physical framing.
     python -I -B tools/token_row_dpcm_probe.py --sample ID PUBLIC_NAME FILE --rows 300
     python -I -B tools/test_token_row_dpcm_probe.py
 
+**`token_phase3_heldout_probe.py`** compares pooled lag3, absolute phase
+modulo 3, and phase-plus-lag3 KT models on fixed disjoint candidate-token
+bands. Test phase labels rotate by +0/+1/+2 while training labels stay fixed;
+16 independently seeded within-block shuffles are retained. Empty training
+or test yields undefined loss; unseen contexts under nonempty training use
+0.5. This descriptive test does not establish physical rows or stationarity.
+
+    python -I -B tools/token_phase3_heldout_probe.py --sample ID PUBLIC_NAME FILE --test-band 1
+    python -I -B tools/test_token_phase3_heldout_probe.py
+
 **`token_lag3_transfer_probe.py`** evaluates a fixed cross-file KT table
 transfer matrix from direct aggregate `report()` JSON objects produced by
 `token_lag3_heldout_probe.py` (not its CLI envelope). It retains training,
