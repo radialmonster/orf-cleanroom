@@ -178,7 +178,6 @@ jobs:
           python -I -B tools/test_token_row_dpcm_probe.py
           python -I -B tools/test_token_haar_control_probe.py
           python -I -B tools/test_token_planar_control_probe.py
-
           python -I -B tools/test_token_position_probe.py
       - name: Synthetic prefix and whole null tests
         run: python -I -B tools/test_prefix_whole_null_probe.py
