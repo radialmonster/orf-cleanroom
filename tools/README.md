@@ -1,5 +1,18 @@
 # tools
 
+**`rice_finite_count_null.py`** extends the finite terminal-residual model of
+#87 with a joint completed-word-count and residual-length distribution for a
+synthetic iid bit stream. It uses exact rational arithmetic for fixed N up to
+32 bits, k from 0 through 8 and an externally specified rational stop-bit
+probability with denominator at most 1000. The distribution includes truncated
+words and p=0/1. These small limits do not scale to a whole frame. Estimating p
+from the same data changes the null calibration; the output is not a camera
+significance test, framing identification or physical-row claim.
+
+    python -I -B tools/rice_finite_count_null.py --bits 16 --k 5 --stop-probability 1/2
+    python -I -B tools/test_rice_finite_count_null.py
+
+
 **`synthetic_phase_exact_null.py`** illustrates the nested phase-change
 control in #296 on eight synthetic bits containing four ones. It fits fixed
 period-two phase and a phase change at the midpoint on the same observations,
