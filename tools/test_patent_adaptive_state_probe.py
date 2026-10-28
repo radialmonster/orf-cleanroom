@@ -28,6 +28,29 @@ class TestAdaptiveState(unittest.TestCase):
         self.assertEqual(p.next_state((2,5,5,31),3,32), (5,1,1,0))
         self.assertEqual(p.next_state((2,5,5,31),3,64), (2,6,6,32))
 
+    def test_reset_laws_share_first_32_words_but_may_diverge_next(self):
+        a = b = (5, 0, 0, 0)
+        encoded_a, encoded_b = [], []
+        for _ in range(32):
+            value = 3
+            for out, state in ((encoded_a,a), (encoded_b,b)):
+                k = state[0]
+                out.append('0' * (value >> k) + '1' + format(value & ((1 << k)-1), '0%db' % k))
+            a = p.next_state(a, value, 64)
+            b = p.next_state(b, value, 32)
+            if len(encoded_a) < 32:
+                self.assertEqual(a,b)
+        self.assertEqual(encoded_a, encoded_b)
+        self.assertEqual(sum(map(len,encoded_a)), 102)
+        self.assertEqual(a, (2,32,32,32))
+        self.assertEqual(b, (5,1,1,0))
+        def next_word(state, value):
+            k = state[0]
+            return '0' * (value >> k) + '1' + format(value & ((1 << k)-1), '0%db' % k)
+        word64, word32 = next_word(a,3), next_word(b,3)
+        self.assertEqual((word64,word32), ('111','100011'))
+        self.assertNotEqual(word64,word32)
+
     def test_generated_roundtrip_and_truncation(self):
         values = [0,3,15,16,31] * 20
         bits = p.encode(values)
