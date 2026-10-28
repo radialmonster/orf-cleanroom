@@ -333,6 +333,18 @@ shuffle is descriptive; token blocks do not establish physical rows.
 
 **`manifest_rows.py`** turns local CC0 files into ready-made `samples/manifest.csv` rows, combining the licence listing with `orf_signature.py`.
 
+**`strip_contiguity_audit.py`** supports #11 by auditing table-order strip
+adjacency on the unique largest-strip-total IFD. It separately reports one-strip
+inputs, gaps, negative table deltas, nonascending offsets and physical overlaps.
+Invalid counts in any candidate IFD or a tied largest total fail explicitly;
+this is a conservative selector, not unconditional equivalence to older
+first-winner behavior. Provenance must be verified separately. `PUBLIC_ID`
+may be a truthful public-CC0 label or pixls identifier; no local paths or payload
+bytes are printed. This is container geometry, not a bitstream finding.
+
+    python -I -B tools/strip_contiguity_audit.py --sample PUBLIC_ID PUBLIC_NAME SHA256 FILE
+    python -I -B tools/test_strip_contiguity_audit.py
+
 **`orf_signature.py`** prints one CSV row per file with its measured container and payload facts: SHA-256, magic, make, model, payload size, bits per sample, compression tag, payload offset and bytes, and bits per pixel. It reads the TIFF structure only and decodes nothing.
 
 It exits with status 1 if any input fails, while preserving successful CSV rows
