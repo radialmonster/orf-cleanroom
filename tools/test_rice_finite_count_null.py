@@ -7,8 +7,8 @@ import unittest
 from collections import defaultdict
 from fractions import Fraction
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from rice_finite_count_null import joint_distribution
-from terminal_residual_null_probe import residual_null
+from rice_finite_count_null import joint_distribution, fixed_ones_counts
+from terminal_residual_null_probe import residual_null, fixed_density_lengths
 
 
 def brute(n, k, p):
@@ -44,6 +44,33 @@ class Tests(unittest.TestCase):
                 expected = residual_null(n,float(p))['residual_length_pmf']
                 for a,b in zip(actual,expected): self.assertAlmostEqual(float(a),b,places=12)
 
+    def test_fixed_ones_exhaustive(self):
+        for n in range(9):
+            for k in range(9):
+                buckets = [defaultdict(int) for _ in range(n+1)]
+                for bits in itertools.product((0,1), repeat=n):
+                    pos = count = 0
+                    while pos < n:
+                        stop = pos
+                        while stop < n and bits[stop] == 0: stop += 1
+                        if stop + 1 + k > n: break
+                        pos = stop + 1 + k
+                        count += 1
+                    buckets[sum(bits)][(count,n-pos)] += 1
+                for ones in range(n+1):
+                    self.assertEqual(fixed_ones_counts(n,k,ones), dict(buckets[ones]))
+
+    def test_fixed_ones_k5_residual_and_iid_contrast(self):
+        for n in range(17):
+            for ones in range(n+1):
+                joint = fixed_ones_counts(n,5,ones)
+                tails = [sum(v for (c,t),v in joint.items() if t == r) for r in range(n+1)]
+                self.assertEqual(tails, fixed_density_lengths(n,ones)['residual_length_strings'])
+        joint = fixed_ones_counts(4,1,2)
+        self.assertEqual(joint, {(1,2):2,(1,1):2,(1,0):1,(2,0):1})
+        self.assertEqual(Fraction(joint[(2,0)],6),Fraction(1,6))
+        self.assertEqual(joint_distribution(4,1,Fraction(1,2))[(2,0)],Fraction(1,4))
+        with self.assertRaises(ValueError): fixed_ones_counts(4,1,5)
     def test_extremes_and_bounds(self):
         self.assertEqual(joint_distribution(0,0,Fraction(1,2)),{(0,0):Fraction(1)})
         self.assertEqual(joint_distribution(5,0,Fraction(1)),{(5,0):Fraction(1)})
