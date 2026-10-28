@@ -1,5 +1,14 @@
 # tools
 
+**`token_haar_control_probe.py`** reports separate unnormalized 2 by 2 Haar
+horizontal, vertical and diagonal squared-contrast totals on fixed nominal
+token blocks from origin zero, with within-row and global shuffle controls.
+Incomplete edge rows and columns are excluded. These descriptive totals do
+not establish physical image rows or reproduce the private historical metric.
+
+    python -I -B tools/token_haar_control_probe.py --sample ID PUBLIC_NAME FILE --rows 300
+    python -I -B tools/test_token_haar_control_probe.py
+
 **`token_row_dpcm_probe.py`** compares prior nominal-row and two-row mapped
 value squared differences against four within-row and global shuffles. W-1/W+1
 offsets provide fixed neighboring controls on identical target indices. Exact
