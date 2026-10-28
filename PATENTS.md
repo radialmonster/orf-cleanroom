@@ -49,6 +49,9 @@ The described example also derives k from the preceding absolute corrected error
 The example uses absolute prediction errors for flatness statistics and adaptive Huffman-table selection. Its Figure 4 and S17 retain a separate path for encoding the original prediction error; the absolute-value statistic does not establish that its sign is discarded. Claim 3 and Figures 20–22 describe category codes and significant bits: in one positive example, 11 has category 4 and code `101` followed by `1011`, yielding `1011011`. Figures 23–24 and their accompanying text describe per-block table information or a compact identifier in a tag area.
 
 The text describes reproducing the prediction error and adding it to the predictor. The inspected portions, including the corresponding [grant](https://patents.google.com/patent/JP4493552B2/en), do not specify a complete negative-value serialization or numeric tag layout, so they do not provide an independently reproducible signed bitstream contract. These observations do not assign a camera codec or establish compatibility with the Figure 8 table in #196.
+
+In the application and grant, Figures 14–16 give an 8×8 absolute-error example, thresholds 7/31/63, run length 4 and run-set threshold 4. Starting counters at zero and applying Figures 6–7 literally, including resetting the run after each set and at each line end, gives run-set counts 0/3/7; Figure 16 prints 0/3/5. Both yield flags 0/0/1 and the same example category 6. An unexamined condition could reconcile the count; this source-only comparison makes no camera claim.
+
 ### JP2008312193A: RAW analysis feeding JPEG parameters
 
 [Publication text](https://patents.google.com/patent/JP2008312193A/en).
