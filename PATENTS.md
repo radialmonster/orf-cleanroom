@@ -32,6 +32,16 @@ These bounds retain every completion of the unknown trailing bits; a permitted r
 
 A useful next test would first freeze exact candidate parameters, initial alignment, escape branch, and expected marker scheduling from a stated source or independent metadata; preserve initial and interior marker candidates separately, use matched null controls and held-out captures, and report mismatches and undefined cases. Searching for a preferred long zero run or shifting the parse after seeing these known prefixes would not independently establish framing. No sample was newly measured in this source review.
 
+### US7715639B2: prediction-error filtering and adaptive k
+
+[Publication text](https://patents.google.com/patent/US7715639B2/en), read 2026-10-28. The described example separates the least significant bit of a prediction error before a recurrence, then uses the corrected error and flatness state to determine a Golomb-Rice parameter. These are public patent methods, not established ORF syntax.
+
+For signed integer error `P` and previous correction `Cprev`, formulas 10, 11, 13 and 14 specify `P_even = 2*floor(P/2)`, low bit `L = P-P_even`, `C = floor(P_even/2)+floor(Cprev/2)` and corrected error `E = P_even-C`. Formulas 17 and 19 recover `P_even = 2*(E+floor(Cprev/2))` and `P = P_even+L`; the example initializes the preceding correction to zero. Mathematical floor matters for negative inputs. The stated absolute-value treatment also carries sign information separately, although an alternate folded mapping is described.
+
+For example, starting with previous correction zero, errors `(-3,-1,0,1,3)` give corrected errors `(-2,0,1,1,2)`, low bits `(1,1,0,1,1)` and correction states `(-2,-2,-1,-1,0)`; the specified inverse restores the input sequence. Losing the low bit makes the inversion ambiguous: at previous correction zero, errors 0 and 1 have the same corrected error. This is an algebraic property of the cited formulas, not a measured image result.
+
+The described example also derives k from the preceding absolute corrected error and two run-length thresholds, resetting the runs at line boundaries. The publication discusses sign and low-bit data separately from the Golomb-Rice magnitude; the reviewed passages do not establish their ORF byte/bit placement, an ORF initial k, or physical line boundaries. The source offers alternative predictors and mappings. A reproducible ORF hypothesis would need independently justified side-stream placement, startup and row/reset behavior and held-out controls; it must not splice this publication to US7259698B2 merely because both use Golomb-Rice terminology. No sample was newly measured in this source review.
+
 ### JP2008312193A: RAW analysis feeding JPEG parameters
 
 [Publication text](https://patents.google.com/patent/JP2008312193A/en).
