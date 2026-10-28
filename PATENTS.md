@@ -116,9 +116,17 @@ not an ORF residual specification.
   opening text concerns JPEG/MPEG, DCT/quantization and target size.
   Detailed coding relevance remains to be reviewed.
 - [JPH07322252A](https://patents.google.com/patent/JPH07322252A/en):
-  user-supplied identifier. Direct Japanese publication text could not be
-  retrieved in this review. Its relevance and detailed algorithm remain
-  unchecked; do not use it as an established premise.
+  user-supplied identifier. Direct Japanese publication text remains unavailable
+  in this review; do not treat its claims or detailed algorithm as established.
+  The public [EP0684738A2 publication](https://patents.google.com/patent/EP0684738A2/en)
+  lists JP13262294A / JPH07322252A under a 1994-05-23 priority and Canon as
+  original assignee. The reviewed EP text describes block image encoding with
+  an orthogonal transform, masked transform coefficients and encoding of the
+  masked blocks; claim 11 specifies a discrete cosine transform. It is a related
+  priority publication, not a transcription or proof that each Japanese claim
+  or passage is identical. These record links have not been separately checked
+  against J-PlatPat or Espacenet. The EP text does not establish a lossless
+  sensor-residual grammar or use in ORF; no patent drawings were inspected.
 
 ## Remaining research question
 
