@@ -365,6 +365,8 @@ def decode_file(path, order=None, layout=None):
         # payload width 6343 is 5240; earlier numeric offsets used 5240.
         # 2026-10-28--radialmonster--nominal-centered-block-energy: nominal
         # block energies do not establish physical rows or a predictor.
+        # 2026-10-28--radialmonster--nominal-haar-controls: candidate contrast
+        # energies do not establish physical rows or a predictor.
         # 2026-10-28--radialmonster--em5-dark-candidate-family-counts:
         # six dark-file literal counts identify neither a codec nor pixel mapping.
         # 2026-10-28--radialmonster--om3-dark-prefix-projections: six selected
