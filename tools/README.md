@@ -8,6 +8,10 @@ EOF-censored zero runs are separate; their region uses the last zero bit.
 Four controls fix the first six bytes and shuffle the entire remaining byte
 tail, preserving its byte histogram but not its run lengths. This descriptive
 census does not identify a marker, restart or calibrated significance.
+Optional `--phase17` additionally reports all eight terminating-one phases for
+later maximal zero runs of at least 17 bits, tail one counts by phase,
+excluded startup/seam events and EOF censoring. Zero qualifying runs give
+undefined proportions; byte shuffling preserves tail bit-phase one counts.
 
     python -I -B tools/payload_zero_run_probe.py --sample ID PUBLIC_NAME SHA256 FILE
     python -I -B tools/test_payload_zero_run_probe.py
