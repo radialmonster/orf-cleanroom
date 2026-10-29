@@ -379,6 +379,8 @@ def decode_file(path, order=None, layout=None):
         # window rankings do not establish physical rows or token semantics.
         # 2026-10-28--radialmonster--common-q-b4-contrasts: sparse common-q
         # contrasts do not establish a physical gate or candidate-token framing.
+        # 2026-10-29--radialmonster--fixed-q-mixture-decomposition: pooled
+        # components do not establish a physical gate or causal adjustment.
         # F_NULL_CORRECTED (Partial for #231): corrected fixed-prefix q0 null
         # separation specifies neither entropy-code boundaries nor values (V1 S1.12).
         # 2026-10-27--radialmonster--q-parity-lag-reproduction (#585):
