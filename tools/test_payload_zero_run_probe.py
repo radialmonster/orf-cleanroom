@@ -48,4 +48,39 @@ class TestZeroRuns(unittest.TestCase):
     self.assertEqual(p.main(),expected)
     if not expected:
      r=json.loads(out.getvalue());self.assertEqual(r['result']['payload_bytes'],32);self.assertEqual(len(r['result']['controls']),4);self.assertIn('payload_zero_run_probe.py',r['source_sha256'])
+  with mock.patch.object(Path,'read_bytes',read),mock.patch.object(sys,'argv',['probe','--sample','1','public',sha,'synthetic','--phase17']),contextlib.redirect_stdout(io.StringIO()) as out:
+   self.assertEqual(p.main(),0);self.assertIn('real_phase17',json.loads(out.getvalue())['result'])
+ def test_phase17_equal_multiset_and_censor(self):
+  a=b'\xff'*6+bytes([0,0,0,32,1]);b=b'\xff'*6+bytes([0,32,0,0,1]);self.assertEqual(collections.Counter(a[6:]),collections.Counter(b[6:]))
+  x,y=p.phase17(a),p.phase17(b);self.assertEqual(x['later_phase_counts'],[0,0,1,0,0,0,0,0]);self.assertEqual(y['later_phase_counts'],[0,0,0,0,0,0,0,1]);self.assertEqual(x['tail_one_counts_by_phase'],y['tail_one_counts_by_phase']);self.assertIsNone(x['terminal_zero_run']);self.assertIsNone(y['terminal_zero_run'])
+  empty=p.phase17(b'\xff'*6);self.assertEqual(empty['later_qualifying_total'],0);self.assertIsNone(empty['later_phase_proportions'])
+  seam=p.phase17(pack('1'*30+'0'*39+'1'));self.assertEqual(seam['excluded_qualifying_terminated']['seam_crossing'],1);self.assertEqual(seam['later_qualifying_total'],0)
+  censored=p.phase17(b'\xff'*6+b'\x00'*3);self.assertEqual(censored['terminal_zero_run']['length'],24);self.assertEqual(censored['later_qualifying_total'],0)
+  result=p.measure(a,True)
+  for control in result['controls']:self.assertEqual(control['phase17']['tail_one_counts_by_phase'],result['real_phase17']['tail_one_counts_by_phase'])
+ def test_phase17_naive_bit_oracle_and_default(self):
+  rng=random.Random(197);data=bytes(rng.randrange(256) for _ in range(100));bits=''.join(format(x,'08b') for x in data);r=p.phase17(data);phase=[0]*8;excluded={k:0 for k in ('startup','preserved_internal','seam_crossing')};start=None
+  for i,bit in enumerate(bits):
+   if bit=='0' and start is None:start=i
+   if bit=='1' and start is not None:
+    if i-start>=17:
+     region='startup' if start==0 else ('seam_crossing' if start<48<=i else 'preserved_internal' if start<48 else 'later')
+     if region=='later':phase[i%8]+=1
+     else:excluded[region]+=1
+    start=None
+  self.assertEqual(r['later_phase_counts'],phase);self.assertEqual(r['excluded_qualifying_terminated'],excluded)
+  default=p.measure(data);self.assertNotIn('real_phase17',default);self.assertTrue(all('phase17' not in x for x in default['controls']))
+ def test_phase17_threshold_all_phases_and_long_runs(self):
+  for length in (16,17,39,80):
+   for desired in range(8):
+    filler=(desired-length)%8;data=pack('1'*48+'1'*filler+'0'*length+'1'+'1'*8);bits=''.join(format(x,'08b') for x in data)
+    phase=[0]*8;start=None
+    for i,bit in enumerate(bits):
+     if bit=='0' and start is None:start=i
+     if bit=='1' and start is not None:
+      if start>=48 and i-start>=17:phase[i%8]+=1
+      start=None
+    r=p.phase17(data);self.assertEqual(r['later_phase_counts'],phase)
+    self.assertEqual(sum(phase),0 if length==16 else 1)
+    if length>=17:self.assertEqual(phase[desired],1)
 if __name__=='__main__':unittest.main()
