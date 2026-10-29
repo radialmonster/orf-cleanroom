@@ -1,5 +1,15 @@
 # tools
 
+**`token_start_bit_phase_probe.py`** counts candidate q0, q1..16 and q>=17
+starts by bit phase modulo 8 in a fixed byte window, plus ordinary-token suffix
+one counts in b4,b3,b2,b1,b0 order (denominator: ordinary starts per phase).
+Four whole-window byte shuffles use the same byte exposure; complete tokens,
+EOF state and residuals are explicit. The candidate parse and phase coupling
+do not establish physical alignment, codec framing or calibrated significance.
+
+    python -I -B tools/token_start_bit_phase_probe.py --sample ID PUBLIC_NAME SHA256 FILE --bytes 131072
+    python -I -B tools/test_token_start_bit_phase_probe.py
+
 **`payload_zero_run_probe.py`** counts literal maximal zero runs of exact
 length 39, exact length 47 and at least 39 ending in a one, without token
 parsing. Startup takes precedence; other runs are partitioned before the
