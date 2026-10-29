@@ -59,6 +59,8 @@ Fixed candidate phase-three sensitivity reproduces on two files and extends to a
 
 Common-q b4 contrasts reproduce on four previously studied files and are reported on wider prefixes (`2026-10-28--radialmonster--common-q-b4-contrasts`). Wider support includes a sparse 1/1 stratum and 241's low4 contrast changes sign; this unassigned comparison does not establish a physical gate (V1 S1.14/G3).
 
+A fixed-support q mixture decomposition reproduces on four public files at two extents (`2026-10-29--radialmonster--fixed-q-mixture-decomposition`); its pooled components are descriptive, not a causal gate adjustment (V1 S1.14/G3).
+
 The fixed global-versus-within-row candidate loop shuffle comparison reproduces and extends to four public files (`2026-10-28--radialmonster--global-loop-shuffle-controls`); its four shuffles are descriptive, not predictor or physical-row evidence (V1 G2/G3).
 
 Fixed nominal W and 2W candidate difference energies reproduce on two files and extend to four wider prefixes (`2026-10-28--radialmonster--nominal-row-difference-energy`). Adjacent offsets and both shuffle modes are retained; they do not establish physical rows or a predictor (V1 G2/G3).
