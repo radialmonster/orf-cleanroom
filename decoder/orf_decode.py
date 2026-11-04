@@ -457,7 +457,10 @@ def decode_file(path, order=None, layout=None):
         # F_OM3_FLAT (Partial for #338): seven public OM-3 controlled files
         # reproduce their 4M-token grids and retain patterns at 8M, using the
         # same captures; token coordinates do not establish a pixel map.
-        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; predictive baselines and unassigned #338 token-index findings are not a codec)")
+        # F_OM3_DARK_PUBLIC (Partial for #338): two further public OM-3 dark
+        # captures reproduce the four declared 4M-token offset signs; this is
+        # still token-index evidence, not physical rows, a CFA map or predictor.
+        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; predictive baselines and unassigned #338 token-index findings, including the public OM-3 dark offset repeats, are not a codec)")
         r["notes"].append("compressed payload (%s bits per pixel); no decoder or padding rule is specified yet; suffix associations do not specify values, see specs/V1.md S1.1-S1.2, S1.7-S1.21, S2.3, G2, specs/V2.md S1.1-S1.2 and ROADMAP.md" % sig["bpp"])
         return r
     packing = sc
