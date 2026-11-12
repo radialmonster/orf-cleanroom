@@ -5,7 +5,7 @@ Verified by: @Hrt-Htk
 Lead: #347
 Variant: unassigned
 Builds on: #313
-Partial: the companion-separation claim at the fixed r >= 0.98 cut, on 4 new own OM-5 High Res ORF/ORI pairs; not the lead's 23-pair count, not its AUC, not the held-out threshold, not the same-session rate, and not the different-day claim, which this run contradicts
+Partial: the companion-separation claim at the fixed 0.98 cut, on 4 new own OM-5 High Res ORF/ORI pairs; not the lead's 23-pair count, not its AUC, not the held-out threshold, not the same-session rate, and not the different-day claim, which this run contradicts
 
 ## Claim
 
