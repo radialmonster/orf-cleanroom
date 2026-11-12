@@ -1501,6 +1501,30 @@ Inputs require retained CC0 provenance matched by local hash and manifest.
     python -I -B tools/frozen_context_calibration.py --manifest samples/manifest.csv --discovery FILE1993 FILE1995 --validation FILE
     python -I -B tools/test_frozen_context_calibration.py
 
+**`stride_harmonics.py`** supports lead #724 and builds on #144. It takes the
+row-stride scan of `token_row_stride.py` (imported, so the score and defaults
+are identical) and asks where the secondary candidates sit: peaks are z >=
+`--z-min`, greedily suppressed at `--suppress` tokens and at least
+`--min-distance` from the best stride, mapped to the nearest integer to `W*p/q`
+with `q <= --q-max`, and reported with the per-file counts within `--tolerance`
+tokens of such an integer and exactly on `W*p/q`, plus the chance rate a random
+scored stride would reach on the same grid. On 50 own OM-5 files (W = 5240) 16
+of 23 peaks are within 2 tokens of `W*p/q` and 15 exactly on it, against 0.0416
+by chance (lead #724, unverified, files not shared): consistent with fold
+harmonics of a period at the payload width rather than wider rows.
+`--control synthetic|tiled|shuffle --period P --seed N` scores a sequence
+resampled from the file's own head and rest q distributions at that period, the
+real prefix tiled at that period, or one seeded permutation of the real prefix,
+which varies the row-start contrast independently of the content. Output is
+keyed by input order, and `--names` is opt-in because inputs may be private. A
+peak is a candidate periodicity, not a physical row boundary; the scan does not
+establish that W is the true period.
+
+    python -I -B tools/stride_harmonics.py FILE [FILE ...]
+    python -I -B tools/stride_harmonics.py FILE --control synthetic --period 5240
+    python -I -B tools/stride_harmonics.py --self-test
+    python -I -B tools/test_stride_harmonics.py
+
 ### `patent_capped_prefix_probe.py`
 
 Tests two fixed source-grounded hypotheses from [US7259698B2](https://patents.google.com/patent/US7259698B2/en), not an identified ORF codec. `--width 15` uses the patent example D=15, k=5 and maximum prefix 12, with a 47-zero/one marker at payload bit zero. `--width 12` is a post-hoc exploratory D=12 choice with a 39-zero/one marker. The marker ends at the one; a capped escape is 12 zero bits followed by D value bits, with upper D-5 bits at least 12. Marker mismatch, invalid escape, incomplete terminal word and a user-selected `--max-words` limit are reported separately, with the stop bit and invalid escape value when present. This is a one-sided test of a single uninterrupted block: absence of an invalid escape does not establish the grammar, because random streams can also pass. An interior marker or adaptation could explain a failure of this restricted hypothesis. No interior marker, resynchronization, terminal fill, adaptive parameters or physical rows are inferred. `--tail-shuffle --seed 20261022` preserves the first five (D=12) or six (D=15) bytes and shuffles the entire remainder with a fresh RNG; the measured payload hash and mode are reported. This is a descriptive control, not a calibrated grammar null. `--sample PUBLIC_ID PUBLIC_NAME SHA256 PATH` checks a single local snapshot against its expected hash; establish the public identity and CC0 permission independently before use. Results are aggregate metadata only.
