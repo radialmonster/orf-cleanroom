@@ -42,6 +42,7 @@ F_QXS_TABLE = "2026-10-21--radialmonster--suffix-qxs-table-and-reverse-direction
 F_STRIDE = "2026-10-21--radialmonster--wide-row-stride-new-bodies"
 F_EXTRA = "2026-10-22--radialmonster--extra-token-fields-not-fixed"
 F_STRIDE_LATER = "2026-10-22--radialmonster--later-band-row-stride-drift"
+F_STRIDE_OM5 = "2026-11-12--radialmonster--wide-row-stride-om5-50-own-files"
 F_PHASE = "2026-10-26--radialmonster--row-phase-reproduces-two-files"
 F_FIG8 = "2026-10-21--radialmonster--figure8-negative-highres-e-m1-mark-ii"
 F_PACKED12 = "2026-10-19--radialmonster--packed-12-msb-two-values-per-three-bytes"
@@ -317,13 +318,17 @@ def decode_file(path, order=None, layout=None):
         # independence is not established (V1 S1.17).
         # F_STRIDE (Partial for #144): a 300-row row-start q profile finds file-specific
         # token strides above W on new OM-5/OM-1 files; it establishes no physical rows
-        # or values (V1 S1.10).
+        # or values (V1 S1.10). F_STRIDE_OM5 (Partial for #144, own files not yet
+        # reproducible) repeats it on 50 same-body files at one width: S 5240 to 6288
+        # in 34 distinct values, 40 above W and 10 at W, none below (V1 S1.10).
         # F_EXTRA (Partial for #144): at the measured strides the extra S-W tokens are
         # not a fixed header or constant pad on five public files and three bands; their
         # origin, physical rows and any values remain open (V1 S1.10, G3).
         # F_STRIDE_LATER (self-verified, Partial for #144): later 300-row bands
         # move the candidate peak and the fixed prefix S loses the contrast; it
         # establishes no physical rows or whole-frame constant (V1 S1.10, G3).
+        # F_STRIDE_OM5 repeats that loss on the same 50 files (46/50, 48/50 and
+        # 46/49 below z 5.0 at candidate rows 1000, 2000 and 3000) (V1 S1.10, G3).
         # 2026-10-27--radialmonster--phase-period-heldout-reproduction (#504):
         # selected unassigned-file candidate-token
         # phase/period contrasts give mixed gains; no physical rows, period
