@@ -119,6 +119,19 @@ Exact numbers: run `python -I tools/conformance.py <files>`; the committed resul
 - **Verify a decoder independently.** Write a second implementation without reading the first, or have a different person run the same decoder, then run `tools/conformance.py` on the CC0 files. Matching output hashes on every file is the evidence. Mismatches are leads: say which file and which value differ.
 - **Add compressed variants.** Same path: leads, then findings, then a spec section (stubs `specs/V1.md` and `specs/V2.md` exist; fill them in), then decoder support, then a `conformance-V1.csv`.
 
+## Compressed work: decoder contracts
+
+Reproducible statistics about the candidate k=5 parse are not, on their own, getting the compressed variants closer to a decoder: many of them share the same parser and locator, so they are not independent votes for it, and several V1 G3 follow-ups end at the same missing piece (independent framing). For compressed work, aim at one complete, testable hypothesis at a time.
+
+- **One integration target at a time.** The current suggestion is the public controlled OM-3 group (the PA20/PA21 white and dark frames in `samples/om3-flat-338-provenance.json` and the later PB04 captures in `samples/om-system-pen-om-3-om-5-mark-ii-zenodo-provenance.json`): one hypothesis that accounts for every startup, interior and endpoint bit there. This is a tractable first target, not a claim that OM-3 behaviour generalizes.
+- **A candidate contract states:** container selection and exact payload extent; header/control syntax, bit order and side fields; number of output samples, traversal and lane assignment; value/sign/low-bit recovery, state and resets; predictor, initialization, arithmetic width and rounding; escape, padding and termination. Each clause says whether it is source-derived (a patent or standard, cited), backed by a finding, or unknown. Unknown clauses stay unknown; a contract gets no per-file phase, width or exceptions to finish a parse.
+- **Each experiment names its decision.** Before running, write: "if A, keep candidate X; if B, drop X or collect Y; if ambiguous, stop this branch." A measurement whose outcomes change no clause and no next capture is low priority, however reproducible.
+- **Track shared assumptions.** When citing several results for one clause, say which assumptions they share (parser, locator, nominal rows). Results that share the clause being tested don't count as independent support for it.
+- **Test the test first.** Before a diagnostic is used to accept or reject a camera hypothesis, check on original synthetic streams with a known generator (including deliberately wrong and equivalent ones) that it can tell them apart.
+- **Handoff, as V0 did.** A contract that survives is written up as a spec section and an original decoder, then implemented a second time from the spec alone and checked on reserved public inputs. A contract that fails keeps its first contradiction and the clause it points at.
+
+These are priorities, not new rules: leads, findings, verification and automerge work as described above.
+
 ## Recording "reproduces conformance" with the existing system
 
 The lightest fit is a normal lead and finding, so automerge keeps working with no change:
