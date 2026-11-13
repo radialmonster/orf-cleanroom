@@ -34,7 +34,7 @@ Leads are labelled `variant:Vn` ([V0](https://github.com/radialmonster/orf-clean
 - Signature: compressed; the calm parse from the F1 lead (#11) works (q zeros, stop bit, 5-bit suffix, escape at q ≥ 17); per-row stride equals the payload width on at least one body (5240 wide).
 - Models seen: none recorded yet. The PR that assigns a manifest row to this variant also adds its model here.
 - Findings: [findings/V1/](findings/V1/) (the F1 lead, #11, is the first candidate).
-- Status: `parse understood`. Value assembly and predictor open (see [specs/V1.md](specs/V1.md), Gaps). On some bodies the stride drifts (same list), which may split this variant.
+- Status: `unknown` as a camera codec. The candidate parse above has reproducible statistics, but its framing and escape semantics are not verified (see [specs/V1.md](specs/V1.md) S2.1, G11). Value assembly, predictor and physical row mapping are open (same list). Candidate period profiles vary by file and band (G3); that does not yet define a variant split.
 
 ## V2: large-sensor compressed (not understood)
 - Signature: compressed; files from larger sensors where the ordinary code does not fit the V1 parse (token counts near an independent-bits null, finding 2026-10-20--radialmonster--large-sensor-k5-parse-near-bernoulli-null). The name used to say "31-bit-escape"; that width is not established by measurement (specs/V2.md S2.2), so it is no longer part of the signature.
@@ -45,5 +45,5 @@ Leads are labelled `variant:Vn` ([V0](https://github.com/radialmonster/orf-clean
 ## Unassigned
 - Findings whose variant isn't known yet: [findings/unassigned/](findings/unassigned/). Container facts that span variants: [findings/container/](findings/container/).
 - Shared terminal-bit counts are independently reproduced for the frozen compressed cohort in finding `2026-10-21--radialmonster--compressed-tail-full-cohort-reproduction` (Partial for #87; [V1.md](specs/V1.md) S1.7). They do not assign any manifest row to V1, V2 or another variant, or establish padding.
-- High Res Shot / pixel-shift files: two of the 21 in the manifest (PEN-F, E-M5 Mark II) are packed-12.8, so V0 by signature; the other 19 are compressed and still `unassigned`. Whether the mode needs its own variants is open (hypothesis H2, [specs/V0.md](specs/V0.md) G5, which applies to both).
+- High Res Shot / pixel-shift files: in the frozen 104-file census behind the 2026-10-19 container findings, 21 payloads were wider than 6000 pixels; two (PEN-F, E-M5 Mark II) are packed-12.8, so V0 by signature, and the other 19 are compressed and still `unassigned`. Those are counts for that cohort, not totals for the current append-only manifest, and the manifest mode label is width-derived. Whether the mode needs its own variants is open (hypothesis H2, [specs/V0.md](specs/V0.md) G5, which applies to both).
 - ORI files: not yet classified.
