@@ -85,7 +85,8 @@ confounding. A single-session subset is exploratory, not the planned validation.
 
 ## Optional one-factor contrasts
 
-Choose at most one optional contrast for the first capture campaign. Register
+Choose at most one optional contrast for the first capture campaign (an
+exploratory screening campaign may register several; see the next section). Register
 exact baseline A and changed B settings and a reversible setup. Within each of
 the four scene conditions, collect **A B B A** in each of two sessions, reversing
 the scene order in session 2. This adds 4 scenes x 4 events x 2 sessions = **32
@@ -113,6 +114,43 @@ Candidate contrasts, with their confounds recorded:
 Mode changes require the separate design below; changing mode, resolution and
 exposure together is not a one-factor test. Do not add settings after looking
 for whichever produces the strongest result. Further campaigns need new plans.
+
+## Exploratory screening campaigns
+
+A smaller campaign can be run first to decide whether the core design above is
+worth the effort: for example one session plus a short repeat block on a second
+day. It cannot carry the core design's discovery/validation error control, so it
+follows these rules instead:
+
+- **Label it.** Name it a screening campaign in its plan and in every lead built
+  on it. Its results are exploratory leads, never confirmatory, and no set in it
+  validates another. A follow-up claim needs fresh validation events under a new
+  registered plan.
+- **Several one-factor contrasts are allowed.** Each set registers its own
+  frozen baseline and changed setting, its consuming tool from `tools/` and its
+  primary statistic before capture. The core design's control for multiple
+  contrasts does not cover them; say so in the plan.
+- **A set may have its own fixed exposure.** A dark set at the scene exposure may
+  carry too little signal; giving it a separate fixed exposure is allowed when
+  stated as a limitation, and that set is then left out of payload-size
+  comparisons with the other sets.
+- **Held out means what was split.** A day or session split assigned before any
+  screen is run holds out transfer across days or sessions only. Transfer to
+  new scenes needs a held-out scene as well.
+- **Companions stay grouped.** A High Res ORF and its ORI from one press are a
+  width contrast between companions (see the next section), not two independent
+  captures.
+- **No rendered display targets** in published sets, consistent with the core
+  design's ground-truth and flicker rules. Such a probe stays local.
+- **Freezing is posting.** Post the dated plan on #302 before capturing or
+  measuring. Comments are welcome but nobody signs a plan off, and maintainer
+  review can be slow.
+- **Releasing frames.** Dark, flat and ramp frames have nothing personal in frame,
+  so they are the easiest to release as CC0. raw.pixls.us does not take series
+  that vary settings or lighting; use a CC0 record on Zenodo, or a public Google
+  Drive folder holding a written CC0 owner declaration, and add `public-cc0`
+  manifest rows with a provenance record as described in
+  [samples/README.md](samples/README.md).
 
 ## ORF, ORI and High Res acquisition semantics
 
