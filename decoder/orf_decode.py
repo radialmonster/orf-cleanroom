@@ -455,9 +455,11 @@ def decode_file(path, order=None, layout=None):
         # F_OM1_DARK (Partial for #338): same-colour offset signs repeat on four
         # own lens-cap captures from two bodies and two sensitivity settings; this
         # does not identify a predictor, values or a decode step (V1 S1.20).
-        # F_EM5_DARK_SIGN (#561): six public E-M5 Mark II dark files retain
-        # four token-offset signs in 4M and 8M prefixes; no CFA or predictor is
-        # established (V1 S1.21).
+        # F_EM5_DARK_SIGN (#561), independently reproduced by
+        # 2026-11-13--radialmonster--em5-dark-sign-independent-reproduction:
+        # six public E-M5 Mark II dark files retain four token-offset signs in
+        # 4M, 8M and 12M prefixes. Shared parser/locator/shuffle and the same
+        # captures establish no physical rows, CFA or predictor (V1 S1.21).
         # F_WHITE_PARITY (#555): one white-file nominal profile has zero opposing
         # eligible blocks; one whole-stream block is low-information and excluded.
         # It does not establish physical rows (V1 S1.21).
@@ -467,7 +469,7 @@ def decode_file(path, order=None, layout=None):
         # F_OM3_DARK_PUBLIC (Partial for #338): two further public OM-3 dark
         # captures reproduce the four declared 4M-token offset signs; this is
         # still token-index evidence, not physical rows, a CFA map or predictor.
-        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; predictive baselines and unassigned #338 token-index findings, including the public OM-3 dark offset repeats, are not a codec)")
+        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; predictive baselines and unassigned token-index findings, including #338 public OM-3 dark repeats and independently reproduced #561 E-M5 II dark offsets, are not a codec)")
         r["notes"].append("compressed payload (%s bits per pixel); no decoder or padding rule is specified yet; suffix associations do not specify values, see specs/V1.md S1.1-S1.2, S1.7-S1.21, S2.3, G2, specs/V2.md S1.1-S1.2 and ROADMAP.md" % sig["bpp"])
         return r
     packing = sc
