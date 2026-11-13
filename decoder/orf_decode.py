@@ -327,6 +327,10 @@ def decode_file(path, order=None, layout=None):
         # F_STRIDE_LATER (self-verified, Partial for #144): later 300-row bands
         # move the candidate peak and the fixed prefix S loses the contrast; it
         # establishes no physical rows or whole-frame constant (V1 S1.10, G3).
+        # 2026-11-13--mszyndel--single-period-side-peak-control (#734): a
+        # fixed-period head/rest-resampling surrogate misses the public OM-1 II
+        # side-peak pairs. This scoped one-seed negative does not exclude general
+        # estimator artifacts or establish physical periods or a decode step.
         # F_STRIDE_OM5 repeats that loss on the same 50 files (46/50, 48/50 and
         # 46/49 below z 5.0 at candidate rows 1000, 2000 and 3000) (V1 S1.10, G3).
         # 2026-10-27--radialmonster--phase-period-heldout-reproduction (#504):
@@ -469,7 +473,7 @@ def decode_file(path, order=None, layout=None):
         # F_OM3_DARK_PUBLIC (Partial for #338): two further public OM-3 dark
         # captures reproduce the four declared 4M-token offset signs; this is
         # still token-index evidence, not physical rows, a CFA map or predictor.
-        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; predictive baselines and unassigned token-index findings, including #338 public OM-3 dark repeats and independently reproduced #561 E-M5 II dark offsets, are not a codec)")
+        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; unassigned #338/#561 dark offsets and #734 fixed-period control negative specify no codec or physical rows)")
         r["notes"].append("compressed payload (%s bits per pixel); no decoder or padding rule is specified yet; suffix associations do not specify values, see specs/V1.md S1.1-S1.2, S1.7-S1.21, S2.3, G2, specs/V2.md S1.1-S1.2 and ROADMAP.md" % sig["bpp"])
         return r
     packing = sc
