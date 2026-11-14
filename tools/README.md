@@ -1525,6 +1525,33 @@ establish that W is the true period.
     python -I -B tools/stride_harmonics.py --self-test
     python -I -B tools/test_stride_harmonics.py
 
+### `vertical_landmark_probe.py`
+
+Bounded numeric pilot for owner-authorized vertical-bar captures (#302/#197).
+It checks two unequal low-profile intervals in 128-bin embedded-preview DC
+column means, with three fixed central sub-bands. One candidate payload rule
+is tested without fitting: k=5/stop=1, phase zero, nominal width W and ordinary
+suffix b2+b4 over the central half of nominal rows. Identity, reversed and
+circularly shifted preview correlations and cross-file scores are descriptive;
+they do not establish physical rows, raw clipping, a predictor or a codec.
+Private input hashes, paths, capture dates, serials and GPS are not printed;
+`--names` opts into basenames. No images or profile arrays are written or
+printed. Establish ownership/permission or CC0 provenance before use.
+
+`--blank FILE` adds an explicitly identified blank comparison, only when
+model, payload geometry, exposure time, aperture, ISO and focal length match.
+Preview differences undo each file's luma DC quantizer; candidate differences
+subtract the unchanged b2+b4 proxy. Missing/mismatched settings are reported as
+ineligible. This is a rendering/proxy diagnostic, not subtraction of known
+sensor values. Self-tests include 8/16-bit DQT headers, known matched-profile
+differences with unequal quantizers, an all-zero blank difference, and an ISO
+mismatch. The original identity/reversal/circular diagnostics are unchanged.
+
+    python -I -B tools/vertical_landmark_probe.py --self-test
+    python -I -B tools/vertical_landmark_probe.py --intake-only FILE [FILE ...]
+    python -I -B tools/vertical_landmark_probe.py FILE [FILE ...]
+    python -I -B tools/vertical_landmark_probe.py --blank BLANK FILE [FILE ...]
+
 ### `patent_capped_prefix_probe.py`
 
 Tests two fixed source-grounded hypotheses from [US7259698B2](https://patents.google.com/patent/US7259698B2/en), not an identified ORF codec. `--width 15` uses the patent example D=15, k=5 and maximum prefix 12, with a 47-zero/one marker at payload bit zero. `--width 12` is a post-hoc exploratory D=12 choice with a 39-zero/one marker. The marker ends at the one; a capped escape is 12 zero bits followed by D value bits, with upper D-5 bits at least 12. Marker mismatch, invalid escape, incomplete terminal word and a user-selected `--max-words` limit are reported separately, with the stop bit and invalid escape value when present. This is a one-sided test of a single uninterrupted block: absence of an invalid escape does not establish the grammar, because random streams can also pass. An interior marker or adaptation could explain a failure of this restricted hypothesis. No interior marker, resynchronization, terminal fill, adaptive parameters or physical rows are inferred. `--tail-shuffle --seed 20261022` preserves the first five (D=12) or six (D=15) bytes and shuffles the entire remainder with a fresh RNG; the measured payload hash and mode are reported. This is a descriptive control, not a calibrated grammar null. `--sample PUBLIC_ID PUBLIC_NAME SHA256 PATH` checks a single local snapshot against its expected hash; establish the public identity and CC0 permission independently before use. Results are aggregate metadata only.
