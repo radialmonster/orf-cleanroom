@@ -1538,9 +1538,19 @@ Private input hashes, paths, capture dates, serials and GPS are not printed;
 `--names` opts into basenames. No images or profile arrays are written or
 printed. Establish ownership/permission or CC0 provenance before use.
 
+`--blank FILE` adds an explicitly identified blank comparison, only when
+model, payload geometry, exposure time, aperture, ISO and focal length match.
+Preview differences undo each file's luma DC quantizer; candidate differences
+subtract the unchanged b2+b4 proxy. Missing/mismatched settings are reported as
+ineligible. This is a rendering/proxy diagnostic, not subtraction of known
+sensor values. Self-tests include 8/16-bit DQT headers, known matched-profile
+differences with unequal quantizers, an all-zero blank difference, and an ISO
+mismatch. The original identity/reversal/circular diagnostics are unchanged.
+
     python -I -B tools/vertical_landmark_probe.py --self-test
     python -I -B tools/vertical_landmark_probe.py --intake-only FILE [FILE ...]
     python -I -B tools/vertical_landmark_probe.py FILE [FILE ...]
+    python -I -B tools/vertical_landmark_probe.py --blank BLANK FILE [FILE ...]
 
 ### `patent_capped_prefix_probe.py`
 
