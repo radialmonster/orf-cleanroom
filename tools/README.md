@@ -12,7 +12,7 @@ patent interpretation; completion does not establish a camera codec.
     python -I -B tools/test_capped15_contract_probe.py
 
 **`suffix_table_shift_probe.py`** freezes the #155 1995-trained 32-suffix
-table and scores every circular preview-row shift on its declared public
+table and scores circular vertical or horizontal preview-grid shifts on its declared public
 targets. It keeps legacy target row-centering and global prediction centering;
 zero-shift correlation is checked against the unchanged legacy statistic.
 Ranks and 1e-12 ties are descriptive, not calibrated significance or physical
@@ -20,6 +20,9 @@ registration. Hashes are checked before and after the legacy file reads; this
 does not guarantee an atomic snapshot. The fitted 32 binary64 weights are
 hashed in big-endian order for cross-run checks; weights, token grids and
 preview grids are not printed.
+With `--axis horizontal`, the same fit compares Y[r,c] to P[r,(c+k) modulo
+400] for every horizontal shift, requiring a 400-column preview grid. Its
+scores and ranks have the same descriptive limitations.
 
     python -I -B tools/suffix_table_shift_probe.py --phase discovery --train PATH1995 --sample 1997 PATH1997 --sample 1998 PATH1998
     python -I -B tools/test_suffix_table_shift_probe.py

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Fixed #155 learned-suffix-table vertical registration sensitivity.
+"""Fixed #155 learned-suffix-table circular registration sensitivity.
 
-Uses the existing table fit and candidate/preview helpers. A circular shift is
-descriptive, not a physical row, p-value, sensor value or codec. Aggregate JSON
+Uses the existing table fit and candidate/preview helpers; shifts are vertical
+by default or horizontal with --axis horizontal. Circular shifts are descriptive,
+not physical registration, p-values, sensor values or a codec. Aggregate JSON
 only. Match retained CC0 provenance independently. Python 3.8+ stdlib only.
 """
 import argparse
@@ -56,7 +57,11 @@ def features_from_file(sample_id, path):
                   'used_preview_rows': nd}
 
 
-def shift_scores(target, prediction, rows, cols):
+def shift_scores(target, prediction, rows, cols, axis='vertical'):
+    if axis not in ('vertical', 'horizontal'):
+        raise ValueError('invalid axis')
+    if axis == 'horizontal' and cols != 400:
+        raise ValueError('horizontal grid width mismatch')
     if rows < 2 or cols < 1 or len(target) != rows * cols or len(prediction) != rows * cols:
         raise ValueError('incompatible dimensions')
     if not all(math.isfinite(x) for x in target + prediction):
@@ -68,15 +73,22 @@ def shift_scores(target, prediction, rows, cols):
     if vt <= 0 or vp <= 0:
         return {'status': 'undefined_variance'}
     denominator = math.sqrt(vt * vp)
-    scores = [math.fsum(t[r * cols + c] * p[((r + k) % rows) * cols + c]
-                        for r in range(rows) for c in range(cols)) / denominator
-              for k in range(rows)]
+    if axis == 'vertical':
+        scores = [math.fsum(t[r * cols + c] * p[((r + k) % rows) * cols + c]
+                            for r in range(rows) for c in range(cols)) / denominator
+                  for k in range(rows)]
+    else:
+        scores = [math.fsum(t[r * cols + c] * p[r * cols + ((c + k) % cols)]
+                            for r in range(rows) for c in range(cols)) / denominator
+                  for k in range(cols)]
+        if not all(math.isfinite(x) for x in scores):
+            return {'status': 'undefined_nonfinite'}
     best, zero = max(scores), scores[0]
     greater = [i for i, x in enumerate(scores[1:], 1) if x > zero + TOL]
     ties = [i for i, x in enumerate(scores) if abs(x - zero) <= TOL]
     return {'status': 'ok', 'scores': scores, 'zero_r': zero,
             'best_r': best, 'best_shifts_within_tolerance': [i for i, x in enumerate(scores) if best - x <= TOL],
-            'zero_min_rank': 1 + len(greater), 'zero_ties': ties, 'shift_count': rows,
+            'zero_min_rank': 1 + len(greater), 'zero_ties': ties, 'shift_count': len(scores),
             'operationally_specific': zero > 0 and all(zero > x + TOL for x in scores[1:]),
             'tolerance': TOL}
 
@@ -92,6 +104,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--phase', choices=sorted(PHASES), required=True)
     ap.add_argument('--train', required=True)
+    ap.add_argument('--axis', choices=('vertical', 'horizontal'), default='vertical')
     ap.add_argument('--sample', nargs=2, action='append', metavar=('ID', 'PATH'), required=True)
     args = ap.parse_args()
     if tuple(item[0] for item in args.sample) != PHASES[args.phase]:
@@ -110,7 +123,7 @@ def main():
         try:
             x, y, info = features_from_file(sample_id, path)
             p = legacy.predict(x, fit)
-            result = shift_scores(y, p, info['used_preview_rows'], info['preview_width_blocks'])
+            result = shift_scores(y, p, info['used_preview_rows'], info['preview_width_blocks'], args.axis)
             if result['status'] == 'ok':
                 legacy_r, _ = legacy.stats(y, p)
                 if not math.isfinite(legacy_r) or abs(result['zero_r'] - legacy_r) > 1e-12:
@@ -120,7 +133,10 @@ def main():
         except (ValueError, IndexError, KeyError, OSError, TypeError, ZeroDivisionError, struct.error) as exc:
             results.append({'sample': {'id': sample_id, 'name': SAMPLES[sample_id][0]},
                             'measurement': {'status': 'unknown', 'error_type': type(exc).__name__}})
-    print(json.dumps({'phase': args.phase, 'train': train_info, 'results': results}, allow_nan=False))
+    output = {'phase': args.phase, 'train': train_info, 'results': results}
+    if args.axis == 'horizontal':
+        output['axis'] = 'horizontal'
+    print(json.dumps(output, allow_nan=False))
     return int(any(r['measurement']['status'] != 'ok' for r in results))
 
 
