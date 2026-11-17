@@ -284,6 +284,44 @@ Each script should:
 - run on CPU, with GPU acceleration optional;
 - state at the top which finding (an ID from `findings/`), lead issue (`#n`) or spec Gap (`specs/V<n>.md`) it supports.
 
+**`free_anchor_second_order.py`** tests a bounded second-order candidate family
+for #31 using exact integer range feasibility with free initial level and slope.
+Each 4096-candidate window reports minimum feasible segment counts for two
+suffix mappings, strides 1 and 2, and 16-bit and 12-bit ranges. Stride-2 lanes
+choose breakpoints independently, so their result is permissive. Escapes and
+short windows are undefined, not omitted or assigned zero. These candidates
+do not establish physical framing, a predictor or a decode. Per-family and
+file deadlines are checked cooperatively; use an external hard file deadline.
+
+    python -I -B tools/free_anchor_second_order.py --sample ID PUBLIC_NAME path/to/file.ORF
+    python -I -B tools/test_free_anchor_second_order.py
+
+**`suffix_balance_windows.py`** measures within-token H/L joint counts, plug-in
+MI and exact b0/b1 proportions in fixed candidate-token windows for #11. The
+discovery mode uses four consecutive 262144-token windows; verification repeats
+them, adds four more and a 524288-token window overlapping the first two added
+windows. Indices include escapes, while the table and bit counts omit them. The
+fixed MI <= 0.010 and absolute bit-proportion deviation <= 0.05 thresholds are
+descriptive, not proof of independence, fairness or physical framing. The tool
+shares the bounded scanner and MI function from `suffix_joint_probe.py`.
+
+    python -I -B tools/suffix_balance_windows.py --mode discovery --sample ID PUBLIC_NAME path/to/file.ORF
+    python -I -B tools/test_suffix_balance_windows.py
+
+**`suffix_conditional_order.py`** reduces a saved JSON report from
+`suffix_balance_windows.py`; it reads no raw file. For each window it sums
+all H rows and reports exact counts and fractions for `P(b2=1 | b1b0=j)`
+for `j=00,01,10,11`, plus the three adjacent exact integer comparisons and
+strict-increase and nondecrease indicators. A short or empty window has
+undefined metrics; a zero denominator makes its fraction, adjacent
+comparisons and overall indicators undefined. These descriptive comparisons
+are not tests of significance, physical framing or the rough linearity claim.
+The output identifies the input report, tool, sample and window extents by
+hash or metadata. Retain the source report as well.
+
+    python -I -B tools/suffix_conditional_order.py path/to/report.json
+    python -I -B tools/test_suffix_conditional_order.py
+
 **`suffix_window_probe.py`** supports lead #11's remaining local-extent question.
 Four consecutive 262144-candidate-token windows report all H/L pair tables and
 plug-in MI at lags 1..3, with endpoint escape omissions preserving indices.
@@ -921,6 +959,32 @@ tool reports aggregates only; no previews, payloads or images.
     python -I -B tools/preview_pair_screen.py FILE ... > screen.jsonl
     python -I -B tools/capture_pair_calibration.py --screen screen.jsonl FILE ...
     python -I -B tools/test_capture_pair_calibration.py
+
+**`paired_covariance_probe.py`** supports #302 Campaign B with an exploratory
+candidate-index difference covariance diagnostic. Raw mode subtracts an assumed
+zigzag mapping of literal stop-1 k=5 tokens at equal candidate indices. The
+value mapping, token-to-pixel alignment, escape syntax and nominal W row stride
+are unverified. Escapes remain masked at their original positions; each lag
+reports its valid endpoint-pair count. Both parsed counts, requested-count
+shortfalls and unmatched tails are explicit. Missing required metadata fails
+compatibility; equal settings do not establish same scene or independent captures.
+Masks may depend on the signal and support varies by lag; masking does not
+repair unknown framing or validate the white-noise reference on camera files.
+
+The synthetic reference assumes aligned physical sites, the same fixed linear
+stencil, independent exposures and spatially white equal-variance noise. Under
+those assumptions x[i]-x[i-d] has rho(d)=-0.5. A spatially colored synthetic
+countercontrol demonstrates that exposure independence alone is insufficient.
+RMSE ranks the supplied reference signatures descriptively and does not identify
+a camera predictor. Short, masked or constant differences can have undefined
+correlation and no winning reference. EMVA 1288 Linear 4.0 sections 2.5/6.6
+motivate paired image variance measurements; this tool does not establish FPN
+cancellation in raw proxies or claim EMVA conformity. Aggregate JSON only.
+
+    python -I -B tools/paired_covariance_probe.py FILE_A FILE_B [--tokens N] [--max-lag L] [--stride W]
+    python -I -B tools/paired_covariance_probe.py --synthetic [--tokens N]
+    python -I -B tools/paired_covariance_probe.py --self-test
+    python -I -B tools/test_paired_covariance_probe.py
 
 **`token_lag_probe.py`** supports lead #29 item 6 and builds on #11 and
 `suffix_joint_probe.py`'s bounded candidate scanner. In the first 262144 tokens,

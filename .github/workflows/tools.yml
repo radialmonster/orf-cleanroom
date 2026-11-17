@@ -56,6 +56,10 @@ jobs:
         run: python -I -B tools/test_orf_active_area.py
       - name: capture pair calibration tests
         run: python -I -B tools/test_capture_pair_calibration.py
+      - name: Paired difference covariance tests
+        run: |
+          python -I -B tools/paired_covariance_probe.py --self-test
+          python -I -B tools/test_paired_covariance_probe.py
       - name: Capture metadata audit tests
         run: python -I -B tools/test_capture_metadata_audit.py
       - name: Exif sensitivity probe tests
@@ -210,9 +214,12 @@ jobs:
           python -I -B tools/test_token_predictor_probe.py
           python -I -B tools/test_flat_predictor_screen.py
           python -I -B tools/test_token_loop_probe.py
+          python -I -B tools/test_free_anchor_second_order.py
       - name: Synthetic suffix window and width tests
         run: |
           python -I -B tools/test_suffix_window_probe.py
+          python -I -B tools/test_suffix_balance_windows.py
+          python -I -B tools/test_suffix_conditional_order.py
           python -I -B tools/test_suffix_width_probe.py
       - name: Synthetic packed-16 neighbour arithmetic tests
         run: |
