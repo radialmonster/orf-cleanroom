@@ -49,7 +49,7 @@ A useful next test would first freeze exact candidate parameters, initial alignm
 
 Japanese sources: [published application JP2006325130A](https://patents.google.com/patent/JP2006325130A/ja)
 and [grant JP4500213B2](https://patentimages.storage.googleapis.com/de/e8/23/21fc50ecf36616/JP4500213B2.pdf).
-Grant paragraph 0056 (p. 11) specifies the corrected error at index `i`.
+On p. 11 of the Japanese grant, the printed Equation 14 and paragraph 0056 both use the current index `i` for the corrected error.
 The [U.S. grant](https://patentimages.storage.googleapis.com/6a/bb/61/08080c12803cd9/US7715639.pdf)
 prints subscript `1` on the left of Formula 14 (col. 8, line 64), while its
 accompanying prose specifies `i`. Use the current index `i`, as the synthetic
