@@ -2,7 +2,7 @@
 
 This folder holds **verified findings only**: results that were reproduced in a second, separate run. The verifier may be the finder, though a different person is preferred. Unverified results are *leads*, and leads are GitHub issues, not files.
 
-Open leads: `gh issue list -R radialmonster/orf-cleanroom --label lead`, or https://github.com/radialmonster/orf-cleanroom/issues?q=is%3Aopen+label%3Alead
+Browse [open leads](https://github.com/radialmonster/orf-cleanroom/issues?q=is%3Aopen+label%3Alead).
 
 ## How a lead becomes a finding
 1. The finder publishes a lead issue (template: "Lead"). It stays an issue.
