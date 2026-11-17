@@ -1,5 +1,18 @@
 # tools
 
+**`suffix_table_shift_probe.py`** freezes the #155 1995-trained 32-suffix
+table and scores every circular preview-row shift on its declared public
+targets. It keeps legacy target row-centering and global prediction centering;
+zero-shift correlation is checked against the unchanged legacy statistic.
+Ranks and 1e-12 ties are descriptive, not calibrated significance or physical
+registration. Hashes are checked before and after the legacy file reads; this
+does not guarantee an atomic snapshot. The fitted 32 binary64 weights are
+hashed in big-endian order for cross-run checks; weights, token grids and
+preview grids are not printed.
+
+    python -I -B tools/suffix_table_shift_probe.py --phase discovery --train PATH1995 --sample 1997 PATH1997 --sample 1998 PATH1998
+    python -I -B tools/test_suffix_table_shift_probe.py
+
 **`block_serialization_probe.py`** compares fixed k=5 interleaved and 32-value
 block-separated contracts from #298 on four hash-pinned controlled OM-3 files.
 Both start at selected strip bit zero and require exactly W*H values. It reports
