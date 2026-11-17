@@ -13,8 +13,9 @@ import two_stage_residual_probe as probe
 
 
 class TestTwoStageResidualProbe(unittest.TestCase):
-    def test_patent_example_exact_values(self):
-        # From PATENTS.md line 41 and US7715639B2 formulas 10, 11, 13, 14, 17, 19:
+    def test_derived_synthetic_fixture_exact_values(self):
+        # Synthetic algebraic example derived from US7715639B2 formulas;
+        # these values are not a printed example in the publication.
         p_seq = [-3, -1, 0, 1, 3]
         enc, states = probe.two_stage_encode(p_seq, c_init=0)
         self.assertEqual([e for e, l in enc], [-2, 0, 1, 1, 2])
@@ -48,6 +49,20 @@ class TestTwoStageResidualProbe(unittest.TestCase):
         self.assertEqual(enc0[0][1], 0)
         self.assertEqual(enc1[0][1], 1)
 
+    def test_history_changes_inverse_for_same_current_pair(self):
+        first, _ = probe.two_stage_encode([0, 0])
+        second, _ = probe.two_stage_encode([4, 2])
+        self.assertEqual(first[-1], second[-1])
+        self.assertEqual(first[-1], (0, 0))
+        self.assertEqual(probe.two_stage_decode(first)[0], [0, 0])
+        self.assertEqual(probe.two_stage_decode(second)[0], [4, 2])
+
+    def test_zero_residual_direct_map_expected_exact_success(self):
+        report = probe.evaluate_cascade([1000] * 32, [0] * 32)
+        self.assertTrue(report['stateless_direct_map_failure']['stateless_reconstructs_exact'])
+        self.assertEqual(report['stateless_direct_map_failure']['max_pixel_drift'], 0)
+        self.assertIn('is exact on this finite synthetic sequence', report['diagnostic_conclusion'])
+
     def test_roundtrip_exhaustive_small_integers(self):
         for p0 in range(-3, 4):
             for p1 in range(-3, 4):
@@ -80,7 +95,7 @@ class TestTwoStageResidualProbe(unittest.TestCase):
 
     def test_cli_synthetic_run(self):
         out = io.StringIO()
-        with mock.patch.object(sys, 'argv', ['probe', '--tokens', '100', '--scene', 'flat']), \
+        with mock.patch.object(sys, 'argv', ['probe', '--synthetic', '--tokens', '100', '--scene', 'flat']), \
              contextlib.redirect_stdout(out):
             ret = probe.main()
         self.assertEqual(ret, 0)

@@ -6,11 +6,12 @@ patent US7715639B2 (formulas 10, 11, 13, 14, 17, 19). The patent splits off an
 error's low bit, filters the even part using an internal correction state, and
 entropy-codes the resulting corrected error.
 
-Because the inverse P[n] = 2*(E[n] + floor(C[n-1]/2)) + L[n] requires tracking
-the state C[n-1], a memoryless (stateless) token-to-residual map cannot express
-this inverse. This tool verifies exact round-trip inversion on synthetic signed
-integer sequences, measures reconstruction drift under stateless mappings, and
-evaluates the blind spot in direct integration/predictor tests (#31, #32).
+The inverse P[n] = 2*(E[n] + floor(C[n-1]/2)) + L[n] depends on the preceding
+correction state. The same current (E,L) pair can represent different errors
+under different histories. This tool verifies synthetic round trips and compares
+one zero-state direct map on finite sequences, including an exact-success case.
+It establishes no variance growth law, ORF syntax or failure of every direct
+mapping or predictor test in #31/#32.
 
 Standard library only (Python 3.8+). Emits aggregate JSON only.
 
@@ -31,8 +32,8 @@ def two_stage_encode(p_seq, c_init=0):
 
     Formulas from US7715639B2:
         P_even = 2 * floor(P / 2)                (Formula 10)
-        L = P - P_even                           (Formula 11, low bit: 0 or 1)
-        C = floor(P_even / 2) + floor(Cprev / 2) (Formula 13, correction state)
+        L = P - P_even                           (Formula 13, low bit: 0 or 1)
+        C = floor(P_even / 2) + floor(Cprev / 2) (Formula 11, correction state)
         E = P_even - C                           (Formula 14, corrected error)
     """
     c_prev = c_init
@@ -151,30 +152,32 @@ def evaluate_cascade(pixels, residuals):
             'stateless_reconstructs_exact': (recon_stateless == pixels),
         },
         'diagnostic_conclusion': (
-            'Direct stateless token-to-residual mapping fails on this cascade; '
-            'reconstruction drifts with unbounded variance if correction state is neglected.'
-            if not (recon_stateless == pixels) else 'Stateless mapping unexpectedly succeeded.'
+            'The specified zero-state direct map differs from stateful reconstruction '
+            'on this finite synthetic sequence.'
+            if not (recon_stateless == pixels) else
+            'The specified zero-state direct map is exact on this finite synthetic sequence.'
         ),
     }
 
 
 def self_test():
     """Exhaustive unit checks on US7715639B2 formulas, edge cases, and drift."""
-    # 1. Patent publication text verification (PATENTS.md line 41)
-    patent_example = [-3, -1, 0, 1, 3]
-    enc, st = two_stage_encode(patent_example, c_init=0)
+    # 1. Synthetic algebraic fixture derived from the cited formulas; this is
+    # not a sequence printed as an example in the patent publication.
+    synthetic_errors = [-3, -1, 0, 1, 3]
+    enc, st = two_stage_encode(synthetic_errors, c_init=0)
     expected_e = [-2, 0, 1, 1, 2]
     expected_l = [1, 1, 0, 1, 1]
     expected_c = [-2, -2, -1, -1, 0]
-    assert [e for e, l in enc] == expected_e, "corrected error E mismatch with patent"
-    assert [l for e, l in enc] == expected_l, "low bit L mismatch with patent"
-    assert st == expected_c, "correction state C mismatch with patent"
+    assert [e for e, l in enc] == expected_e, "derived corrected error E mismatch"
+    assert [l for e, l in enc] == expected_l, "derived low bit L mismatch"
+    assert st == expected_c, "derived correction state C mismatch"
 
     dec, dec_st = two_stage_decode(enc, c_init=0)
-    assert dec == patent_example, "decoded sequence must exactly match patent input"
+    assert dec == synthetic_errors, "decoded sequence must exactly match synthetic input"
     assert dec_st == expected_c, "decoder states must match encoder states"
 
-    # 2. Exhaustive small sequences: all combinations of -4..4 of length 4
+    # 2. All 81 (a,b) pairs in -4..4 for the supplied four-value family.
     for a in range(-4, 5):
         for b in range(-4, 5):
             seq = [a, b, a + b, a - b]
@@ -182,7 +185,7 @@ def self_test():
             dec_seq, _ = two_stage_decode(enc_seq, c_init=0)
             assert dec_seq == seq, "exhaustive check failed on %r" % seq
 
-    # 3. Large sequence random walk
+    # 3. Finite Gaussian integer residual sequence, not an asymptotic test.
     rng = random.Random(1337)
     rw = [int(rng.gauss(0, 50)) for _ in range(5000)]
     enc_rw, _ = two_stage_encode(rw, c_init=0)
@@ -196,6 +199,18 @@ def self_test():
     assert enc0[0][0] == enc1[0][0] == 0, "errors 0 and 1 must produce same E=0 when Cprev=0"
     assert enc0[0][1] != enc1[0][1], "low bit L must separate errors 0 and 1"
 
+    # Different histories can produce the same current pair but different P.
+    zero_history, _ = two_stage_encode([0, 0], c_init=0)
+    other_history, _ = two_stage_encode([4, 2], c_init=0)
+    assert zero_history[-1] == other_history[-1] == (0, 0)
+    assert two_stage_decode(zero_history)[0][-1] == 0
+    assert two_stage_decode(other_history)[0][-1] == 2
+
+    # A memoryless map can still be exact on particular sequences.
+    zero = evaluate_cascade([1000] * 32, [0] * 32)
+    assert zero['stateless_direct_map_failure']['stateless_reconstructs_exact']
+    assert zero['stateless_direct_map_failure']['max_pixel_drift'] == 0
+
     # 5. Diagnostic sensitivity evaluation
     for scene in ('flat', 'gradient', 'textured'):
         pix, res = simulate_pixel_sequence(n=1000, scene=scene, seed=42)
@@ -205,10 +220,10 @@ def self_test():
         assert not eval_res['stateless_direct_map_failure']['stateless_reconstructs_exact'], \
             "stateless map must fail on %s scene" % scene
         assert eval_res['stateless_direct_map_failure']['max_pixel_drift'] > 10, \
-            "stateless map must show significant pixel drift"
+            "this seeded finite trial must exceed the fixed drift threshold"
 
-    print("self-test ok: US7715639B2 two-stage filter and inverse verified; "
-          "exact round-trip confirmed; stateless direct-map drift demonstrated.")
+    print("self-test ok: synthetic stateful round trips, history ambiguity and "
+          "finite zero-state direct-map comparisons (including exact success).")
 
 
 def main():
@@ -217,6 +232,7 @@ def main():
     parser.add_argument('--scene', choices=['flat', 'gradient', 'textured'], default='gradient',
                         help='synthetic scene type')
     parser.add_argument('--seed', type=int, default=42, help='random seed')
+    parser.add_argument('--synthetic', action='store_true', help='run synthetic comparison (default mode)')
     parser.add_argument('--self-test', action='store_true', help='run regression self-tests and exit')
     args = parser.parse_args()
 
@@ -234,8 +250,8 @@ def main():
             'seed': args.seed,
         },
         'results': report,
-        'limits': 'Synthetic control evaluating stateful residual filtering and '
-                  'stateless diagnostic blind spots; no camera codec claim.',
+        'limits': 'Finite synthetic comparison of one zero-state direct map and the supplied '
+                  'stateful inverse; no camera codec or asymptotic variance claim.',
     }
     print(json.dumps(output, indent=2))
     return 0

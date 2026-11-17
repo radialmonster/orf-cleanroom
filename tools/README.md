@@ -1654,7 +1654,18 @@ Synthetic-only perturbation control for #300, using the example threshold/run-st
 
 ### `two_stage_residual_probe.py`
 
-Evaluates the two-stage prediction-error filtering cascade and stateful inverse from [US7715639B2](https://patents.google.com/patent/US7715639B2/en) (formulas 10, 11, 13, 14, 17, 19) for #298. The encoder splits off the prediction error's low bit `L = P - 2*floor(P/2)`, updates an internal correction state `C = floor(P_even/2) + floor(Cprev/2)`, and emits the corrected error `E = P_even - C`. The inverse `P = 2*(E + floor(Cprev/2)) + L` restores the sequence exactly if the internal state is tracked, but memoryless (stateless) token-to-residual decoders drift with unbounded variance. This tool provides exact synthetic round-trip verification across negative, positive, odd and even signed sequences, measures stateless reconstruction drift, and evaluates diagnostic blind spots in direct-map predictor screens (#31, #32). Emits aggregate JSON only.
+Exercises the two-stage prediction-error filter and stateful inverse from
+[US7715639B2](https://patents.google.com/patent/US7715639B2/en) for #298.
+Formula 10 clears the error's low bit, Formula 11 updates the correction state,
+Formula 13 retains the low bit, and Formulas 14/17/19 define the corrected error
+and inverse. Synthetic fixtures verify signed integer round trips and show that
+the same current `(E,L)` pair can represent different errors after different
+histories. Finite scene trials compare one direct map that assumes zero previous
+correction; an all-zero residual control is exactly reconstructed by that map.
+These comparisons establish neither an asymptotic variance law nor ORF syntax,
+side-stream placement, a camera filter or failure of every #31/#32 mapping.
+The five-value signed example is a derived synthetic fixture, not a sequence
+printed in the publication. Emits aggregate JSON only.
 
     python -I -B tools/two_stage_residual_probe.py --synthetic [--tokens N] [--scene SCENE]
     python -I -B tools/two_stage_residual_probe.py --self-test
