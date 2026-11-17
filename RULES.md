@@ -15,9 +15,9 @@
 If you have read the ORF decompression code in any of those projects, you're welcome to help with samples, tooling and testing, but please don't contribute to decoder logic or findings about the bitstream.
 
 ## Data
-- Raw files are never committed. Reference them by SHA-256, plus the raw.pixls.us id and name when they come from there.
+- Raw files are never committed. Reference public samples by SHA-256 and public identity, including the raw.pixls.us id and name where applicable.
 - **raw.pixls.us files:** use only CC0 ones. Verify the licence when downloading, or use `tools/pixls_samples.py check` once for previously unverified content. Keep the verified licence, public identity and SHA-256; reuse that verification while the local hash matches. Do not repeat the online check for unchanged verified files. New or changed content without a verified record still needs verification before use.
-- **Your own files are welcome.** You can test with raws you shot yourself, or ones whose owner agreed. Publish only aggregate numbers and the file's SHA-256, never the file or images from it. Results that rest only on files others can't get are marked `not yet reproducible` until a CC0 copy exists. Uploading a few to raw.pixls.us as CC0 fixes that.
+- **Unshared files:** You can measure raws you shot yourself or files whose owner agreed to the measurement. Publish aggregate numbers and relevant non-identifying details such as camera model and image dimensions. Use anonymous input labels and keep SHA-256 hashes local unless the owner explicitly agrees to publish them. The public manifest requires a SHA-256, so append an `own` row only with that permission. Keep raw files, images, personal names, local paths, GPS information and serial numbers out of public contributions. Mark results based only on unavailable inputs `not yet reproducible` until they can be rerun with public CC0 samples.
 - Don't use files whose licence you don't know, or that are under a non-CC0 licence (e.g. the CC BY-NC-SA files on raw.pixls.us).
 - No images of decoded or preview data are committed. Aggregate statistics only.
 
