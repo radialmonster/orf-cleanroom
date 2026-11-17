@@ -1624,6 +1624,20 @@ selectors, physical precision, black level, CFA and sensor truth remain open.
     python -I -B tools/v0_sensor_controls.py --sample ID PUBLIC_NAME VERIFIED_SHA256 FILE
     python -I -B tools/test_v0_sensor_controls.py
 
+**`sensor_window_scale_probe.py`** supports #301 and specs/V0.md Gap G8.
+It reports how the synthetic features and confusion counts change across
+window dimensions using the fixed generator and an envelope fitted separately
+at each scale. Changing the footprint also changes sampled scene values and
+can introduce clipping. The synthetic affine control requires a window area
+coprime to 5, so scale multipliers that are multiples of 5 are excluded.
+Packed-16 V0 sample reports evaluate identity windows only. Output is aggregate
+JSON.
+
+    python -I -B tools/sensor_window_scale_probe.py --scales 1 2 4 [--no-heldout]
+    python -I -B tools/sensor_window_scale_probe.py --sample ID NAME SHA256 FILE --scales 1 2
+    python -I -B tools/sensor_window_scale_probe.py --self-test
+    python -I -B tools/test_sensor_window_scale_probe.py
+
 **`frozen_bit_context.py`** supports #298/#332 with discovery-selected binary
 contexts, quantized probabilities, explicit model cost and file holdout. It
 prints the complete order ledger and exact-count shuffled-bit control. Scores

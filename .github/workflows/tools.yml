@@ -248,6 +248,7 @@ jobs:
         run: |
           python -I -B tools/test_v0_sensor_controls.py
           python -I -B tools/test_sensor_rejection_controls.py
+          python -I -B tools/test_sensor_window_scale_probe.py
       - name: Synthetic packed-16 boundary and exception tests
         run: |
           python -I -B tools/test_e400_boundary_probe.py
