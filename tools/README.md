@@ -934,6 +934,24 @@ tool reports aggregates only; no previews, payloads or images.
     python -I -B tools/capture_pair_calibration.py --screen screen.jsonl FILE ...
     python -I -B tools/test_capture_pair_calibration.py
 
+**`paired_covariance_probe.py`** supports #302 (Campaign B, EMVA 1288 §6.6).
+It tests candidate linear predictor stencils by computing the difference
+autocovariance of pairs of exposures taken under identical camera settings
+and stationary flat illumination. Deterministic scene structure and fixed
+pattern noise cancel upon subtraction; under independent temporal noise, the
+normalized autocovariance rho(lag) matches an exact, parameter-free theoretical
+filter footprint (for example rho(d) = -0.5 for a 1D predictor x[i] - x[i-d]).
+It verifies metadata compatibility (model, dimensions, ISO, exposure, f-number,
+focal length), computes empirical autocorrelation across lags, and reports
+goodness-of-fit (RMSE) against candidate predictor families (white noise, lag-1,
+lag-2 Bayer, lag-3, lag-4, 2D planar, 2D average). Synthetic controls and
+regression verification are built-in. Reports aggregate JSON only.
+
+    python -I -B tools/paired_covariance_probe.py FILE_A FILE_B [--tokens N] [--max-lag L] [--stride W]
+    python -I -B tools/paired_covariance_probe.py --synthetic [--tokens N]
+    python -I -B tools/paired_covariance_probe.py --self-test
+    python -I -B tools/test_paired_covariance_probe.py
+
 **`token_lag_probe.py`** supports lead #29 item 6 and builds on #11 and
 `suffix_joint_probe.py`'s bounded candidate scanner. In the first 262144 tokens,
 it keeps complete 128-token blocks without q>=17, forms only within-block
