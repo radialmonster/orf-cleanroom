@@ -53,6 +53,8 @@ Fixed candidate-token lag bands reproduce on two public files and extend to a fi
 
 A fixed local conditional-order diagnostic reproduces on 1051 and extends to 6343: strict increase and nondecrease fail in all 18 declared windows, with differing adjacent patterns on the two previously exposed files (`2026-11-17--radialmonster--local-conditional-suffix-order`, self-verified #765). Overlap and prior exposure limit interpretation; historical roughly linear wording and physical framing remain open (V1 S1.6/Gaps).
 
+A fixed free-anchor second-order range family has mixed B16 outcomes on three previously studied public files, while every selected window on a fourth is escape-undefined (`2026-11-17--radialmonster--free-anchor-second-order-windows`, self-verified #777). The permissive lane breaks and assumed token-to-row mapping do not establish a predictor, framing or codec (V1 G2).
+
 Conditional and unconditional lag-3 information on the same candidate-token positions reproduces on two files and is reported on wider prefixes of four (`2026-10-28--radialmonster--conditional-lag-three`). These shared unassigned associations do not identify a codec state or physical structure (V1 S1.6/G3).
 
 A fixed held-out candidate-token KT comparison reproduces on two files and extends to a later test band on four (`2026-10-28--radialmonster--heldout-lag-three`); its q>0 gains are positive while the suffix-b0 control changes sign across the later cases. This shared unassigned observation does not establish a physical predictor (V1 S1.6/G3).
