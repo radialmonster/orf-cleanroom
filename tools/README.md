@@ -1534,14 +1534,17 @@ is tested without fitting: k=5/stop=1, phase zero, nominal width W and ordinary
 suffix b2+b4 over the central half of nominal rows. Identity, reversed and
 circularly shifted preview correlations and cross-file scores are descriptive;
 they do not establish physical rows, raw clipping, a predictor or a codec.
+The first JPEG frame component must have maximum horizontal and vertical
+sampling factors; the component's color meaning is not established here.
 Private input hashes, paths, capture dates, serials and GPS are not printed;
 `--names` opts into basenames. No images or profile arrays are written or
 printed. Establish ownership/permission or CC0 provenance before use.
 
 `--blank FILE` adds an explicitly identified blank comparison, only when
-model, payload geometry, exposure time, aperture, ISO and focal length match.
-Preview differences undo each file's luma DC quantizer; candidate differences
-subtract the unchanged b2+b4 proxy. Missing/mismatched settings are reported as
+model, payload and preview geometry, exposure time, aperture, ISO and focal
+length match. Preview differences undo each file's first-frame-component DC
+quantizer; candidate differences subtract the unchanged b2+b4 proxy.
+Missing/mismatched settings are reported as
 ineligible. This is a rendering/proxy diagnostic, not subtraction of known
 sensor values. Self-tests include 8/16-bit DQT headers, known matched-profile
 differences with unequal quantizers, an all-zero blank difference, and an ISO

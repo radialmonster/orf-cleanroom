@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Bounded vertical-landmark pilot for #302/#197; read-only aggregate JSON.
 
-Uses the original baseline JPEG DC reader as a coarse rendered-scene proxy.
+Uses the original baseline JPEG first-frame-component DC reader as a coarse
+rendered-scene proxy.
 No image is rendered, saved or printed. Checks two low-profile intervals in
 128-bin column means over the central half of the preview, with three fixed
 sub-bands. This does not establish raw clipping, focus or sensor truth.
@@ -19,8 +20,8 @@ Inputs require prior ownership/permission or verified CC0 provenance.
 --blank FILE additionally reports a descriptive difference against an explicit
 blank. Compare only identical model/geometry/exposure/aperture/ISO/focal tags;
 missing tags or differences exclude the comparison. Preview differences undo
-the luma DC quantizer, while candidate differences subtract the same fixed
-b2+b4 proxy. This does not imply linear sensor/rendering response or phase
+the first-frame-component DC quantizer, while candidate differences subtract
+the same fixed b2+b4 proxy. This does not imply linear sensor/rendering response or phase
 correspondence. No blank-adjusted phase, sign or map is fitted.
 
 Usage: python -I -B tools/vertical_landmark_probe.py [--names] FILE [FILE ...]
@@ -121,12 +122,12 @@ def preview_report(data):
 
 
 def dc_quantizer(data):
-    """JPEG baseline header: first component's DQT[0], not an image decode."""
+    """JPEG baseline header: first frame component's DQT[0]."""
     selected = jpeg_dc.find_preview(data)
     if selected is None:
         raise ValueError('no supported embedded preview')
     pos = selected[1] + 2
-    tables, luma_table = {}, None
+    tables, first_table = {}, None
     while pos < len(data):
         if data[pos] != 255:
             raise ValueError('invalid JPEG header marker')
@@ -150,11 +151,19 @@ def dc_quantizer(data):
                 tables[table] = int.from_bytes(segment[k + 1:k + 1 + step], 'big')
                 k += 1 + 64 * step
         elif marker == 0xC0:
-            luma_table = segment[8]
+            count = segment[5]
+            if not count or len(segment) < 6 + 3 * count:
+                raise ValueError('invalid frame components')
+            factors = [(segment[7 + 3 * i] >> 4, segment[7 + 3 * i] & 15)
+                       for i in range(count)]
+            if not all(h and v for h, v in factors) or factors[0] != (
+                    max(h for h, _ in factors), max(v for _, v in factors)):
+                raise ValueError('first component is not maximum-sampled')
+            first_table = segment[8]
         pos += length
-    value = tables.get(luma_table)
+    value = tables.get(first_table)
     if value is None or value <= 0:
-        raise ValueError('missing luma DC quantizer')
+        raise ValueError('missing first-component DC quantizer')
     return value
 
 
@@ -214,7 +223,11 @@ def measure(index, path, intake_only, names):
 
 
 def matched_settings(target, blank):
-    if any(target[k] != blank[k] for k in ('model', 'payload_w', 'payload_h')):
+    if any(not target[k] or not blank[k] or target[k] != blank[k]
+           for k in ('model', 'payload_w', 'payload_h')):
+        return False
+    if any(not target['preview'].get(k) or not blank['preview'].get(k) or
+           target['preview'][k] != blank['preview'][k] for k in ('width', 'height')):
         return False
     a, b = target['settings'], blank['settings']
     if a['iso'] is None or b['iso'] is None or a['iso'] != b['iso']:
@@ -266,11 +279,20 @@ def self_test():
         step = precision + 1
         dqt = bytes((0,)) + bytes((3,)) * 64
         dqt += bytes(((precision << 4) | 1,)) + quantizer.to_bytes(step, 'big') * 64
-        sof = bytes((8, 3, 232, 3, 232, 1, 1, 17, 1))
-        sos = bytes((1, 1, 0, 0, 63, 0))
+        sof = bytes((8, 3, 232, 3, 232, 3, 7, 17, 1, 8, 17, 0, 9, 17, 0))
+        sos = bytes((3, 7, 0, 8, 0, 9, 0, 0, 63, 0))
         fixture = (bytes((255, 216)) + segment(0xDB, dqt) +
                    segment(0xC0, sof) + segment(0xDA, sos) + bytes((255, 217)))
         assert dc_quantizer(fixture) == quantizer
+        subsampled = bytes((8, 3, 232, 3, 232, 3, 7, 17, 1, 8, 33, 0, 9, 17, 0))
+        bad = (bytes((255, 216)) + segment(0xDB, dqt) +
+               segment(0xC0, subsampled) + segment(0xDA, sos) + bytes((255, 217)))
+        try:
+            dc_quantizer(bad)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('subsampled first component accepted')
     width, height = 256, 96
     for shift in (-24, 0, 24):
         dark = [(64 + shift, 76 + shift), (112 + shift, 142 + shift)]
@@ -299,8 +321,8 @@ def self_test():
     known = [0 if 30 <= k < 36 or 54 <= k < 69 else 1 for k in range(BINS)]
     meta = dict(model='synthetic', payload_w=256, payload_h=96,
                 settings=dict(iso=200, exposure=[1, 50], fnumber=[56, 10], focal=[25, 1]),
-                preview=dict(dc_quantizer=2))
-    blank = dict(meta, preview=dict(dc_quantizer=4))
+                preview=dict(dc_quantizer=2, width=1000, height=1000))
+    blank = dict(meta, preview=dict(dc_quantizer=4, width=1000, height=1000))
     target_dc = [v * 100 + 30 for v in known]
     blank_dc = [65] * BINS
     blank_candidate = [.7] * BINS
@@ -316,6 +338,15 @@ def self_test():
     mismatch = dict(meta, settings=dict(meta['settings'], iso=400))
     assert not difference_report(mismatch, target_dc, target_candidate,
                                   blank, blank_dc, blank_candidate)['eligible']
+    for key, missing in (('model', ''), ('payload_w', 0), ('payload_h', 0)):
+        absent = dict(meta, **{key: missing})
+        assert not matched_settings(absent, dict(blank, **{key: missing}))
+    for key in ('width', 'height'):
+        absent = dict(meta, preview=dict(meta['preview'], **{key: None}))
+        mismatch = dict(meta, preview=dict(meta['preview'], **{key: 1200}))
+        assert not matched_settings(absent, blank)
+        assert not matched_settings(absent, dict(blank, preview=dict(blank['preview'], **{key: None})))
+        assert not matched_settings(mismatch, blank)
     print('self-test ok: three known shifted band pairs survive encoding/parsing; '
           'reversal, wrong labels, flat and one-band controls fail; matched blank '
           'differences survive quantizer scaling, zero/mismatched blanks do not pass')
