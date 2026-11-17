@@ -316,6 +316,9 @@ def decode_file(path, order=None, layout=None):
         # 2026-11-17--radialmonster--local-conditional-suffix-order: fixed
         # window conditional ordering does not establish framing or a codec
         # (unassigned two-file observations, V1 S1.6).
+        # 2026-11-17--radialmonster--common-candidate-row-phase:
+        # conditional phase intersections reject two files, retain a necessary
+        # condition on one, and leave escape windows undefined; no physical rows.
         # 2026-11-17--radialmonster--global-residual-origin-windows:
         # a conditional integer-origin survivor on defined windows does not
         # specify physical framing, a predictor or decode (V1 G2).
@@ -488,7 +491,7 @@ def decode_file(path, order=None, layout=None):
         # F_OM3_DARK_PUBLIC (Partial for #338): two further public OM-3 dark
         # captures reproduce the four declared 4M-token offset signs; this is
         # still token-index evidence, not physical rows, a CFA map or predictor.
-        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; unassigned #338/#561 dark offsets, #734 fixed-period control and #757 local suffix balance and #765 conditional ordering and #777 free-anchor constraints and #781 matched boundaries and #788 origin sensitivity specify no codec or physical rows)")
+        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; unassigned #338/#561 dark offsets, #734 fixed-period control and #757 local suffix balance and #765 conditional ordering and #777 free-anchor constraints and #781 matched boundaries and #788 origin sensitivity and #792 common phase specify no codec or physical rows)")
         r["notes"].append("compressed payload (%s bits per pixel); no decoder or padding rule is specified yet; suffix associations do not specify values, see specs/V1.md S1.1-S1.2, S1.7-S1.21, S2.3, G2, specs/V2.md S1.1-S1.2 and ROADMAP.md" % sig["bpp"])
         return r
     packing = sc
