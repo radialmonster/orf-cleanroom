@@ -309,6 +309,19 @@ use an external hard 600-second file guard.
     python -I -B tools/free_anchor_origin_summary.py --stage discovery --discovery REPORT_1993.json --discovery REPORT_5283.json
     python -I -B tools/test_free_anchor_origin.py
 
+**`common_row_phase.py`** strengthens #777/#788's fixed signed_digit, c=3,
+B16, stride-2 candidate for #31 by requiring a common width-periodic row phase
+across defined windows of each file. Prefix/suffix integer feasibility yields
+a shared-lane cut interval; escaped or incomplete windows remain unknown. A
+completed lane that rules out every two-segment cut remains a rejection even if
+the other lane times out. Free anchors per window make surviving phases only a
+necessary condition, not evidence of physical framing or a decode. A 20-second
+window deadline and 570-second file cutoff are cooperative; use an external
+hard 600-second file guard.
+
+    python -I -B tools/common_row_phase.py --sample ID PUBLIC_NAME path/to/file.ORF
+    python -I -B tools/test_common_row_phase.py
+
 **`free_anchor_second_order.py`** tests a bounded second-order candidate family
 for #31 using exact integer range feasibility with free initial level and slope.
 Each 4096-candidate window reports minimum feasible segment counts for two
