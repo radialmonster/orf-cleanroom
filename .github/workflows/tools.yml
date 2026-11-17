@@ -56,6 +56,10 @@ jobs:
         run: python -I -B tools/test_orf_active_area.py
       - name: capture pair calibration tests
         run: python -I -B tools/test_capture_pair_calibration.py
+      - name: Paired difference covariance tests
+        run: |
+          python -I -B tools/paired_covariance_probe.py --self-test
+          python -I -B tools/test_paired_covariance_probe.py
       - name: Capture metadata audit tests
         run: python -I -B tools/test_capture_metadata_audit.py
       - name: Exif sensitivity probe tests

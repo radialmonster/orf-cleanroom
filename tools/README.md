@@ -960,6 +960,32 @@ tool reports aggregates only; no previews, payloads or images.
     python -I -B tools/capture_pair_calibration.py --screen screen.jsonl FILE ...
     python -I -B tools/test_capture_pair_calibration.py
 
+**`paired_covariance_probe.py`** supports #302 Campaign B with an exploratory
+candidate-index difference covariance diagnostic. Raw mode subtracts an assumed
+zigzag mapping of literal stop-1 k=5 tokens at equal candidate indices. The
+value mapping, token-to-pixel alignment, escape syntax and nominal W row stride
+are unverified. Escapes remain masked at their original positions; each lag
+reports its valid endpoint-pair count. Both parsed counts, requested-count
+shortfalls and unmatched tails are explicit. Missing required metadata fails
+compatibility; equal settings do not establish same scene or independent captures.
+Masks may depend on the signal and support varies by lag; masking does not
+repair unknown framing or validate the white-noise reference on camera files.
+
+The synthetic reference assumes aligned physical sites, the same fixed linear
+stencil, independent exposures and spatially white equal-variance noise. Under
+those assumptions x[i]-x[i-d] has rho(d)=-0.5. A spatially colored synthetic
+countercontrol demonstrates that exposure independence alone is insufficient.
+RMSE ranks the supplied reference signatures descriptively and does not identify
+a camera predictor. Short, masked or constant differences can have undefined
+correlation and no winning reference. EMVA 1288 Linear 4.0 sections 2.5/6.6
+motivate paired image variance measurements; this tool does not establish FPN
+cancellation in raw proxies or claim EMVA conformity. Aggregate JSON only.
+
+    python -I -B tools/paired_covariance_probe.py FILE_A FILE_B [--tokens N] [--max-lag L] [--stride W]
+    python -I -B tools/paired_covariance_probe.py --synthetic [--tokens N]
+    python -I -B tools/paired_covariance_probe.py --self-test
+    python -I -B tools/test_paired_covariance_probe.py
+
 **`token_lag_probe.py`** supports lead #29 item 6 and builds on #11 and
 `suffix_joint_probe.py`'s bounded candidate scanner. In the first 262144 tokens,
 it keeps complete 128-token blocks without q>=17, forms only within-block
