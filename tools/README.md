@@ -1,5 +1,44 @@
 # tools
 
+**`capped15_contract_probe.py`** tests one post-hoc JP4468858B2-inspired
+D12/k5/A15 whole-strip candidate at fixed startup, site count and strict end.
+It reports completed-word endpoint separately from the rejected word start
+and examined position; on truncation the latter is the strip end. Leftover
+bits are reported and fail strict closure. Metadata failures and timeouts are
+unknown. A contradiction concerns the entire declared contract, not every
+patent interpretation; completion does not establish a camera codec.
+
+    python -I -B tools/capped15_contract_probe.py --phase discovery --sample 1993 PATH1993 --sample 1995 PATH1995
+    python -I -B tools/test_capped15_contract_probe.py
+
+**`suffix_table_shift_probe.py`** freezes the #155 1995-trained 32-suffix
+table and scores circular vertical or horizontal preview-grid shifts on its declared public
+targets. It keeps legacy target row-centering and global prediction centering;
+zero-shift correlation is checked against the unchanged legacy statistic.
+Ranks and 1e-12 ties are descriptive, not calibrated significance or physical
+registration. Hashes are checked before and after the legacy file reads; this
+does not guarantee an atomic snapshot. The fitted 32 binary64 weights are
+hashed in big-endian order for cross-run checks; weights, token grids and
+preview grids are not printed.
+With `--axis horizontal`, the same fit compares Y[r,c] to P[r,(c+k) modulo
+400] for every horizontal shift, requiring a 400-column preview grid. Its
+scores and ranks have the same descriptive limitations.
+
+    python -I -B tools/suffix_table_shift_probe.py --phase discovery --train PATH1995 --sample 1997 PATH1997 --sample 1998 PATH1998
+    python -I -B tools/test_suffix_table_shift_probe.py
+
+**`block_serialization_probe.py`** compares fixed k=5 interleaved and 32-value
+block-separated contracts from #298 on four hash-pinned controlled OM-3 files.
+Both start at selected strip bit zero and require exactly W*H values. It reports
+strict endpoint closure and, separately, the hypothetical all-ones tail; #87
+does not establish that the tail is padding. A contradiction concerns the whole
+contract, including extent, start, count and escape assumptions, not serialization
+alone. Both parsers accepting is ambiguous. Incompatible metadata and read errors
+are unknown; an externally terminated run has no completed result and is unknown.
+
+    python -I -B tools/block_serialization_probe.py PA200010.ORF PATH_TO_CC0_FILE
+    python -I -B tools/test_block_serialization_probe.py
+
 **`token_start_bit_phase_probe.py`** counts candidate q0, q1..16 and q>=17
 starts by bit phase modulo 8 in a fixed byte window, plus ordinary-token suffix
 one counts in b4,b3,b2,b1,b0 order (denominator: ordinary starts per phase).
