@@ -39,6 +39,8 @@ A synthetic adaptive-state control separates fixed5 self-boundary recovery from 
 
 A fixed single-block capped-prefix candidate from US7259698B2 stops at the first post-marker invalid escape on eight selected files (`2026-10-28--radialmonster--fixed-capped-prefix-first-escape`). This tests only the specified marker-at-zero/no-interior-marker/no-adaptation rule; it does not reject the patent generally or identify a codec (V1 S1.11b, G11).
 
+A fixed A15/D12/k5 whole-strip candidate encounters an invalid escape on public E-M1 Mark II ids 1993 and 1997 and reproduces the known first-word failure on 1995 (`2026-11-17--radialmonster--fixed-a15-capped-prefix-contract`, self-verified #807). Each stops before the expected word count, leaving strip termination open alongside startup and interior control placement (V1 S1.11b, G11).
+
 A literal whole-payload long-zero-run census reproduces on two public files and extends to two more (`2026-10-29--radialmonster--literal-long-zero-runs`); prefix-preserving byte controls do not identify markers or restarts (V1 S1.11b/G11).
 
 Six public E-M5 Mark II dark files give real literal Rice stop-1 k=5 counts 3 to 8 above the stored-site count (`2026-10-28--radialmonster--em5-dark-candidate-family-counts`); nine-family and seeded-shuffle outcomes are descriptive and do not establish codec syntax or sensitivity causality (V1 S1.8, G11/G12).
