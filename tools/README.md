@@ -138,6 +138,16 @@ comparison does not establish physical framing or escape syntax.
     python -I -B tools/escape_context_match_probe.py --sample PUBLIC_NAME SHA256 FILE --tokens 262144
     python -I -B tools/test_escape_context_match_probe.py
 
+**`matched_boundary_coalescence.py`** extends #634's matched-anchor selection
+to the earliest shared boundary of complete 24-word offset-0/offset-12 horizons
+for #30. It reports ordered exclusions, paired found counts, boundary/index and
+shared-word histograms, and exact q0 pre-meet/tail ledgers. Shared boundaries
+do not establish physical framing or escape syntax; unequal bit budgets and
+reused controls limit interpretation. Inputs are read only.
+
+    python -I -B tools/matched_boundary_coalescence.py --sample PUBLIC_NAME SHA256 FILE --tokens 262144
+    python -I -B tools/test_matched_boundary_coalescence.py
+
 **`escape_matched_control_probe.py`** compares q=0 counts in 24 candidate
 words after q>=17 anchors at skips 0 and 12 bits, against the nearest earlier
 q=0 anchor with the same suffix whose two horizons end before that escape.
