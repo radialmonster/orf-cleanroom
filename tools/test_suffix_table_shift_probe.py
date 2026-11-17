@@ -13,6 +13,33 @@ import suffix_table_shift_probe as probe
 
 
 class Synthetic(unittest.TestCase):
+    def test_horizontal_direction_and_zero_equivalence(self):
+        rng = random.Random(11)
+        rows, cols = 8, 400
+        p = [rng.random() for _ in range(rows * cols)]
+        raw = [p[r * cols + (c + 3) % cols] for r in range(rows) for c in range(cols)]
+        y = probe.legacy.row_center(raw, rows, cols)
+        result = probe.shift_scores(y, p, rows, cols, 'horizontal')
+        self.assertEqual(result['zero_r'], probe.shift_scores(y, p, rows, cols)['zero_r'])
+        self.assertEqual(probe.shift_scores(y, p, rows, cols), probe.shift_scores(y, p, rows, cols, 'vertical'))
+        self.assertAlmostEqual(result['zero_r'], probe.legacy.stats(y, p)[0], places=12)
+        self.assertEqual(len(result['scores']), 400)
+        self.assertEqual(result['best_shifts_within_tolerance'], [3])
+        self.assertFalse(result['operationally_specific'])
+        aligned = probe.legacy.row_center(p, rows, cols)
+        self.assertTrue(probe.shift_scores(aligned, p, rows, cols, 'horizontal')['operationally_specific'])
+
+    def test_horizontal_ties_variance_and_width(self):
+        p = [1.0, -1.0] * 400
+        got = probe.shift_scores(p, p, 2, 400, 'horizontal')
+        self.assertEqual(got['zero_min_rank'], 1)
+        self.assertEqual(got['zero_ties'], list(range(0, 400, 2)))
+        self.assertFalse(got['operationally_specific'])
+        self.assertEqual(probe.shift_scores([0.0] * 800, p, 2, 400, 'horizontal')['status'], 'undefined_variance')
+        self.assertEqual(probe.shift_scores(p, [math.nan] * 800, 2, 400, 'horizontal')['status'], 'undefined_nonfinite')
+        with self.assertRaises(ValueError):
+            probe.shift_scores(p, p, 2, 399, 'horizontal')
+
     def test_shift_sign_and_legacy_score(self):
         rng = random.Random(155)
         rows, cols = 8, 10
@@ -74,6 +101,33 @@ class Synthetic(unittest.TestCase):
         report = json.loads(output.getvalue())
         self.assertEqual(len(report['train']['table_sha256_binary64_be']), 64)
         self.assertEqual(report['results'][1]['measurement']['status'], 'unknown')
+
+    def test_cli_horizontal_and_default_vertical(self):
+        cols, rows = 400, 2
+        p = [float((c * 7 + r * 3) % 19) for r in range(rows) for c in range(cols)]
+        y = probe.legacy.row_center(p, rows, cols)
+        x = [[v] + [0.0] * 31 for v in p]
+        def fixture(sample_id, path):
+            return x, y, {'id': sample_id, 'used_preview_rows': rows, 'preview_width_blocks': cols}
+        def run(extra):
+            output = io.StringIO()
+            args = ['probe', '--phase', 'discovery', '--train', 'synthetic',
+                    '--sample', '1997', 'synthetic', '--sample', '1998', 'synthetic'] + extra
+            with mock.patch.object(sys, 'argv', args), \
+                 mock.patch.object(probe, 'features_from_file', side_effect=fixture), \
+                 mock.patch.object(probe, 'fitted_table', return_value=[1.0] + [0.0] * 31), \
+                 mock.patch('sys.stdout', output):
+                self.assertEqual(probe.main(), 0)
+            return json.loads(output.getvalue())
+        horizontal = run(['--axis', 'horizontal'])
+        default = run([])
+        self.assertEqual(horizontal['axis'], 'horizontal')
+        self.assertNotIn('axis', default)
+        self.assertEqual(default, run(['--axis', 'vertical']))
+        for h, v in zip(horizontal['results'], default['results']):
+            self.assertEqual(h['measurement']['shift_count'], 400)
+            self.assertEqual(len(h['measurement']['scores']), 400)
+            self.assertEqual(h['measurement']['zero_r'], v['measurement']['zero_r'])
 
 
 if __name__ == '__main__':
