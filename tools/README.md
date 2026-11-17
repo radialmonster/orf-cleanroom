@@ -296,6 +296,20 @@ shares the bounded scanner and MI function from `suffix_joint_probe.py`.
     python -I -B tools/suffix_balance_windows.py --mode discovery --sample ID PUBLIC_NAME path/to/file.ORF
     python -I -B tools/test_suffix_balance_windows.py
 
+**`suffix_conditional_order.py`** reduces a saved JSON report from
+`suffix_balance_windows.py`; it reads no raw file. For each window it sums
+all H rows and reports exact counts and fractions for `P(b2=1 | b1b0=j)`
+for `j=00,01,10,11`, plus the three adjacent exact integer comparisons and
+strict-increase and nondecrease indicators. A short or empty window has
+undefined metrics; a zero denominator makes its fraction, adjacent
+comparisons and overall indicators undefined. These descriptive comparisons
+are not tests of significance, physical framing or the rough linearity claim.
+The output identifies the input report, tool, sample and window extents by
+hash or metadata. Retain the source report as well.
+
+    python -I -B tools/suffix_conditional_order.py path/to/report.json
+    python -I -B tools/test_suffix_conditional_order.py
+
 **`suffix_window_probe.py`** supports lead #11's remaining local-extent question.
 Four consecutive 262144-candidate-token windows report all H/L pair tables and
 plug-in MI at lags 1..3, with endpoint escape omissions preserving indices.

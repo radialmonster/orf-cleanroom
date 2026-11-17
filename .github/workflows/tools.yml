@@ -214,6 +214,7 @@ jobs:
         run: |
           python -I -B tools/test_suffix_window_probe.py
           python -I -B tools/test_suffix_balance_windows.py
+          python -I -B tools/test_suffix_conditional_order.py
           python -I -B tools/test_suffix_width_probe.py
       - name: Synthetic packed-16 neighbour arithmetic tests
         run: |
