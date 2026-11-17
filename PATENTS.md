@@ -10,7 +10,20 @@ publications only. The user's earlier discovery process was not audited.
 
 ## Olympus sources
 
-### US7259698B2: bounded-prefix codes and control markers
+For a Japanese-origin publication, check the Japanese text and printed
+figures for the specific clause before using it to design a sample test.
+Keep the corresponding U.S. publication for comparison and record any
+conflict by figure, table, paragraph or equation.
+
+### JP4468858B2 / US7259698B2: bounded-prefix codes and control markers
+
+Japanese sources: [published application JP2006339990A](https://patents.google.com/patent/JP2006339990A/ja)
+and [grant JP4468858B2](https://patentimages.storage.googleapis.com/1e/52/aa/0ed52d5dd6f0ba/JP4468858B2.pdf).
+Grant paragraphs 0068-0069 and 0074 (p. 12) give the same respective marker
+lengths and second-embodiment formula recorded below. Paragraphs 0079-0080
+(p. 13) describe zero fill to a byte boundary before the second-embodiment
+marker and allow one fill as an alternative. This describes pre-marker
+packing and leaves the ORF strip-end rule open.
 
 [Publication text](https://patents.google.com/patent/US7259698B2/en), read 2026-10-28; original assignee Olympus Imaging and inventor Takashi Ishikawa are as listed in the publication record. The described encoder uses a capped zero prefix and a second encoding for larger upper-part values; it retains a fixed-width lower part. In its stated example, D=15, k=5 and max_prefix=12. This is a conditional example, not an ORF specification.
 
@@ -32,7 +45,15 @@ These bounds retain every completion of the unknown trailing bits; a permitted r
 
 A useful next test would first freeze exact candidate parameters, initial alignment, escape branch, and expected marker scheduling from a stated source or independent metadata; preserve initial and interior marker candidates separately, use matched null controls and held-out captures, and report mismatches and undefined cases. Searching for a preferred long zero run or shifting the parse after seeing these known prefixes would not independently establish framing. No sample was newly measured in this source review.
 
-### US7715639B2: prediction-error filtering and adaptive k
+### JP4500213B2 / US7715639B2: prediction-error filtering and adaptive k
+
+Japanese sources: [published application JP2006325130A](https://patents.google.com/patent/JP2006325130A/ja)
+and [grant JP4500213B2](https://patentimages.storage.googleapis.com/de/e8/23/21fc50ecf36616/JP4500213B2.pdf).
+Grant paragraph 0056 (p. 11) specifies the corrected error at index `i`.
+The [U.S. grant](https://patentimages.storage.googleapis.com/6a/bb/61/08080c12803cd9/US7715639.pdf)
+prints subscript `1` on the left of Formula 14 (col. 8, line 64), while its
+accompanying prose specifies `i`. Use the current index `i`, as the synthetic
+probe already does.
 
 [Publication text](https://patents.google.com/patent/US7715639B2/en), read 2026-10-28. The described example separates the least significant bit of a prediction error before a recurrence, then uses the corrected error and flatness state to determine a Golomb-Rice parameter. These are public patent methods, not established ORF syntax.
 
@@ -51,6 +72,16 @@ The example uses absolute prediction errors for flatness statistics and adaptive
 The text describes reproducing the prediction error and adding it to the predictor. The inspected portions, including the corresponding [grant](https://patents.google.com/patent/JP4493552B2/en), do not specify a complete negative-value serialization or numeric tag layout, so they do not provide an independently reproducible signed bitstream contract. These observations do not assign a camera codec or establish compatibility with the Figure 8 table in #196.
 
 In the application and grant, Figures 14–16 give an 8×8 absolute-error example, thresholds 7/31/63, run length 4 and run-set threshold 4. Starting counters at zero and applying Figures 6–7 literally, including resetting the run after each set and at each line end, gives run-set counts 0/3/7; Figure 16 prints 0/3/5. Both yield flags 0/0/1 and the same example category 6. An unexamined condition could reconcile the count; this source-only comparison makes no camera claim.
+
+### JP4869149B2 / US8218885B2: Figure 8 Huffman tables
+
+Use Figure 8 of the [Japanese grant JP4869149B2](https://patentimages.storage.googleapis.com/c4/54/ba/83606a17d68889/JP4869149B2.pdf)
+(p. 17) for the table in [lead #196](https://github.com/radialmonster/orf-cleanroom/issues/196).
+That lead records a discrepancy with the length column in
+[US8218885B2](https://patentimages.storage.googleapis.com/4a/20/f9/69fdf9fe0dc2b2/US8218885.pdf)
+(Figure 8, sheet 4). For example, the Japanese table gives length 4 for
+`1110` and length 9 for `111111110`, matching the printed codewords.
+The table leaves the category-to-residual and sign rules open.
 
 ### JP2008312193A: RAW analysis feeding JPEG parameters
 
