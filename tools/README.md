@@ -1,5 +1,16 @@
 # tools
 
+**`capped15_contract_probe.py`** tests one post-hoc JP4468858B2-inspired
+D12/k5/A15 whole-strip candidate at fixed startup, site count and strict end.
+It reports completed-word endpoint separately from the rejected word start
+and examined position; on truncation the latter is the strip end. Leftover
+bits are reported and fail strict closure. Metadata failures and timeouts are
+unknown. A contradiction concerns the entire declared contract, not every
+patent interpretation; completion does not establish a camera codec.
+
+    python -I -B tools/capped15_contract_probe.py --phase discovery --sample 1993 PATH1993 --sample 1995 PATH1995
+    python -I -B tools/test_capped15_contract_probe.py
+
 **`suffix_table_shift_probe.py`** freezes the #155 1995-trained 32-suffix
 table and scores every circular preview-row shift on its declared public
 targets. It keeps legacy target row-centering and global prediction centering;
