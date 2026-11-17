@@ -361,6 +361,9 @@ def decode_file(path, order=None, layout=None):
         # the fixed single-block candidate fails; other marker/adaptive rules remain open.
         # 2026-10-29--radialmonster--literal-long-zero-runs: literal run
         # counts and byte-shuffle controls do not identify marker syntax.
+        # 2026-11-17--radialmonster--matched-boundary-coalescence:
+        # bounded candidate shared boundaries do not establish physical
+        # escape syntax or framing (V1 G3).
         # 2026-10-28--radialmonster--matched-escape-anchor-controls: matched
         # candidate skip comparisons do not establish escape syntax or framing.
         # 2026-10-28--radialmonster--previous-q-context-controls: a preceding
@@ -482,7 +485,7 @@ def decode_file(path, order=None, layout=None):
         # F_OM3_DARK_PUBLIC (Partial for #338): two further public OM-3 dark
         # captures reproduce the four declared 4M-token offset signs; this is
         # still token-index evidence, not physical rows, a CFA map or predictor.
-        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; unassigned #338/#561 dark offsets, #734 fixed-period control and #757 local suffix balance and #765 conditional ordering and #777 free-anchor constraints specify no codec or physical rows)")
+        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; unassigned #338/#561 dark offsets, #734 fixed-period control and #757 local suffix balance and #765 conditional ordering and #777 free-anchor constraints and #781 matched boundaries specify no codec or physical rows)")
         r["notes"].append("compressed payload (%s bits per pixel); no decoder or padding rule is specified yet; suffix associations do not specify values, see specs/V1.md S1.1-S1.2, S1.7-S1.21, S2.3, G2, specs/V2.md S1.1-S1.2 and ROADMAP.md" % sig["bpp"])
         return r
     packing = sc

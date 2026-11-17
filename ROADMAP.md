@@ -55,6 +55,8 @@ A fixed local conditional-order diagnostic reproduces on 1051 and extends to 634
 
 A fixed free-anchor second-order range family has mixed B16 outcomes on three previously studied public files, while every selected window on a fourth is escape-undefined (`2026-11-17--radialmonster--free-anchor-second-order-windows`, self-verified #777). The permissive lane breaks and assumed token-to-row mapping do not establish a predictor, framing or codec (V1 G2).
 
+In six matched escape/control candidate cases on four previously studied public files, every complete pair shares a bit boundary within the declared 24-word horizons (`2026-11-17--radialmonster--matched-boundary-coalescence`, self-verified #781). Shared starts count; reused controls and unequal bit budgets limit interpretation, and physical escape syntax remains open (V1 G3).
+
 Conditional and unconditional lag-3 information on the same candidate-token positions reproduces on two files and is reported on wider prefixes of four (`2026-10-28--radialmonster--conditional-lag-three`). These shared unassigned associations do not identify a codec state or physical structure (V1 S1.6/G3).
 
 A fixed held-out candidate-token KT comparison reproduces on two files and extends to a later test band on four (`2026-10-28--radialmonster--heldout-lag-three`); its q>0 gains are positive while the suffix-b0 control changes sign across the later cases. This shared unassigned observation does not establish a physical predictor (V1 S1.6/G3).
