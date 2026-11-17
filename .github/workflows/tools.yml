@@ -218,6 +218,7 @@ jobs:
           python -I -B tools/test_flat_predictor_screen.py
           python -I -B tools/test_token_loop_probe.py
           python -I -B tools/test_free_anchor_second_order.py
+          python -I -B tools/test_free_anchor_origin.py
       - name: Synthetic suffix window and width tests
         run: |
           python -I -B tools/test_suffix_window_probe.py

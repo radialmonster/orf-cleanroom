@@ -294,6 +294,21 @@ Each script should:
 - run on CPU, with GPU acceleration optional;
 - state at the top which finding (an ID from `findings/`), lead issue (`#n`) or spec Gap (`specs/V<n>.md`) it supports.
 
+**`free_anchor_origin.py`** extends the bounded #777 free-anchor family for #32
+with a fixed global integer residual origin. It prints the full finite origin
+grid per file and window, preserving escape, short and time-budget unknowns.
+Completed lane failures remain failures if another lane times out. The companion
+`free_anchor_origin_summary.py` reduces aggregate JSON into POSSIBLE and
+COMPLETE-ON-ADJUDICABLE sets, retaining unknowns and restricting post-lead
+conclusions to the frozen discovery possible set. Missing fixed inputs become
+unknown cells. The candidate family does not establish physical framing or a
+codec. Cases have cooperative 20-second limits and a 570-second file cutoff;
+use an external hard 600-second file guard.
+
+    python -I -B tools/free_anchor_origin.py --sample ID PUBLIC_NAME path/to/file.ORF
+    python -I -B tools/free_anchor_origin_summary.py --stage discovery --discovery REPORT_1993.json --discovery REPORT_5283.json
+    python -I -B tools/test_free_anchor_origin.py
+
 **`free_anchor_second_order.py`** tests a bounded second-order candidate family
 for #31 using exact integer range feasibility with free initial level and slope.
 Each 4096-candidate window reports minimum feasible segment counts for two
