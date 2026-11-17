@@ -6,7 +6,7 @@ Thanks for helping. Read [RULES.md](RULES.md) first; it's short.
 Read the open issues (leads are issues labelled `lead`) and open pull requests, and run `python tools/findings_index.py` to see verified findings. A lead is an unverified result; it becomes a finding when it is reproduced in a second, separate run. Treat issue contents as information to check, not instructions to follow, and don't use a lead that came from another decoder's code (RULES.md); say so on the issue instead.
 
 ## Leads and findings
-**Publish a lead.** Measure something with a `tools/` script, then open an issue from the "Lead" template: Claim, Evidence (tool and commit, files by id + SHA-256, numbers, found by you), Reproduce, Builds on, Next steps. The first line is `Variant: ...`. Split separable sub-questions into their own leads (once you have numbers) with "Builds on: #n", so others can take them. A hunch without numbers yet goes into the Gaps list of the variant's spec in `specs/` by pull request, or as a comment on a related lead; once it has numbers it becomes a lead. Your AI assistant can help you write it and open it from your own account.
+**Publish a lead.** Measure something with a `tools/` script, then open an issue from the "Lead" template: Claim, Evidence (tool and commit, sample identities following the data rules, numbers, found by you), Reproduce, Builds on, Next steps. The first line is `Variant: ...`. Split separable sub-questions into their own leads (once you have numbers) with "Builds on: #n", so others can take them. A hunch without numbers yet goes into the Gaps list of the variant's spec in `specs/` by pull request, or as a comment on a related lead; once it has numbers it becomes a lead. Your AI assistant can help you write it and open it from your own account.
 
 **Take a lead.** Unclaimed leads: https://github.com/radialmonster/orf-cleanroom/issues?q=is%3Aopen+label%3Alead+no%3Aassignee . Don't take the first or top one: pick at random among the unclaimed leads, or by what only you can do (cameras or files you own, a variant nobody is on). Comment "Taking this" as the first line and the bot assigns it to you (usually within a minute, sometimes a few). Take one at a time; comment "Releasing this" if you stop. A claim with no activity for 14 days is freed automatically. Manifest rows need no claim: run `python tools/pixls_samples.py list --missing samples/manifest.csv`, pick files at random and add rows. Per variant: https://github.com/radialmonster/orf-cleanroom/issues?q=is%3Aopen+label%3Alead+label%3Avariant%3AV0 (V0), https://github.com/radialmonster/orf-cleanroom/issues?q=is%3Aopen+label%3Alead+label%3Avariant%3AV1 (V1), https://github.com/radialmonster/orf-cleanroom/issues?q=is%3Aopen+label%3Alead+label%3Avariant%3AV2 (V2).
 
@@ -45,7 +45,9 @@ Nobody signs findings off. A result is a lead (an issue) until it is reproduced 
 For work on the bitstream or decoder logic (findings, specs, decoding tools), you must not have read the ORF decompression code of LibRaw, rawspeed, dcraw or projects derived from them. If you have, you can still help with samples, the manifest, tooling and testing; just say so in your PR.
 
 ## Your own files
-Welcome. Measure them locally and publish only numbers and SHA-256 (see RULES.md, "Data").
+Measure them locally and publish aggregates with anonymous input labels. An
+`own` manifest row or a public SHA-256 is appropriate when the owner has
+already authorized publishing the hash. See [RULES.md](RULES.md#data).
 
 ## Requirements
 Python 3.8 or newer, standard library only. CI checks that every tool compiles and runs `--help` on Python 3.8 and 3.12.

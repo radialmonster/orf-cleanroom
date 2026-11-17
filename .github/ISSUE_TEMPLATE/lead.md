@@ -13,7 +13,7 @@ Variant: unassigned
 ## Evidence
 <!--
 - Tool and commit: the tools/ script and the last commit that changed it (git log -1 --format=%h -- tools/NAME.py).
-- Files: list every file used, each as raw.pixls.us id + SHA-256, or `own` + SHA-256 (own files: numbers only, never the file). Verifiers need this list to pick files the lead did not use.
+- Files: list each input. Give the public identity and SHA-256 for public files, including the raw.pixls.us id where applicable. Use anonymous labels for unshared files and include SHA-256 only with the owner's explicit permission. Mark results based only on unshared inputs `not yet reproducible`.
 - The numbers, as produced by the script. Say how strong each is and on how many files.
 - Found by @yourhandle, date.
 -->

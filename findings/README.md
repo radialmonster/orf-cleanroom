@@ -63,7 +63,7 @@ Variants are open-ended. A new variant gets a new folder `V<n>` (next free numbe
     What was found, in plain sentences.
 
     ## Original evidence
-    The finder's tools/ script and commit, the files (raw.pixls.us id + SHA-256, or `own` + SHA-256) and numbers, as on the lead.
+    The finder's tools/ script and commit, sample identities and numbers, as on the lead. Include public identity and SHA-256 for public files. Use anonymous labels for unshared files and include SHA-256 only with the owner's explicit permission.
 
     ## Verification
     A new run, done after the lead was posted: what was run, on which files (at least one the lead did not use, or say why that is impossible), and the numbers.

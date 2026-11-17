@@ -19,8 +19,26 @@ images or decoded pixel data; publish reproducible aggregate measurements.
 You can work by hand or give an AI coding agent this repository and prompt:
 
 > I'd like to contribute to https://github.com/radialmonster/orf-cleanroom.
-> Read RULES.md and AGENTS.md first. My ORF test files are in `<folder>`
-> (or: I have none; download CC0 samples).
+> Read RULES.md and AGENTS.md first, then check open issues, PRs and existing
+> findings for overlap. Pick one unclaimed lead you can test, preferably one
+> that addresses a compressed-decoder gap. Use verified CC0 files in
+> `<folder>` or get the inputs named in the lead if I have none.
+>
+> Use my connected GitHub account to claim the lead, post results, push a
+> branch and open the PRs for this contribution. This is your go-ahead to
+> carry out those steps. Review the reproduction steps, rerun them and
+> extend the verification as AGENTS.md describes. Record the exact tool
+> version, inputs and numbers.
+>
+> If the result matches, open the finding PR and follow through with the docs
+> update after it merges. If it differs or you stop partway, leave a Status
+> update with the rerun command and release the claim. If GitHub access is
+> unavailable, continue locally and leave the commands and draft text ready.
+
+See the [capped-prefix lead](https://github.com/radialmonster/orf-cleanroom/issues/807),
+its [finding PR](https://github.com/radialmonster/orf-cleanroom/pull/808), and the
+[spec follow-up](https://github.com/radialmonster/orf-cleanroom/pull/809) for a
+completed example.
 
 Choose a contribution:
 
@@ -67,10 +85,12 @@ identity and hash, then reuse that verification while the local hash matches.
 Copied or renamed identical files need no new online check; an outage does not
 block unchanged verified inputs. Never infer a licence from a filename or model.
 
-Your own files, or files whose owner agreed, are welcome under the data rules.
-Record each input in [samples/manifest.csv](samples/manifest.csv) using the
-[manifest workflow](samples/README.md). Results relying only on unshared files
-are marked `not yet reproducible`. Camera JPEG pairs and embedded previews can
+You can also measure your own files or files whose owner agreed to the
+measurement. Follow the [manifest workflow](samples/README.md) for public
+samples. For unshared files, publish aggregates using anonymous input labels.
+Keep unshared hashes local unless the owner has already authorized publishing
+them, including in a manifest row. Mark results that rely only on unshared files
+as `not yet reproducible`. Camera JPEG pairs and embedded previews can
 provide local, numbers-only sanity checks; they are camera renderings, not
 ground truth.
 
