@@ -284,6 +284,18 @@ Each script should:
 - run on CPU, with GPU acceleration optional;
 - state at the top which finding (an ID from `findings/`), lead issue (`#n`) or spec Gap (`specs/V<n>.md`) it supports.
 
+**`suffix_balance_windows.py`** measures within-token H/L joint counts, plug-in
+MI and exact b0/b1 proportions in fixed candidate-token windows for #11. The
+discovery mode uses four consecutive 262144-token windows; verification repeats
+them, adds four more and a 524288-token window overlapping the first two added
+windows. Indices include escapes, while the table and bit counts omit them. The
+fixed MI <= 0.010 and absolute bit-proportion deviation <= 0.05 thresholds are
+descriptive, not proof of independence, fairness or physical framing. The tool
+shares the bounded scanner and MI function from `suffix_joint_probe.py`.
+
+    python -I -B tools/suffix_balance_windows.py --mode discovery --sample ID PUBLIC_NAME path/to/file.ORF
+    python -I -B tools/test_suffix_balance_windows.py
+
 **`suffix_window_probe.py`** supports lead #11's remaining local-extent question.
 Four consecutive 262144-candidate-token windows report all H/L pair tables and
 plug-in MI at lags 1..3, with endpoint escape omissions preserving indices.
