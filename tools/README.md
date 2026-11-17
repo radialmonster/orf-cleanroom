@@ -934,18 +934,26 @@ tool reports aggregates only; no previews, payloads or images.
     python -I -B tools/capture_pair_calibration.py --screen screen.jsonl FILE ...
     python -I -B tools/test_capture_pair_calibration.py
 
-**`paired_covariance_probe.py`** supports #302 (Campaign B, EMVA 1288 §6.6).
-It tests candidate linear predictor stencils by computing the difference
-autocovariance of pairs of exposures taken under identical camera settings
-and stationary flat illumination. Deterministic scene structure and fixed
-pattern noise cancel upon subtraction; under independent temporal noise, the
-normalized autocovariance rho(lag) matches an exact, parameter-free theoretical
-filter footprint (for example rho(d) = -0.5 for a 1D predictor x[i] - x[i-d]).
-It verifies metadata compatibility (model, dimensions, ISO, exposure, f-number,
-focal length), computes empirical autocorrelation across lags, and reports
-goodness-of-fit (RMSE) against candidate predictor families (white noise, lag-1,
-lag-2 Bayer, lag-3, lag-4, 2D planar, 2D average). Synthetic controls and
-regression verification are built-in. Reports aggregate JSON only.
+**`paired_covariance_probe.py`** supports #302 Campaign B with an exploratory
+candidate-index difference covariance diagnostic. Raw mode subtracts an assumed
+zigzag mapping of literal stop-1 k=5 tokens at equal candidate indices. The
+value mapping, token-to-pixel alignment, escape syntax and nominal W row stride
+are unverified. Escapes remain masked at their original positions; each lag
+reports its valid endpoint-pair count. Both parsed counts, requested-count
+shortfalls and unmatched tails are explicit. Missing required metadata fails
+compatibility; equal settings do not establish same scene or independent captures.
+Masks may depend on the signal and support varies by lag; masking does not
+repair unknown framing or validate the white-noise reference on camera files.
+
+The synthetic reference assumes aligned physical sites, the same fixed linear
+stencil, independent exposures and spatially white equal-variance noise. Under
+those assumptions x[i]-x[i-d] has rho(d)=-0.5. A spatially colored synthetic
+countercontrol demonstrates that exposure independence alone is insufficient.
+RMSE ranks the supplied reference signatures descriptively and does not identify
+a camera predictor. Short, masked or constant differences can have undefined
+correlation and no winning reference. EMVA 1288 Linear 4.0 sections 2.5/6.6
+motivate paired image variance measurements; this tool does not establish FPN
+cancellation in raw proxies or claim EMVA conformity. Aggregate JSON only.
 
     python -I -B tools/paired_covariance_probe.py FILE_A FILE_B [--tokens N] [--max-lag L] [--stride W]
     python -I -B tools/paired_covariance_probe.py --synthetic [--tokens N]

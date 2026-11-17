@@ -1,32 +1,35 @@
 #!/usr/bin/env python3
-"""Paired-image difference covariance probe (Campaign B, #302, EMVA 1288 §6.6).
+"""Exploratory paired candidate-index covariance probe (Campaign B, #302).
 
-Subtracting a same-setting, same-scene pair of exposures cancels deterministic
-scene content and fixed-pattern noise (FPN). Under independent temporal noise,
-the difference of linear-predicted residuals has a fixed theoretical covariance
-signature that depends only on the predictor stencil, while noise scale cancels.
-For example, a linear predictor x[i] - x[i-d] yields a normalized autocovariance
-rho(d) = -0.5 at lag d and 0 elsewhere.
+The synthetic linear-filter reference assumes independent exposures, spatially
+white equal-variance noise, the same fixed linear stencil, and aligned physical
+sites. Under these assumptions x[i]-x[i-d] has rho(d)=-0.5.
+Spatially correlated noise can change the footprint even for a correct stencil.
+
+Raw mode subtracts unverified zigzag mappings of literal k=5 candidate tokens at
+equal candidate indices. Token/pixel alignment, value mapping, rows and escape
+semantics are unknown. Metadata equality establishes neither same scene nor
+independent captures, fixed-pattern cancellation or these noise assumptions.
+RMSE ranks the supplied reference signatures descriptively; it does not identify
+a camera predictor. EMVA 1288 Linear 4.0 sections 2.5/6.6 motivate paired image
+variance measurements, not this candidate-token test or EMVA conformity.
 
 Standard library only (Python 3.8+). Emits aggregate JSON only; no images,
 previews, or pixel dumps are printed or stored.
 
 Usage:
     python -I -B tools/paired_covariance_probe.py FILE_A FILE_B [--tokens N] [--max-lag L] [--stride W]
-    python -I -B tools/paired_covariance_probe.py --synthetic [--tokens N] [--predictor PREDICTOR]
+    python -I -B tools/paired_covariance_probe.py --synthetic [--tokens N]
     python -I -B tools/paired_covariance_probe.py --self-test
 """
 import argparse
-import hashlib
 import json
 import math
 import os
 import random
-import struct
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from orf_signature import Tiff  # noqa: E402
 import orf_tokens  # noqa: E402
 from preview_pair_sensitivity import read_exif, rational_equal  # noqa: E402
 
@@ -37,43 +40,50 @@ DEFAULT_MAX_LAG = 16
 def theoretical_predictor_signature(name, max_lag=DEFAULT_MAX_LAG, stride=None):
     """Compute exact theoretical autocorrelation rho(lag) for a linear predictor.
 
-    Given residual difference D = sum_k c_k Delta[n - k],
+    For spatially white equal-variance Delta and fixed linear coefficients,
+    given residual difference D = sum_k c_k Delta[n - k],
     rho(l) = sum_k c_k c_{k+l} / sum_k c_k^2.
     """
     coeffs = {}  # lag -> coefficient
-    coeffs[0] = 1.0
+
+    def add(offset, coefficient):
+        coeffs[offset] = coeffs.get(offset, 0.0) + coefficient
+
+    add(0, 1.0)
 
     if name == 'none' or name == 'white_noise':
         pass
     elif name.startswith('lag') and name[3:].isdigit():
         d = int(name[3:])
-        coeffs[d] = -1.0
+        add(d, -1.0)
     elif name == 'lag1_lag2_bayer':
         # Candidate 2-tap predictor: 0.5 * x[n-1] + 0.5 * x[n-2]
-        coeffs[1] = -0.5
-        coeffs[2] = -0.5
+        add(1, -0.5)
+        add(2, -0.5)
     elif name == 'lag2_2nd_order':
         # 2 * x[n-2] - x[n-4]
-        coeffs[2] = -2.0
-        coeffs[4] = 1.0
+        add(2, -2.0)
+        add(4, 1.0)
     elif stride and stride > 0:
         d = 2  # Bayer horizontal stride
         w = stride
         if name == '2d_average':
             # 0.5 * x[n-d] + 0.5 * x[n-w]
-            coeffs[d] = -0.5
-            coeffs[w] = -0.5
+            add(d, -0.5)
+            add(w, -0.5)
         elif name == '2d_planar':
             # x[n-d] + x[n-w] - x[n-w-d]
-            coeffs[d] = -1.0
-            coeffs[w] = -1.0
-            coeffs[w + d] = 1.0
+            add(d, -1.0)
+            add(w, -1.0)
+            add(w + d, 1.0)
         else:
             raise ValueError("unknown predictor: %s" % name)
     else:
         raise ValueError("unknown predictor: %s" % name)
 
     denom = sum(c * c for c in coeffs.values())
+    if denom == 0:
+        raise ValueError('zero-energy stencil has no normalized signature')
     lags = {}
     for l in range(1, max_lag + 1):
         num = sum(coeffs[k] * coeffs.get(k + l, 0.0) for k in coeffs)
@@ -94,16 +104,18 @@ def theoretical_predictor_signature(name, max_lag=DEFAULT_MAX_LAG, stride=None):
 
 
 def autocovariance(series, max_lag=DEFAULT_MAX_LAG, special_lags=None):
-    """Compute empirical mean, variance, autocovariance, and normalized autocorrelation."""
-    n = len(series)
-    if n < 2:
-        return {'n': n, 'mean': None, 'variance': None, 'lags': {}}
+    """Global valid-site centering; None masks preserve index distances.
 
-    mean = sum(series) / n
-    centered = [x - mean for x in series]
-    var = sum(x * x for x in centered) / n
-    if var <= 0:
-        return {'n': n, 'mean': mean, 'variance': var, 'lags': {}}
+    Covariance at each lag uses only valid endpoint pairs, normalized by that
+    pair count. Variance uses all valid sites. Mask selection is descriptive;
+    it does not establish missing-at-random sampling or a noise model.
+    """
+    n = len(series)
+    values = [x for x in series if x is not None]
+    valid = len(values)
+    mean = sum(values)/valid if valid >= 2 else None
+    centered = [x-mean if x is not None and mean is not None else None for x in series]
+    var = sum(x*x for x in centered if x is not None)/valid if valid >= 2 else None
 
     target_lags = set(range(1, min(max_lag + 1, n)))
     if special_lags:
@@ -113,25 +125,37 @@ def autocovariance(series, max_lag=DEFAULT_MAX_LAG, special_lags=None):
 
     results = {}
     for l in sorted(target_lags):
-        cov = sum(centered[i] * centered[i + l] for i in range(n - l)) / (n - l)
+        count, total = 0, 0.0
+        for i in range(n-l):
+            if series[i] is not None and series[i+l] is not None:
+                count += 1
+                if mean is not None:
+                    total += centered[i]*centered[i+l]
+        cov = total/count if count and mean is not None else None
         results[l] = {
             'lag': l,
+            'valid_pairs': count,
             'cov': cov,
-            'rho': cov / var,
+            'rho': cov/var if var is not None and var > 0 and cov is not None else None,
         }
 
     return {
         'n': n,
+        'valid_samples': valid,
+        'masked_samples': n-valid,
+        'status': ('insufficient_valid_samples' if valid < 2 else
+                   'zero_variance' if var == 0 else 'ok'),
         'mean': mean,
         'variance': var,
-        'std_dev': math.sqrt(var),
+        'std_dev': math.sqrt(var) if var is not None else None,
         'lags': results,
     }
 
 
 def compare_signatures(observed_lags, theoretical_lags):
     """Calculate mean squared error and max absolute difference against theoretical rho."""
-    common = [l for l in theoretical_lags if l in observed_lags]
+    common = [l for l in theoretical_lags if l in observed_lags
+              and observed_lags[l]['rho'] is not None]
     if not common:
         return None
     sq_errs = []
@@ -168,25 +192,30 @@ def extract_candidate_stream(data, max_tokens=DEFAULT_TOKENS):
             u = (q << 5) | s
             residuals.append(signed_zig_zag(u))
         else:
-            residuals.append(0)
+            residuals.append(None)
     return {
         'width': w,
         'height': h,
         'payload_bytes': len(payload),
         'tokens_parsed': n,
+        'tokens_requested': max_tokens,
+        'token_shortfall': max_tokens-n,
+        'escape_tokens': sum(q >= orf_tokens.ESC_Q for q in qs),
         'bits_used': bits_used,
         'residuals': residuals,
     }
 
 
 def check_metadata_match(exif_a, exif_b, geom_a, geom_b):
-    """Verify that pair exposures share identical camera settings."""
+    """Required metadata compatibility only, never capture/scene eligibility."""
     mismatches = []
-    if exif_a.get('model') != exif_b.get('model'):
+    if not exif_a.get('model') or not exif_b.get('model') or exif_a['model'] != exif_b['model']:
         mismatches.append('model')
-    if geom_a != geom_b:
+    valid_geometry = lambda g: (isinstance(g, (tuple, list)) and len(g) == 2
+                                and all(type(v) is int and v > 0 for v in g))
+    if not valid_geometry(geom_a) or not valid_geometry(geom_b) or geom_a != geom_b:
         mismatches.append('geometry')
-    if exif_a.get('iso') != exif_b.get('iso'):
+    if not exif_a.get('iso') or not exif_b.get('iso') or exif_a['iso'] != exif_b['iso']:
         mismatches.append('iso')
     if not rational_equal(exif_a.get('exposure'), exif_b.get('exposure')):
         mismatches.append('exposure')
@@ -198,19 +227,32 @@ def check_metadata_match(exif_a, exif_b, geom_a, geom_b):
     return {
         'eligible': len(mismatches) == 0,
         'mismatches': mismatches,
+        'scope': 'required metadata only; same scene, capture independence and site alignment unknown',
     }
 
 
 def generate_synthetic_pair(n_samples=50000, seed=42, predictor='lag2',
-                            noise_sigma=10.0, fpn_sigma=20.0, scene_gradient=0.5):
-    """Generate a synthetic flat pair with known scene, FPN, noise, and predictor."""
+                            noise_sigma=10.0, fpn_sigma=20.0, scene_gradient=0.5,
+                            noise_correlation=0.0):
+    """Supplied shared scene/FPN and independent exposure noise.
+
+    noise_correlation=0 gives spatial white Gaussian noise; a nonzero value
+    gives AR(1) noise as an explicit countercontrol to the white-noise premise.
+    The recurrence starts at zero; no stationarity or camera behavior inferred.
+    """
     rng = random.Random(seed)
     scene_fpn = [
         int(1000.0 + scene_gradient * i + rng.gauss(0, fpn_sigma))
         for i in range(n_samples)
     ]
-    temporal_a = [rng.gauss(0, noise_sigma) for _ in range(n_samples)]
-    temporal_b = [rng.gauss(0, noise_sigma) for _ in range(n_samples)]
+    def noise():
+        out, previous = [], 0.0
+        for _ in range(n_samples):
+            previous = noise_correlation*previous + rng.gauss(0, noise_sigma)
+            out.append(previous)
+        return out
+
+    temporal_a, temporal_b = noise(), noise()
 
     raw_a = [scene_fpn[i] + temporal_a[i] for i in range(n_samples)]
     raw_b = [scene_fpn[i] + temporal_b[i] for i in range(n_samples)]
@@ -234,9 +276,10 @@ def generate_synthetic_pair(n_samples=50000, seed=42, predictor='lag2',
 
 
 def analyze_pair_difference(stream_a, stream_b, max_lag=DEFAULT_MAX_LAG, stride=None):
-    """Run EMVA 1288 difference autocovariance and fit theoretical predictor models."""
+    """Descriptive differences at supplied equal indices, not verified sensor sites."""
     n = min(len(stream_a), len(stream_b))
-    diff = [stream_a[i] - stream_b[i] for i in range(n)]
+    diff = [stream_a[i]-stream_b[i]
+            if stream_a[i] is not None and stream_b[i] is not None else None for i in range(n)]
 
     special_lags = []
     if stride and stride > 0:
@@ -265,15 +308,25 @@ def analyze_pair_difference(stream_a, stream_b, max_lag=DEFAULT_MAX_LAG, stride=
                 best_rmse = fit['rmse']
                 best_model = name
 
+    equal_lengths = len(stream_a) == len(stream_b)
     return {
         'sample_count': n,
+        'max_lag': max_lag,
+        'nominal_stride': stride,
+        'stream_counts': {'a':len(stream_a), 'b':len(stream_b)},
+        'unpaired_tail_counts': {'a':len(stream_a)-n, 'b':len(stream_b)-n},
+        'complete_pair_lengths': equal_lengths,
+        'valid_difference_samples': stats['valid_samples'],
+        'masked_difference_samples': stats['masked_samples'],
+        'status': stats['status'] if equal_lengths else 'unequal_stream_lengths',
         'difference_mean': stats['mean'],
         'difference_variance': stats['variance'],
         'difference_std_dev': stats['std_dev'],
         'autocorrelation_lags': stats['lags'],
         'model_fits': model_fits,
-        'best_matching_predictor': best_model,
-        'best_matching_rmse': best_rmse if best_model else None,
+        'best_matching_predictor': best_model if equal_lengths else None,
+        'best_matching_rmse': best_rmse if best_model and equal_lengths else None,
+        'comparison_scope': 'descriptive reference ranking only; no predictor identification',
     }
 
 
@@ -321,7 +374,14 @@ def self_test():
     mismatch = check_metadata_match(exif_base, exif_iso_diff, (5220, 3912), (5220, 3912))
     assert not mismatch['eligible'] and 'iso' in mismatch['mismatches']
 
-    print("self-test ok: EMVA 1288 paired difference covariance and theoretical predictor matching verified.")
+    colored_a, colored_b = generate_synthetic_pair(
+        n_samples=100000, seed=764, predictor='lag1', noise_correlation=0.6)
+    colored = analyze_pair_difference(colored_a, colored_b, max_lag=4)
+    # For AR(1) source correlation r, the lag1 difference has rho1=-(1-r)/2.
+    assert abs(colored['autocorrelation_lags'][1]['rho'] + 0.2) < 0.02
+    assert abs(colored['autocorrelation_lags'][1]['rho'] + 0.5) > 0.2
+
+    print("self-test ok: synthetic white and spatially colored noise controls; no camera inference.")
 
 
 def main():
@@ -334,6 +394,8 @@ def main():
     parser.add_argument('--synthetic', action='store_true', help='run analysis on synthetic pair')
     parser.add_argument('--self-test', action='store_true', help='run self-tests and exit')
     args = parser.parse_args()
+    if args.tokens < 1 or args.max_lag < 1 or (args.stride is not None and args.stride < 1):
+        parser.error('tokens, max-lag and any stride must be positive')
 
     if args.self_test:
         self_test()
@@ -345,7 +407,7 @@ def main():
         output = {
             'method': 'synthetic_paired_difference_covariance',
             'analysis': result,
-            'limits': 'EMVA 1288 paired difference test; synthetic control.',
+            'limits': 'Supplied aligned linear-filter synthetic control with spatially white noise; no camera inference.',
         }
         print(json.dumps(output, indent=2))
         return 0
@@ -371,11 +433,21 @@ def main():
     stride = args.stride or stream_a['width']
     analysis = analyze_pair_difference(stream_a['residuals'], stream_b['residuals'],
                                        max_lag=args.max_lag, stride=stride)
+    if stream_a['token_shortfall'] or stream_b['token_shortfall']:
+        analysis.update(status='token_shortfall', best_matching_predictor=None,
+                        best_matching_rmse=None)
+    if not meta_check['eligible']:
+        analysis.update(status='metadata_incompatible', best_matching_predictor=None,
+                        best_matching_rmse=None)
 
     report = {
-        'method': 'emva1288_paired_difference_covariance',
+        'method': 'exploratory_candidate_index_difference_covariance',
         'metadata_match': meta_check,
         'tokens_requested': args.tokens,
+        'streams': {key:{k:v for k,v in stream.items() if k != 'residuals'}
+                    for key,stream in (('a',stream_a),('b',stream_b))},
+        'complete': (meta_check['eligible'] and not stream_a['token_shortfall']
+                     and not stream_b['token_shortfall'] and analysis['complete_pair_lengths']),
         'pair': {
             'file_a': os.path.basename(path_a) if args.names else None,
             'file_b': os.path.basename(path_b) if args.names else None,
@@ -384,11 +456,15 @@ def main():
             'geometry': geom_a if meta_check['eligible'] else {'a': geom_a, 'b': geom_b},
         },
         'analysis': analysis,
-        'limits': 'EMVA 1288 paired difference method; nominal token residuals do not establish '
-                  'sensor ground truth or complete decode.',
+        'candidate_grammar': 'MSB stop1 k5; no extra escape skip; q>=17 masked at original candidate index',
+        'limits': 'Exploratory equal-candidate-index proxies with an assumed zigzag mapping and nominal W stride. '
+                  'Metadata agreement does not establish same scene, independent captures, physical site alignment, '
+                  'spatial white noise, fixed-pattern cancellation or a camera predictor. '
+                  'Escape masks may depend on signal, valid support differs by lag, and masking does not repair framing. '
+                  'No EMVA conformity claimed.',
     }
     print(json.dumps(report, indent=2))
-    return 0 if meta_check['eligible'] else 1
+    return 0 if report['complete'] else 1
 
 
 if __name__ == '__main__':
