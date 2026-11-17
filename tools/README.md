@@ -1,5 +1,17 @@
 # tools
 
+**`block_serialization_probe.py`** compares fixed k=5 interleaved and 32-value
+block-separated contracts from #298 on four hash-pinned controlled OM-3 files.
+Both start at selected strip bit zero and require exactly W*H values. It reports
+strict endpoint closure and, separately, the hypothetical all-ones tail; #87
+does not establish that the tail is padding. A contradiction concerns the whole
+contract, including extent, start, count and escape assumptions, not serialization
+alone. Both parsers accepting is ambiguous. Incompatible metadata and read errors
+are unknown; an externally terminated run has no completed result and is unknown.
+
+    python -I -B tools/block_serialization_probe.py PA200010.ORF PATH_TO_CC0_FILE
+    python -I -B tools/test_block_serialization_probe.py
+
 **`token_start_bit_phase_probe.py`** counts candidate q0, q1..16 and q>=17
 starts by bit phase modulo 8 in a fixed byte window, plus ordinary-token suffix
 one counts in b4,b3,b2,b1,b0 order (denominator: ordinary starts per phase).
