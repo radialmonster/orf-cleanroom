@@ -284,6 +284,18 @@ Each script should:
 - run on CPU, with GPU acceleration optional;
 - state at the top which finding (an ID from `findings/`), lead issue (`#n`) or spec Gap (`specs/V<n>.md`) it supports.
 
+**`free_anchor_second_order.py`** tests a bounded second-order candidate family
+for #31 using exact integer range feasibility with free initial level and slope.
+Each 4096-candidate window reports minimum feasible segment counts for two
+suffix mappings, strides 1 and 2, and 16-bit and 12-bit ranges. Stride-2 lanes
+choose breakpoints independently, so their result is permissive. Escapes and
+short windows are undefined, not omitted or assigned zero. These candidates
+do not establish physical framing, a predictor or a decode. Per-family and
+file deadlines are checked cooperatively; use an external hard file deadline.
+
+    python -I -B tools/free_anchor_second_order.py --sample ID PUBLIC_NAME path/to/file.ORF
+    python -I -B tools/test_free_anchor_second_order.py
+
 **`suffix_balance_windows.py`** measures within-token H/L joint counts, plug-in
 MI and exact b0/b1 proportions in fixed candidate-token windows for #11. The
 discovery mode uses four consecutive 262144-token windows; verification repeats
