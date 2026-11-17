@@ -1,8 +1,14 @@
 """Synthetic checks for local candidate suffix-balance windows."""
 import math
+import contextlib
+import hashlib
+import io
+import json
 import os
+import struct
 import sys
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import suffix_balance_windows as probe
@@ -10,6 +16,42 @@ from suffix_joint_probe import scan_prefix
 
 
 class BalanceWindows(unittest.TestCase):
+    def test_generated_tiff_cli_modes_and_short_input(self):
+        bits = '100000' * 9
+        payload = int(bits + '0' * (-len(bits) % 8), 2).to_bytes((len(bits) + 7) // 8, 'big')
+        tags = ((256, 100), (257, 1), (259, 1), (273, 74), (279, len(payload)))
+        fixture = (b'II' + struct.pack('<HIH', 42, 8, len(tags))
+                   + b''.join(struct.pack('<HHII', tag, 4, 1, value) for tag, value in tags)
+                   + struct.pack('<I', 0) + payload)
+        real_open = open
+        def open_fixture(path, *args, **kwargs):
+            return io.BytesIO(fixture) if path == 'fixture' else real_open(path, *args, **kwargs)
+        for mode in ('discovery', 'verification'):
+            for complete in (True, False):
+                argv = ['probe', '--mode', mode, '--sample', '1051', 'public.ORF', 'fixture']
+                output = io.StringIO()
+                scan = mock.patch.object(probe, 'scan_prefix', return_value=([(0, i % 32) for i in range(32)], 192)) if complete else contextlib.nullcontext()
+                with self.subTest(mode=mode, complete=complete), mock.patch.object(probe, 'WINDOW', 4), \
+                     mock.patch.object(sys, 'argv', argv), mock.patch('builtins.open', side_effect=open_fixture), \
+                     scan, contextlib.redirect_stdout(output):
+                    status = probe.main()
+                result = json.loads(output.getvalue())
+                self.assertEqual(status, 0 if complete else 1)
+                self.assertEqual(result['mode'], mode)
+                self.assertEqual(result['sample']['sha256'], hashlib.sha256(fixture).hexdigest())
+                self.assertEqual((result['sample']['pixls_id'], result['sample']['pixls_name']), ('1051', 'public.ORF'))
+                for filename, digest in result['source_sha256'].items():
+                    with open(os.path.join(os.path.dirname(probe.__file__), filename), 'rb') as source:
+                        self.assertEqual(digest, hashlib.sha256(source.read()).hexdigest())
+                windows = result['sample']['windows']
+                self.assertEqual(len(windows), 4 if mode == 'discovery' else 9)
+                self.assertEqual([w['start_token'] for w in windows],
+                                 [0, 4, 8, 12] if mode == 'discovery' else [0, 4, 8, 12, 16, 20, 24, 28, 16])
+                if not complete:
+                    self.assertEqual(result['sample']['returned_tokens'], 9)
+                    self.assertIsNone(windows[2]['plugin_mi_bits'])
+                    self.assertIsNone(windows[2]['tolerance_pass'])
+
     def test_uniform_and_escape_index(self):
         tokens = [(0, s) for s in range(32)] + [(17, 31), (0, 0)]
         result = probe.measure(tokens, 0, 33)
