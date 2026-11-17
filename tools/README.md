@@ -1586,13 +1586,13 @@ selectors, physical precision, black level, CFA and sensor truth remain open.
     python -I -B tools/test_v0_sensor_controls.py
 
 **`sensor_window_scale_probe.py`** supports #301 and specs/V0.md Gap G8.
-It evaluates the multi-scale sensitivity of synthetic rejection envelope limits
-and classification confusion across window dimensions (32x24, 64x48, 128x96,
-256x192). It measures how the four scalar features (lag2_mean_abs,
-lane_mean_spread, seam_mean_abs, outside_fraction) and nonidentity rejection rates
-scale with window size, testing whether larger windows resolve or preserve
-the lag2 identity rejections observed on real packed-16 V0 windows. Reports
-aggregate JSON only.
+It reports how the synthetic features and confusion counts change across
+window dimensions using the fixed generator and an envelope fitted separately
+at each scale. Changing the footprint also changes sampled scene values and
+can introduce clipping. The synthetic affine control requires a window area
+coprime to 5, so scale multipliers that are multiples of 5 are excluded.
+Packed-16 V0 sample reports evaluate identity windows only. Output is aggregate
+JSON.
 
     python -I -B tools/sensor_window_scale_probe.py --scales 1 2 4 [--no-heldout]
     python -I -B tools/sensor_window_scale_probe.py --sample ID NAME SHA256 FILE --scales 1 2

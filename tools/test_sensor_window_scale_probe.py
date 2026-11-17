@@ -38,12 +38,11 @@ class TestSensorWindowScaleProbe(unittest.TestCase):
         self.assertEqual(s1["development_confusion"]["identity_rejected"], 0)
         self.assertEqual(s1["development_confusion"]["nonidentity_rejected"], 31)
 
-    def test_confusion_improvement_with_scale(self):
-        # Scale 2x should reject more xor_high trials than scale 1x
+    def test_xor_high_counts_for_declared_generator(self):
         res = probe.evaluate_scale_sensitivity([1, 2], include_heldout=False)
         xor1 = res["scale_1x"]["development_by_mapping"]["xor_high"]["rejected"]
         xor2 = res["scale_2x"]["development_by_mapping"]["xor_high"]["rejected"]
-        self.assertLessEqual(xor1, xor2)
+        self.assertEqual((xor1, xor2), (0, 6))
 
     def test_extract_v0_windows_mock(self):
         # Create a mock packed-16 container buffer with width 64, height 48
@@ -85,6 +84,14 @@ class TestSensorWindowScaleProbe(unittest.TestCase):
         self.assertEqual(parsed["method"], "sensor_window_scale_probe")
         self.assertEqual(parsed["scales_evaluated"], [1])
         self.assertIn("scale_1x", parsed["synthetic_scaling"])
+
+    def test_cli_rejects_scale_that_breaks_affine_permutation(self):
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), self.assertRaises(SystemExit) as raised:
+            probe.main(["--scales", "5", "--no-heldout"])
+        self.assertEqual(raised.exception.code, 2)
+        self.assertIn("multiples of 5", err.getvalue())
+        self.assertNotIn("Traceback", err.getvalue())
 
 
 if __name__ == '__main__':

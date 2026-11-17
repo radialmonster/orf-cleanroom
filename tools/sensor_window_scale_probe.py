@@ -6,16 +6,15 @@ behave across window dimensions (e.g. 32x24, 64x48, 128x96, 256x192). Builds on
 sensor_rejection_controls.py (#310) and v0_sensor_controls.py (#324), addressing
 specs/V0.md Gap G8.
 
-Tests whether window scaling stabilizes feature bounds (lag2_mean_abs,
-lane_mean_spread, seam_mean_abs, outside_fraction), how the confusion matrix
-(false rejections of identity vs false acceptances of nonidentity transforms)
-evolves with scale, and whether larger windows resolve or preserve the lag2
-rejections observed in packed-16 V0 files (lead #325).
+Reports feature bounds and confusion for the fixed generator and a development
+envelope fitted at each scale. The gradients retain their slopes per pixel,
+so changing the footprint also changes the scene values and potential clipping.
+Packed-16 V0 windows are evaluated with identity mapping only (lead #325).
 
 Standard library only (Python 3.8+). Emits aggregate JSON only.
 
 Usage:
-    python -I -B tools/sensor_window_scale_probe.py --scales 1 2 4 [--heldout]
+    python -I -B tools/sensor_window_scale_probe.py --scales 1 2 4 [--no-heldout]
     python -I -B tools/sensor_window_scale_probe.py --sample ID NAME SHA256 FILE --scales 1 2 4
     python -I -B tools/sensor_window_scale_probe.py --self-test
 """
@@ -171,6 +170,7 @@ def measure_v0_sample(data, scales, limits_by_scale):
         }
     return {
         "geometry": info,
+        "comparison": "identity_only",
         "scales": scale_reports,
     }
 
@@ -218,7 +218,7 @@ def self_test():
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--scales", type=int, nargs="+", default=[1, 2, 4],
-                        help="scale multipliers relative to 32x24 (e.g. 1 2 4)")
+                        help="scale multipliers relative to 32x24 (1-32, excluding multiples of 5)")
     parser.add_argument("--no-heldout", action="store_true",
                         help="omit synthetic heldout seed evaluation")
     parser.add_argument("--sample", nargs=4, action="append",
@@ -236,6 +236,9 @@ def main(argv=None):
     for s in scales:
         if s < 1 or s > 32:
             parser.error("scale multipliers must be between 1 and 32")
+        width, height = scale_dimensions(s)
+        if (width * height) % 5 == 0:
+            parser.error("scale multipliers that are multiples of 5 cannot use the affine permutation")
 
     synthetic_results = evaluate_scale_sensitivity(scales, include_heldout=not args.no_heldout)
 
@@ -245,8 +248,9 @@ def main(argv=None):
         "scales_evaluated": scales,
         "synthetic_scaling": synthetic_results,
         "samples": [],
-        "limits": "Descriptive synthetic multi-scale sensitivity; toy envelope bounds "
-                  "do not establish sensor truth or camera noise model.",
+        "limits": "Synthetic footprints and separately fitted envelopes change together. "
+                  "Scene values and clipping can change with footprint. Camera windows "
+                  "are evaluated with identity mapping only.",
     }
 
     if args.sample:
