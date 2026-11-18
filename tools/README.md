@@ -1615,6 +1615,13 @@ generator classifier or matched null is supplied.
     python -I -B tools/synthetic_adaptive_resync.py --self-test
     python -I -B tools/synthetic_adaptive_resync.py
 
+**`payload_perturbation_resync.py`** supports #300 by evaluating coordinate-aware local bit perturbations (1-bit flip, insert, delete) at frozen anchors across candidate grammars (candidate camera Rice k=5 stop-1 with escape q>=17, Rice k=4, and fixed 5-bit). It measures complete token boundaries, consumed bits, sustained boundary recovery distance (3-token run), value error propagation, and right-censoring accounting on synthetic streams or declared payload extents. Standard library CPU only; reports aggregate JSON without logging raw pixel values.
+
+    python -I -B tools/payload_perturbation_resync.py FILE --max-bits 16384
+    python -I -B tools/payload_perturbation_resync.py --self-test
+    python -I -B tools/test_payload_perturbation_resync.py
+
+
 **`v0_sensor_controls.py`** supports #301/#325 with fixed packed-16 V0 windows
 and the unchanged synthetic rejection envelope. Stored words are separate and
 unclassified; floor(word/16) is an explicit diagnostic scale assumption. Both
