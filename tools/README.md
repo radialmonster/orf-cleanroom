@@ -1037,6 +1037,12 @@ tool reports aggregates only; no previews, payloads or images.
     python -I -B tools/capture_pair_calibration.py --screen screen.jsonl FILE ...
     python -I -B tools/test_capture_pair_calibration.py
 
+**`preview_pair_payload_contrast.py`** supports #295 by measuring bitstream payload feature contrast across candidate image pairs (such as High-Res composite ORFs and companion ORIs, or burst exposures). It computes preview DC thumbnail Pearson correlation $r$, exposure parameter matches, payload bytes, nominal uncompressed bpp (bits-per-pixel), Rice-token zero quotient $q_0$, and composite fractional distance between pair files without committing or logging raw pixel values.
+
+    python -I -B tools/preview_pair_payload_contrast.py FILE_A FILE_B
+    python -I -B tools/preview_pair_payload_contrast.py --self-test
+    python -I -B tools/test_preview_pair_payload_contrast.py
+
 **`paired_covariance_probe.py`** supports #302 Campaign B with an exploratory
 candidate-index difference covariance diagnostic. Raw mode subtracts an assumed
 zigzag mapping of literal stop-1 k=5 tokens at equal candidate indices. The
