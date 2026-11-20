@@ -1842,3 +1842,11 @@ surrogate, not physical rows or a second period.
 
     python -I -B tools/stride_fixed_support_probe.py --phase discovery --sample 7262 FILE7262
     python -I -B tools/test_stride_fixed_support_probe.py
+**`suffix_profile_probe.py`** decomposes the fixed #155 table score into
+column-profile and vertically varying residual components for named inputs.
+It checks energy identities to 1e-12 relative and curve-mean and covariance
+identities to 1e-12 absolute. A zero residual variance is undefined; no
+weak-variance cutoff is used. Shuffled profiles are independently recomputed.
+
+    python -I -B tools/suffix_profile_probe.py --phase discovery --train TRAIN1995 --sample 3801 FILE3801 --sample 3803 FILE3803 --sample 6344 FILE6344
+    python -I -B tools/test_suffix_profile_probe.py
