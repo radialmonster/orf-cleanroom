@@ -15,6 +15,7 @@ from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import suffix_width_probe as probe
+import suffix_width_synthetic_controls as controls
 
 
 def reference(data, k, stop):
@@ -31,6 +32,31 @@ def reference(data, k, stop):
 
 
 class Tests(unittest.TestCase):
+    def test_synthetic_width_ambiguity_and_residual(self):
+        bits = '0101010' * 8
+        data = bytes(int(bits[i:i + 8], 2) for i in range(0, len(bits), 8))
+        a, b = controls.case(data, ((5, 1), (6, 0)))
+        self.assertEqual(a['word_ends'], list(range(7, 57, 7)))
+        self.assertEqual(a['word_ends'], b['word_ends'])
+        self.assertEqual((a['q_histogram'], b['q_histogram']), ([[1, 8]], [[0, 8]]))
+        self.assertEqual((a['unconsumed_bits'], b['unconsumed_bits']), (0, 0))
+        a, b = controls.case(bytes.fromhex('0040'), ((5, 1), (6, 1)))
+        self.assertEqual((a['word_ends'], b['word_ends']), ([15], [16]))
+        self.assertEqual((a['unconsumed_bits'], b['unconsumed_bits']), (1, 0))
+
+    def test_synthetic_verification_extensions(self):
+        discovery = controls.run('discovery')
+        verification = controls.run('verification')
+        for name in discovery:
+            self.assertEqual(discovery[name], verification[name])
+        a, b = verification['extension_opposite_polarity_exact_end']
+        self.assertEqual(a['word_ends'], list(range(7, 113, 7)))
+        self.assertEqual(a['word_ends'], b['word_ends'])
+        self.assertEqual((a['unconsumed_bits'], b['unconsumed_bits']), (0, 0))
+        a, b = verification['extension_same_polarity_truncated_suffix']
+        self.assertEqual((a['word_ends'], b['word_ends']), ([15], [16]))
+        self.assertEqual((a['unconsumed_bits'], b['unconsumed_bits']), (1, 0))
+
     def test_public_identity_validation_before_reporting(self):
         limit = getattr(sys, 'get_int_max_str_digits', lambda: 0)()
         cases = [([('1', 'public'), ('01', 'public')], False),
