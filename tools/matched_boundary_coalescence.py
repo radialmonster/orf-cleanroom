@@ -58,7 +58,7 @@ def first_shared(start, pair):
     return (position - start, left.index(position), right.index(position))
 
 
-def measure(buf, limit):
+def measure(buf, limit, pair_callback=None):
     rows = scan(buf, 0, len(buf) * 8, limit)
     result = {'requested_tokens': limit, 'parsed_tokens': len(rows),
               'endpoint_bits': rows[-1][3] if rows else 0, 'prefix_complete': len(rows) == limit,
@@ -138,6 +138,8 @@ def measure(buf, limit):
         cpair = horizons(buf, control_end, boundary)
         if cpair is None:
             raise AssertionError('selected control horizon became incomplete')
+        if pair_callback is not None:
+            pair_callback(end, control_end, boundary)
         evalue, cvalue = first_shared(end, epair), first_shared(control_end, cpair)
         ediff, epre, etail = record(escape_stats, evalue, epair)
         cdiff, cpre, ctail = record(control_stats, cvalue, cpair)
@@ -164,6 +166,20 @@ def measure(buf, limit):
     return result
 
 
+def locate_snapshot(data):
+    best = max(Tiff(data).all_ifds(), key=lambda d: sum(d.get(0x117) or []))
+    offsets, lengths = best[0x111], best[0x117]
+    if len(offsets) != 1 or len(lengths) != 1:
+        raise ValueError('one contiguous strip required')
+    off, length = offsets[0], lengths[0]
+    w, h = best[0x100][0], best[0x101][0]
+    if off < 0 or length <= 0 or off + length > len(data) or w <= 0 or h <= 0:
+        raise ValueError('invalid payload bounds or dimensions')
+    if size_class(length, w, h) != 'variable' or best.get(0x103) != [1]:
+        raise ValueError('variable-size compression-tag-1 payload required')
+    return w, h, data[off:off + length]
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--sample', nargs=3, required=True, metavar=('PUBLIC_NAME', 'SHA256', 'FILE'))
@@ -177,17 +193,9 @@ def main():
             data = handle.read()
         if hashlib.sha256(data).hexdigest() != digest:
             raise ValueError('hash mismatch')
-        best = max(Tiff(data).all_ifds(), key=lambda d: sum(d.get(0x117) or []))
-        offsets, lengths = best[0x111], best[0x117]
-        if len(offsets) != 1 or len(lengths) != 1:
-            raise ValueError('one contiguous strip required')
-        off, length = offsets[0], lengths[0]
-        w, h = best[0x100][0], best[0x101][0]
-        if off < 0 or length <= 0 or off + length > len(data) or w <= 0 or h <= 0:
-            raise ValueError('invalid payload bounds or dimensions')
-        if size_class(length, w, h) != 'variable' or best.get(0x103) != [1]:
-            raise ValueError('variable-size compression-tag-1 payload required')
-        result = measure(data[off:off + length], args.tokens)
+        w, h, payload = locate_snapshot(data)
+        length = len(payload)
+        result = measure(payload, args.tokens)
     except (OSError, ValueError, KeyError, IndexError, TypeError, struct.error) as exc:
         ap.exit(1, 'measurement failed: %s\n' % type(exc).__name__)
     hashes = {}

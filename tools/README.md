@@ -1,5 +1,14 @@
 # tools
 
+**`equal_bit_coalescence.py`** preserves #781 anchor selection and compares
+the two candidate parses under common absolute bit ends at budgets 36, 60, 84
+and 156. It reports paired categories, per-parse word/q0 denominators and
+shared-word cancellation. Coalescence does not establish escape syntax or
+physical framing; the fixed 24-word selection guarantees budget eligibility.
+
+    python -I -B tools/equal_bit_coalescence.py --phase discovery --sample 5283 PATH5283 --sample 5286 PATH5286
+    python -I -B tools/test_equal_bit_coalescence.py
+
 **`bridge_scale_probe.py`** extends @mtakemoto's #64 suffix bridge statistic
 to five fixed scales on common 512-token escape-free superblocks. Its pooled
 exact permutation means are descriptive, not significance or physical rows;
