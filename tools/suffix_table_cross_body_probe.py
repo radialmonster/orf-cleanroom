@@ -111,8 +111,10 @@ def validate_preview_sampling(data):
     raise ValueError('invalid baseline frame')
 
 
-def load(sample_id, path):
-    name, expected, width, height = SAMPLES[sample_id]
+def load(sample_id, path, samples=None):
+    if samples is None:
+        samples = SAMPLES
+    name, expected, width, height = samples[sample_id]
     with open(path, 'rb') as stream:
         data = stream.read(MAX_BYTES + 1)
     if len(data) > MAX_BYTES:
@@ -164,6 +166,32 @@ def score(x, y, q, s, info, fit):
             'positive_above_all_four': r > 0 and all(r > item['r'] for item in shuffles)}
 
 
+def run(phase, train_path, sample_paths, samples, measure):
+    try:
+        x, y, _, _, info = load('1995', train_path, samples)
+        cols = info['preview_width_blocks']
+        fit_y = [v for i, v in enumerate(y) if (i // cols) % 2 == 0]
+        if not all(math.isfinite(v) for v in fit_y) or len(set(fit_y)) < 2:
+            raise ValueError('undefined training variance')
+        fit = fitted_table(x, y, info['used_preview_rows'], info['preview_width_blocks'])
+        if len(fit) != 32 or not all(math.isfinite(v) for v in fit):
+            raise ValueError('invalid table')
+        info['table_sha256_binary64_be'] = hashlib.sha256(struct.pack('>32d', *fit)).hexdigest()
+    except (OSError, ValueError, IndexError, KeyError, TypeError, ZeroDivisionError, struct.error) as exc:
+        return {'status': 'unknown_training', 'error_type': type(exc).__name__}, 1
+    results = []
+    for sid, path in sample_paths:
+        try:
+            x, y, q, s, target = load(sid, path, samples)
+            result = measure(x, y, q, s, target, fit)
+            results.append({'sample': target, 'status': 'ok', 'measurement': result})
+        except (OSError, ValueError, IndexError, KeyError, TypeError, ZeroDivisionError, struct.error) as exc:
+            results.append({'sample': {'id': sid, 'name': samples[sid][0], 'sha256': samples[sid][1]},
+                            'status': 'unknown', 'error_type': type(exc).__name__})
+    return {'phase': phase, 'train': info, 'results': results}, int(
+        any(row['status'] != 'ok' for row in results))
+
+
 def main():
     ap = SafeParser(description=__doc__)
     ap.add_argument('--phase', choices=tuple(PHASES), required=True,
@@ -174,30 +202,9 @@ def main():
     args = ap.parse_args()
     if tuple(x[0] for x in args.sample) != PHASES[args.phase]:
         ap.error('frozen sample order required')
-    try:
-        x, y, _, _, info = load('1995', args.train)
-        cols = info['preview_width_blocks']
-        fit_y = [v for i, v in enumerate(y) if (i // cols) % 2 == 0]
-        if not all(math.isfinite(v) for v in fit_y) or len(set(fit_y)) < 2:
-            raise ValueError('undefined training variance')
-        fit = fitted_table(x, y, info['used_preview_rows'], info['preview_width_blocks'])
-        if len(fit) != 32 or not all(math.isfinite(v) for v in fit):
-            raise ValueError('invalid table')
-        info['table_sha256_binary64_be'] = hashlib.sha256(struct.pack('>32d', *fit)).hexdigest()
-    except (OSError, ValueError, IndexError, KeyError, TypeError, ZeroDivisionError, struct.error) as exc:
-        print(json.dumps({'status': 'unknown_training', 'error_type': type(exc).__name__}))
-        return 1
-    results = []
-    for sid, path in args.sample:
-        try:
-            x, y, q, s, target = load(sid, path)
-            result = score(x, y, q, s, target, fit)
-            results.append({'sample': target, 'status': 'ok', 'measurement': result})
-        except (OSError, ValueError, IndexError, KeyError, TypeError, ZeroDivisionError, struct.error) as exc:
-            results.append({'sample': {'id': sid, 'name': SAMPLES[sid][0], 'sha256': SAMPLES[sid][1]},
-                            'status': 'unknown', 'error_type': type(exc).__name__})
-    print(json.dumps({'phase': args.phase, 'train': info, 'results': results}, allow_nan=False))
-    return int(any(row['status'] != 'ok' for row in results))
+    report, status = run(args.phase, args.train, args.sample, SAMPLES, score)
+    print(json.dumps(report, allow_nan=False))
+    return status
 
 
 if __name__ == '__main__':
