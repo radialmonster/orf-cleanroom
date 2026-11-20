@@ -8,7 +8,7 @@ the fixed-size rule). Standard library only (Python 3.8+). Released under CC0 1.
 Handles the exact fixed-size payloads of VARIANTS.md V0:
   packed-12    verified (findings/V0/2026-10-19--radialmonster--packed-12-msb-two-values-per-three-bytes)
   packed-12.8  verified (findings/V0/2026-10-20--radialmonster--packed-12-8-groups-of-ten-values)
-  packed-16    verified (findings/V0/2026-10-21--radialmonster--packed16-whole-frame-word-layout)
+  packed-16    verified (findings/V0/2026-11-20--radialmonster--packed16-independent-reproduction)
 Two-field row-layout evidence is verified on the measured cohort (F_ROWLAYOUT,
 partial verification of lead #77); general layout selection remains unverified.
 Compressed payloads (V1, V2, ...) are detected and reported as "not yet specified".
@@ -47,7 +47,7 @@ F_PHASE = "2026-10-26--radialmonster--row-phase-reproduces-two-files"
 F_FIG8 = "2026-10-21--radialmonster--figure8-negative-highres-e-m1-mark-ii"
 F_PACKED12 = "2026-10-19--radialmonster--packed-12-msb-two-values-per-three-bytes"
 F_PACKED128 = "2026-10-20--radialmonster--packed-12-8-groups-of-ten-values"
-F_PACKED16 = "2026-10-21--radialmonster--packed16-whole-frame-word-layout"
+F_PACKED16 = "2026-11-20--radialmonster--packed16-independent-reproduction"
 F_TOY = "2026-10-26--radialmonster--packed16-toy-envelope-reproduction"
 F_FIXED = "2026-10-19--radialmonster--fixed-size-payloads-exact-else-compressed"
 F_ROWLAYOUT = "2026-10-21--radialmonster--two-field-row-layout-reproduction"
@@ -65,7 +65,7 @@ STATUS = {
     "packed-12": "verified (%s, self-verified)" % F_PACKED12,
     "packed-12.8": "verified (%s, self-verified)" % F_PACKED128,
     # F_TOY is a separate synthetic-envelope stress result, not sensor truth.
-    "packed-16": "verified (%s, self-verified); toy envelope: %s (construction labels only)" % (F_PACKED16, F_TOY),
+    "packed-16": "verified (%s, independently verified by @mszyndel); toy envelope: %s (construction labels only)" % (F_PACKED16, F_TOY),
 }
 # the order choices per packing; the first one wins a tie
 ORDERS = {
@@ -131,6 +131,9 @@ def unpack_row(packing, order, raw, w):
             out[2 * k + 1::10] = array("H", [y >> 4 | z << 4 for y, z in zip(b1, b2)])
         pad = sum(1 for p in raw[15::16] if p)   # F_PACKED128: byte 15 is 0 on all 5 CC0 files
     elif packing == "packed-16":
+        # F_PACKED16 independently reproduces the whole-frame stored-word
+        # counts, orders and reference hashes on the same three public files;
+        # the 793 E-400 low-nibble exceptions are retained (V0 S4/S6).
         # F_PACKED16: one 16-bit word per pixel (12-bit value << 4 on the three CC0
         # files); byte order per body follows the TIFF mark on 3 of 3 (F_PACKED16;
         # also measured whole-frame in 2026-10-21--radialmonster--iiro-packed12-and-packed16-whole-frame-byte-order,
