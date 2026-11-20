@@ -1858,3 +1858,16 @@ criterion is descriptive and does not establish physical registration.
 
     python -I -B tools/suffix_cross_preview_probe.py --phase discovery --train TRAIN1995 --sample 3800 FILE3800 --sample 3804 FILE3804
     python -I -B tools/test_suffix_cross_preview_probe.py
+
+**`patent_tag_inventory.py`** inventories direct TIFF BYTE entries for one
+illustrative 8x8 full-image packaging in JP4493551B2 figures 9, 20 and 21. The
+scope is IFD0, next IFDs, SubIFDs, and standard Exif, GPS and Interoperability
+links. Private nested structures such as MakerNotes are outside scope. The
+output distinguishes candidates by structure from unresolved coverage.
+
+    python -I -B tools/patent_tag_inventory.py --phase discovery --sample 1993 FILE_1993 --sample 1994 FILE_1994
+    python -I -B tools/test_patent_tag_inventory.py
+
+Verification repeats those files and appends `--sample 1997 FILE_1997` and
+`--sample 7265 FILE_7265` with `--phase verification`. Each snapshot must match
+its fixed public hash and geometry. No value bytes or local paths are printed.
