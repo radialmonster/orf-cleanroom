@@ -7,7 +7,7 @@ the fixed-size rule). Standard library only (Python 3.8+). Released under CC0 1.
 
 Handles the exact fixed-size payloads of VARIANTS.md V0:
   packed-12    verified (findings/V0/2026-10-19--radialmonster--packed-12-msb-two-values-per-three-bytes)
-  packed-12.8  verified (findings/V0/2026-10-20--radialmonster--packed-12-8-groups-of-ten-values)
+  packed-12.8  verified (findings/V0/2026-11-20--radialmonster--packed128-independent-reproduction)
   packed-16    verified (findings/V0/2026-10-21--radialmonster--packed16-whole-frame-word-layout)
 Two-field row-layout evidence is verified on the measured cohort (F_ROWLAYOUT,
 partial verification of lead #77); general layout selection remains unverified.
@@ -46,7 +46,7 @@ F_STRIDE_OM5 = "2026-11-12--radialmonster--wide-row-stride-om5-50-own-files"
 F_PHASE = "2026-10-26--radialmonster--row-phase-reproduces-two-files"
 F_FIG8 = "2026-10-21--radialmonster--figure8-negative-highres-e-m1-mark-ii"
 F_PACKED12 = "2026-10-19--radialmonster--packed-12-msb-two-values-per-three-bytes"
-F_PACKED128 = "2026-10-20--radialmonster--packed-12-8-groups-of-ten-values"
+F_PACKED128 = "2026-11-20--radialmonster--packed128-independent-reproduction"
 F_PACKED16 = "2026-10-21--radialmonster--packed16-whole-frame-word-layout"
 F_TOY = "2026-10-26--radialmonster--packed16-toy-envelope-reproduction"
 F_FIXED = "2026-10-19--radialmonster--fixed-size-payloads-exact-else-compressed"
@@ -63,7 +63,7 @@ F_DEP_CORR = "2026-10-22--radialmonster--token-dependence-independence-wording-c
 # what the evidence is for each layout
 STATUS = {
     "packed-12": "verified (%s, self-verified)" % F_PACKED12,
-    "packed-12.8": "verified (%s, self-verified)" % F_PACKED128,
+    "packed-12.8": "verified (%s, independently verified by @mszyndel; pair order undecided)" % F_PACKED128,
     # F_TOY is a separate synthetic-envelope stress result, not sensor truth.
     "packed-16": "verified (%s, self-verified); toy envelope: %s (construction labels only)" % (F_PACKED16, F_TOY),
 }
@@ -122,6 +122,10 @@ def unpack_row(packing, order, raw, w):
         out[0::2] = array("H", [x << 4 | y >> 4 for x, y in zip(b0, b1)])
         out[1::2] = array("H", [(y & 15) << 8 | z for y, z in zip(b1, b2)])
     elif packing == "packed-12.8":
+        # F_PACKED128 independently reproduces the original
+        # 2026-10-20--radialmonster--packed-12-8-groups-of-ten-values claim
+        # and corrects its reporting labels. Pair order remains undecided;
+        # all five existing reference hashes match (V0 S3/S6).
         # F_PACKED128 (lead #70): rows are runs of 16-byte groups; bytes 0..14 are five
         # 3-byte units, each two 12-bit values least-significant bit first
         # (first = b0 | (b1 & 15) << 8, second = b1 >> 4 | b2 << 4); byte 15 is padding.
@@ -547,7 +551,7 @@ def decode_file(path, order=None, layout=None):
     if packing == "packed-16":
         r["notes"].append("layout is %s" % STATUS[packing])
     elif packing != "packed-12":
-        r["notes"].append("layout is UNVERIFIED (%s); pixel order inside a unit is undecided" % STATUS[packing].split("(")[1].rstrip(")"))
+        r["notes"].append("layout is %s; pixel order inside a unit is undecided" % STATUS[packing])
     else:
         r["notes"].append("pixel order inside a two-pixel unit is undecided by the evidence")
     if layout == "two-field":
