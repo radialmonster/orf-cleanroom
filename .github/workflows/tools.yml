@@ -232,6 +232,7 @@ jobs:
           python -I -B tools/test_suffix_width_probe.py
           python -I -B tools/test_equal_bit_coalescence.py
           python -I -B tools/test_literal_repeat_probe.py
+          python -I -B tools/test_periodic_rice_orbit.py
           python -I -B tools/test_phrase_match_probe.py
           python -I -B tools/test_bridge_scale_probe.py
           python -I -B tools/test_same_field_2w_probe.py
