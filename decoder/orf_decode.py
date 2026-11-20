@@ -7,7 +7,7 @@ the fixed-size rule). Standard library only (Python 3.8+). Released under CC0 1.
 
 Handles the exact fixed-size payloads of VARIANTS.md V0:
   packed-12    verified (findings/V0/2026-11-20--radialmonster--packed12-independent-reproduction)
-  packed-12.8  verified (findings/V0/2026-10-20--radialmonster--packed-12-8-groups-of-ten-values)
+  packed-12.8  verified (findings/V0/2026-11-20--radialmonster--packed128-independent-reproduction)
   packed-16    verified (findings/V0/2026-11-20--radialmonster--packed16-independent-reproduction)
 Two-field row-layout evidence is verified on the measured cohort (F_ROWLAYOUT,
 partial verification of lead #77); general layout selection remains unverified.
@@ -46,7 +46,7 @@ F_STRIDE_OM5 = "2026-11-12--radialmonster--wide-row-stride-om5-50-own-files"
 F_PHASE = "2026-10-26--radialmonster--row-phase-reproduces-two-files"
 F_FIG8 = "2026-10-21--radialmonster--figure8-negative-highres-e-m1-mark-ii"
 F_PACKED12 = "2026-11-20--radialmonster--packed12-independent-reproduction"
-F_PACKED128 = "2026-10-20--radialmonster--packed-12-8-groups-of-ten-values"
+F_PACKED128 = "2026-11-20--radialmonster--packed128-independent-reproduction"
 F_PACKED16 = "2026-11-20--radialmonster--packed16-independent-reproduction"
 F_TOY = "2026-10-26--radialmonster--packed16-toy-envelope-reproduction"
 F_FIXED = "2026-10-19--radialmonster--fixed-size-payloads-exact-else-compressed"
@@ -63,7 +63,7 @@ F_DEP_CORR = "2026-10-22--radialmonster--token-dependence-independence-wording-c
 # what the evidence is for each layout
 STATUS = {
     "packed-12": "verified (%s, independently verified by @mszyndel; pair order undecided)" % F_PACKED12,
-    "packed-12.8": "verified (%s, self-verified)" % F_PACKED128,
+    "packed-12.8": "verified (%s, independently verified by @mszyndel; pair order undecided)" % F_PACKED128,
     # F_TOY is a separate synthetic-envelope stress result, not sensor truth.
     "packed-16": "verified (%s, independently verified by @mszyndel); toy envelope: %s (construction labels only)" % (F_PACKED16, F_TOY),
 }
@@ -125,6 +125,10 @@ def unpack_row(packing, order, raw, w):
         out[0::2] = array("H", [x << 4 | y >> 4 for x, y in zip(b0, b1)])
         out[1::2] = array("H", [(y & 15) << 8 | z for y, z in zip(b1, b2)])
     elif packing == "packed-12.8":
+        # F_PACKED128 independently reproduces the original
+        # 2026-10-20--radialmonster--packed-12-8-groups-of-ten-values claim
+        # and corrects its reporting labels. Pair order remains undecided;
+        # all five existing reference hashes match (V0 S3/S6).
         # F_PACKED128 (lead #70): rows are runs of 16-byte groups; bytes 0..14 are five
         # 3-byte units, each two 12-bit values least-significant bit first
         # (first = b0 | (b1 & 15) << 8, second = b1 >> 4 | b2 << 4); byte 15 is padding.
@@ -331,7 +335,8 @@ def decode_file(path, order=None, layout=None):
         # 2026-11-17--radialmonster--free-anchor-second-order-windows:
         # conditional free-anchor counts and escape-undefined windows do not
         # specify physical framing, a predictor or decode (V1 G2).
-        # F_DEP (Partial for #11): the cross-field/same-field token-dependence
+        # F_DEP (Partial for #11, independently reproduced by
+        # 2026-11-18--radialmonster--token-dependence-new-bodies): the cross-field/same-field token-dependence
         # structure appears on whole E-M1 Mark III and E-M5 Mark III payloads
         # at lower MI; it establishes no values, row stride, geometry or decode
         # (V1 S1.17). F_DEP_CORR (Partial correction for #11, corrects F_DEP):
@@ -364,7 +369,9 @@ def decode_file(path, order=None, layout=None):
         # 2026-10-27--radialmonster--conditional-phase-refit-reproduction (#512):
         # block-rotation reference counts are descriptive and specify no
         # significance, physical rows or decode (V1 S1.10, G3).
-        # F_NULL_BPP and F_NULL_BPP_2 (Partial for #106) measure only the k=5
+        # F_NULL_BPP (independently reproduced by
+        # 2026-11-18--radialmonster--null-distance-tracks-bpp-within-body) and
+        # F_NULL_BPP_2 (Partial for #106) measure only the k=5
         # tokens-per-pixel distance from a Bernoulli null and its bpp/body relation;
         # they specify no value assembly or compressed decode step (V2 S1.1).
         # 2026-10-28--radialmonster--synthetic-adaptive-state-recovery:
@@ -503,9 +510,13 @@ def decode_file(path, order=None, layout=None):
         # 2026-11-17--radialmonster--fixed-rice-serialization-contracts (#799):
         # fixed whole-strip Rice contract failures do not isolate serialization
         # or establish framing or a codec (V1 G11).
+        # Independently reproduced by @mszyndel in
+        # 2026-11-20--radialmonster--rice-serialization-independent-reproduction:
+        # all four reports match; predeclared PB040038 gives the same full-contract
+        # failures. Shared parser/locator and studied captures do not identify framing.
         # 2026-11-17--radialmonster--learned-suffix-table-vertical-shifts (#803):
         # finite circular-shift results do not establish physical registration.
-        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; unassigned #338/#561 dark offsets, #734 fixed-period control and #757 local suffix balance and #765 conditional ordering and #777 free-anchor constraints and #781 matched boundaries and #788 origin sensitivity and #792 common phase and #799 whole-strip contracts and #803 table shifts and #807 A15 candidate specify no codec or physical rows)")
+        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; unassigned #338/#561 dark offsets, #734 fixed-period control and #757 local suffix balance and #765 conditional ordering and #777 free-anchor constraints and #781 matched boundaries and #788 origin sensitivity and #792 common phase and independently reproduced #799 whole-strip contracts and #803 table shifts and #807 A15 candidate specify no codec or physical rows)")
         r["notes"].append("compressed payload (%s bits per pixel); no decoder or padding rule is specified yet; suffix associations do not specify values, see specs/V1.md S1.1-S1.2, S1.7-S1.21, S2.3, G2, specs/V2.md S1.1-S1.2 and ROADMAP.md" % sig["bpp"])
         return r
     packing = sc
@@ -553,7 +564,7 @@ def decode_file(path, order=None, layout=None):
     if packing == "packed-16":
         r["notes"].append("layout is %s" % STATUS[packing])
     elif packing != "packed-12":
-        r["notes"].append("layout is UNVERIFIED (%s); pixel order inside a unit is undecided" % STATUS[packing].split("(")[1].rstrip(")"))
+        r["notes"].append("layout is %s; pixel order inside a unit is undecided" % STATUS[packing])
     else:
         r["notes"].append("pixel order inside a two-pixel unit is undecided by the evidence")
     if layout == "two-field":
