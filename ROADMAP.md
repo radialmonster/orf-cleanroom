@@ -55,6 +55,8 @@ Fixed nominal-position controls reproduce on two public files and extend to four
 
 Fixed candidate-token lag bands reproduce on two public files and extend to a fifth band on four files (`2026-10-28--radialmonster--candidate-lag-bands`). The shared unassigned rank comparison does not establish stationarity or physical framing (V1 S1.6/G3).
 
+A fixed nominal 2W donor lowers held-out q>0 loss on three of four unassigned streams in band 2 and raises suffix b0 loss in all six sample-band pairs. The 2W+128 control gains more than 2W on the OM-5 file. Physical framing and the broader search in #29 stay open (`2026-11-20--radialmonster--nominal-2w-heldout-gains`, self-verified #848, V1 S1.6/G3).
+
 A fixed local conditional-order diagnostic reproduces on 1051 and extends to 6343: strict increase and nondecrease fail in all 18 declared windows, with differing adjacent patterns on the two previously exposed files (`2026-11-17--radialmonster--local-conditional-suffix-order`, self-verified #765). Overlap and prior exposure limit interpretation; historical roughly linear wording and physical framing remain open (V1 S1.6/Gaps).
 
 A fixed free-anchor second-order range family has mixed B16 outcomes on three previously studied public files, while every selected window on a fourth is escape-undefined (`2026-11-17--radialmonster--free-anchor-second-order-windows`, self-verified #777). The permissive lane breaks and assumed token-to-row mapping do not establish a predictor, framing or codec (V1 G2).
