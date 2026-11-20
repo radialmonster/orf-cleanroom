@@ -1,5 +1,13 @@
 # tools
 
+**`bridge_scale_probe.py`** extends @mtakemoto's #64 suffix bridge statistic
+to five fixed scales on common 512-token escape-free superblocks. Its pooled
+exact permutation means are descriptive, not significance or physical rows;
+zero null energy and incomplete inputs are unknown.
+
+    python -I -B tools/bridge_scale_probe.py --phase discovery --sample 1993 PATH1993 --sample 5283 PATH5283
+    python -I -B tools/test_bridge_scale_probe.py
+
 **`phrase_match_probe.py`** compares non-overlapping two-suffix phrases in
 both phases at lags 2, W and 2W, using shared eligible support and the exact
 within-block phrase-permutation expectation. Nominal blocks are not physical
