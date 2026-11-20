@@ -75,6 +75,8 @@ A fixed learned-suffix-table shift test reproduces rank 2/46 on 1997 and 1998, e
 
 The same fixed table's horizontal test gives declared-alignment ranks 6/400 and 54/400 on 1997 and 1998 and 53/400 and 27/400 on predeclared extensions 1993 and 1994. A competing shift scores higher on each file. The candidate mapping and circular grid leave physical registration open (`2026-11-20--radialmonster--learned-suffix-table-horizontal-shifts`, self-verified #840; V1 S1.11/G3).
 
+At fixed nominal alignment the 1995-fitted table scores below all four shuffles on normal E-M1 Mark III 3800 and OM-5 6343 while the 1997 control repeats r=+0.10556. The predeclared High Res 3801 extension gives r=+0.60331 above all four shuffles. Normal OM-1 5283 fails the same criterion. The captures leave mode dependence and physical registration open (`2026-11-20--radialmonster--frozen-suffix-table-cross-body-transfer`, self-verified #876, V1 S1.11/G1/G7).
+
 In six matched escape/control candidate cases on four previously studied public files, every complete pair shares a bit boundary within the declared 24-word horizons (`2026-11-17--radialmonster--matched-boundary-coalescence`, self-verified #781). Shared starts count; reused controls and unequal bit budgets limit interpretation, and physical escape syntax remains open (V1 G3).
 
 Keeping the same pairs and using a common 156-bit cutoff gives a complete shared word on both sides of every pair in all six cases. The 36-bit cutoff gives discordant pair outcomes and boundary-only cases. Physical framing and escape syntax remain open (`2026-11-20--radialmonster--paired-common-end-candidate-coalescence`, self-verified #860, V1 G3).
