@@ -1,5 +1,16 @@
 # tools
 
+**`phrase_match_probe.py`** compares non-overlapping two-suffix phrases in
+both phases at lags 2, W and 2W, using shared eligible support and the exact
+within-block phrase-permutation expectation. Nominal blocks are not physical
+rows; the expectation is not a p-value or evidence of dictionary coding.
+This extends @mtakemoto's single-suffix comparison in #31 and PR #89. Target
+and donor bounds are half-open envelopes, not lists of retained positions.
+Inputs and phases are fixed; short inputs and empty support are unknown.
+
+    python -I -B tools/phrase_match_probe.py --phase discovery --sample 3800 PATH3800 --sample 1331 PATH1331 --sample 3210 PATH3210
+    python -I -B tools/test_phrase_match_probe.py
+
 **`same_field_2w_probe.py`** compares local five-lag binary models against
 their fixed nominal 2W and 2W±128 same-field donors on disjoint candidate-token
 bands. Common support omits an escape at any declared endpoint; KT half-count
