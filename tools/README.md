@@ -1,5 +1,16 @@
 # tools
 
+**`literal_repeat_probe.py`** fits 1..256-bit periodic majority templates on a
+fixed white-file window and charges the self-contained gamma-gap exception
+description on fixed disjoint windows, the whole strip and a dark comparator.
+Template bits and exception positions remain local. Exact costs are counted
+without constructing a real wire stream; synthetic round trips test the format.
+This descriptive literal-bit model does not identify sensor values or a codec.
+
+    python -I -B tools/literal_repeat_probe.py --phase discovery --sample PA210010.ORF PATH_WHITE
+    python -I -B tools/literal_repeat_probe.py --phase verification --sample PA210010.ORF PATH_WHITE --sample PA200010.ORF PATH_DARK
+    python -I -B tools/test_literal_repeat_probe.py
+
 **`equal_bit_coalescence.py`** preserves #781 anchor selection and compares
 the two candidate parses under common absolute bit ends at budgets 36, 60, 84
 and 156. It reports paired categories, per-parse word/q0 denominators and
