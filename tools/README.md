@@ -1887,3 +1887,18 @@ declaration reports its own marker status.
 Verification repeats these and appends `--sample 1996 FILE1996 --sample 3804 FILE3804`.
 All files are fixed public CC0 identities checked by hash; establish retained
 licence and manifest provenance separately. No image or JPEG bytes are printed.
+
+**`preview_scalar_correspondence.py`** compares selected JPEG lengths and
+starts with scalar LONG values in IFD0 and two bounded sample-derived MakerNote
+paths. Shared length-matching tag identifiers are candidates, not established
+declarations. Each path can be unknown; no unrelated tag values are printed.
+Verification requires a saved discovery JSON via `--frozen`. It compares the
+original rows and candidate set before opening the extension files and evaluates
+the frozen candidates on those additions. The selector tie check makes one local
+in-memory copy of the input.
+
+    python -I -B tools/preview_scalar_correspondence.py --phase discovery --sample 1994 FILE1994 --sample 1995 FILE1995 --sample 3800 FILE3800 --sample 3802 FILE3802
+    python -I -B tools/test_preview_scalar_correspondence.py
+
+For verification, use `--phase verification --frozen DISCOVERY_JSON` and append
+`--sample 1998 FILE1998 --sample 3801 FILE3801` to the same sample list.
