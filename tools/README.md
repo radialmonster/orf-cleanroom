@@ -1819,3 +1819,11 @@ bound counts, measurements and classification of the toy construction labels.
 
     python -I -B tools/v0_window_envelope_probe.py --phase discovery --sample 1800 E1_FILE --sample 2151 E400_FILE --sample 5424 E10_FILE
     python -I -B tools/test_v0_window_envelope_probe.py
+
+**`suffix_table_cross_body_probe.py`** holds the #155 learned table fixed across
+named public bodies and reports its legacy score and four within-row shuffles.
+It compares nominal-width token blocks with quantized first-component preview DC.
+Verification repeats discovery and adds files 3801 and 5283.
+
+    python -I -B tools/suffix_table_cross_body_probe.py --phase discovery --train TRAIN1995 --sample 1997 FILE1997 --sample 3800 FILE3800 --sample 6343 FILE6343
+    python -I -B tools/test_suffix_table_cross_body_probe.py
