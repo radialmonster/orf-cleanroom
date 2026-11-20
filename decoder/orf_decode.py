@@ -520,7 +520,10 @@ def decode_file(path, order=None, layout=None):
         # failures. Shared parser/locator and studied captures do not identify framing.
         # 2026-11-17--radialmonster--learned-suffix-table-vertical-shifts (#803):
         # finite circular-shift results do not establish physical registration.
-        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; unassigned #338/#561 dark offsets, #734 fixed-period control and #757 local suffix balance and #765 conditional ordering and #777 free-anchor constraints and #781 matched boundaries and #788 origin sensitivity and #792 common phase and independently reproduced #799 whole-strip contracts and #803 table shifts and #807 A15 candidate and #829 declared-strip audit specify no codec or physical rows)")
+        # 2026-11-20--radialmonster--learned-suffix-table-horizontal-shifts (#840):
+        # the declared horizontal shift loses on four fixed candidate grids;
+        # physical registration remains open (V1 S1.11/G3).
+        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; unassigned #338/#561 dark offsets, #734 fixed-period control and #757 local suffix balance and #765 conditional ordering and #777 free-anchor constraints and #781 matched boundaries and #788 origin sensitivity and #792 common phase and independently reproduced #799 whole-strip contracts and #803 table shifts and #807 A15 candidate and #829 declared-strip audit and #840 horizontal shifts specify no codec or physical rows)")
         r["notes"].append("compressed payload (%s bits per pixel); no decoder or padding rule is specified yet; suffix associations do not specify values, see specs/V1.md S1.1-S1.2, S1.7-S1.21, S2.3, G2, specs/V2.md S1.1-S1.2 and ROADMAP.md" % sig["bpp"])
         return r
     packing = sc
