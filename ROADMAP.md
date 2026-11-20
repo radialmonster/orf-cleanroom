@@ -83,6 +83,8 @@ The stationary column profile contributes +0.60493 to the 3801 score and the res
 
 In the fixed normal-mode cross-preview matrix, 3800 and 3804 exceed their same-file shuffle controls, yet each scores higher against a different file's preview after adding predeclared 3802. None of the three sources has a positive diagonal above both competitors. The registered held-out comparison remains in V1 G1/G3/G4/G7 (`2026-11-20--radialmonster--suffix-cross-preview-residual-specificity`, self-verified #896, V1 S1.11).
 
+The fixed Japanese block-choice example yields zero exact-count TIFF BYTE tags in the visited directory graphs of public files 1993, 1994, 1997 and 7265. Each has an unvisited MakerNote. Applicable private metadata and physical framing remain open (`2026-11-20--radialmonster--direct-byte-block-choice-tag-inventory`, self-verified #900, V1 G11).
+
 In six matched escape/control candidate cases on four previously studied public files, every complete pair shares a bit boundary within the declared 24-word horizons (`2026-11-17--radialmonster--matched-boundary-coalescence`, self-verified #781). Shared starts count; reused controls and unequal bit budgets limit interpretation, and physical escape syntax remains open (V1 G3).
 
 Keeping the same pairs and using a common 156-bit cutoff gives a complete shared word on both sides of every pair in all six cases. The 36-bit cutoff gives discordant pair outcomes and boundary-only cases. Physical framing and escape syntax remain open (`2026-11-20--radialmonster--paired-common-end-candidate-coalescence`, self-verified #860, V1 G3).

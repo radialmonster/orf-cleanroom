@@ -83,6 +83,21 @@ That lead records a discrepancy with the length column in
 `1110` and length 9 for `111111110`, matching the printed codewords.
 The table leaves the category-to-residual and sign rules open.
 
+### JP4493551B2: block-specific table choices
+
+[Japanese grant](https://patentimages.storage.googleapis.com/c2/26/72/4767bd56c305cc/JP4493551B2.pdf),
+Figures 9 and 20–21 and paragraphs 0079–0090. Figure 9 illustrates an 8-by-8
+grid and permits other block sizes and a single block. The file-layout example
+records a coding-table choice per block. The example with four two-bit choices
+per byte gives a count of floor(N / 4) + 1 for N blocks. The grant leaves the
+numeric tag identifier and applicable ORF layout open.
+
+[Finding #900](findings/container/2026-11-20--radialmonster--direct-byte-block-choice-tag-inventory.md)
+tests the exact example as one direct TIFF BYTE tag. Four public ORFs have
+neither count in the visited IFDs. Each has an unvisited MakerNote. This narrows
+the direct tag representation on those files. Physical coded boundaries and
+private metadata remain open (V1 G11).
+
 ### JP2008312193A: RAW analysis feeding JPEG parameters
 
 [Publication text](https://patents.google.com/patent/JP2008312193A/en).
