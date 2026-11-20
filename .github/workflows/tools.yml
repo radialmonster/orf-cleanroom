@@ -131,6 +131,7 @@ jobs:
           python -I -B tools/test_suffix_table_cross_body_probe.py
           python -I -B tools/test_suffix_table_highres_probe.py
           python -I -B tools/test_suffix_profile_probe.py
+          python -I -B tools/test_suffix_cross_preview_probe.py
           python -I -B tools/test_token_framing_probe.py
           python -I -B tools/test_token_anchor_sync_probe.py
           python -I -B tools/test_patent_capped_prefix_probe.py

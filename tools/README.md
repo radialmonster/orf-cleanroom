@@ -1850,3 +1850,11 @@ weak-variance cutoff is used. Shuffled profiles are independently recomputed.
 
     python -I -B tools/suffix_profile_probe.py --phase discovery --train TRAIN1995 --sample 3801 FILE3801 --sample 3803 FILE3803 --sample 6344 FILE6344
     python -I -B tools/test_suffix_profile_probe.py
+
+**`suffix_cross_preview_probe.py`** reports an ordered matrix of fixed-table
+residual predictions against same-geometry previews; rows are source files and
+columns are targets. Four source shuffles are reused across every target. The
+criterion is descriptive and does not establish physical registration.
+
+    python -I -B tools/suffix_cross_preview_probe.py --phase discovery --train TRAIN1995 --sample 3800 FILE3800 --sample 3804 FILE3804
+    python -I -B tools/test_suffix_cross_preview_probe.py
