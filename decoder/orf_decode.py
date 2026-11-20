@@ -6,7 +6,7 @@ packed-16), findings/container/ (payload location and
 the fixed-size rule). Standard library only (Python 3.8+). Released under CC0 1.0.
 
 Handles the exact fixed-size payloads of VARIANTS.md V0:
-  packed-12    verified (findings/V0/2026-10-19--radialmonster--packed-12-msb-two-values-per-three-bytes)
+  packed-12    verified (findings/V0/2026-11-20--radialmonster--packed12-independent-reproduction)
   packed-12.8  verified (findings/V0/2026-10-20--radialmonster--packed-12-8-groups-of-ten-values)
   packed-16    verified (findings/V0/2026-11-20--radialmonster--packed16-independent-reproduction)
 Two-field row-layout evidence is verified on the measured cohort (F_ROWLAYOUT,
@@ -45,7 +45,7 @@ F_STRIDE_LATER = "2026-10-22--radialmonster--later-band-row-stride-drift"
 F_STRIDE_OM5 = "2026-11-12--radialmonster--wide-row-stride-om5-50-own-files"
 F_PHASE = "2026-10-26--radialmonster--row-phase-reproduces-two-files"
 F_FIG8 = "2026-10-21--radialmonster--figure8-negative-highres-e-m1-mark-ii"
-F_PACKED12 = "2026-10-19--radialmonster--packed-12-msb-two-values-per-three-bytes"
+F_PACKED12 = "2026-11-20--radialmonster--packed12-independent-reproduction"
 F_PACKED128 = "2026-10-20--radialmonster--packed-12-8-groups-of-ten-values"
 F_PACKED16 = "2026-11-20--radialmonster--packed16-independent-reproduction"
 F_TOY = "2026-10-26--radialmonster--packed16-toy-envelope-reproduction"
@@ -62,7 +62,7 @@ F_DEP_CORR = "2026-10-22--radialmonster--token-dependence-independence-wording-c
 
 # what the evidence is for each layout
 STATUS = {
-    "packed-12": "verified (%s, self-verified)" % F_PACKED12,
+    "packed-12": "verified (%s, independently verified by @mszyndel; pair order undecided)" % F_PACKED12,
     "packed-12.8": "verified (%s, self-verified)" % F_PACKED128,
     # F_TOY is a separate synthetic-envelope stress result, not sensor truth.
     "packed-16": "verified (%s, independently verified by @mszyndel); toy envelope: %s (construction labels only)" % (F_PACKED16, F_TOY),
@@ -112,6 +112,9 @@ def unpack_row(packing, order, raw, w):
         # finding F_PACKED12: two 12-bit values per 3 bytes, most-significant bit first:
         # first = b0 << 4 | b1 >> 4, second = (b1 & 15) << 8 | b2. Pixel order inside the
         # unit is not decided by the evidence (finding, last sentence of the claim).
+        # The independent reproduction matches all nine reference hashes and
+        # repeats the original byte-layout families on wider windows; it does
+        # not establish physical pair order or general selectors (V0 S2/G6).
         if order == "word4-reversed":
             # finding F_PACKED12: XZ-2, XZ-10, SH-2 have the bytes reversed inside every
             # 4-byte word before the same unit layout (needs row bytes % 4 == 0 here).
