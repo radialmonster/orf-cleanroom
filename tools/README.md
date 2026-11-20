@@ -1800,3 +1800,12 @@ printed in the publication. Emits aggregate JSON only.
     python -I -B tools/two_stage_residual_probe.py --synthetic [--tokens N] [--scene SCENE]
     python -I -B tools/two_stage_residual_probe.py --self-test
     python -I -B tools/test_two_stage_residual_probe.py
+
+# Synthetic periodic Rice phase orbits
+
+`python -I -B tools/periodic_rice_orbit.py --phase discovery` enumerates every
+six-bit template and start phase for literal stop-1 k=4 and k=5. Verification
+repeats period six and adds periods five and seven. Each synthetic trajectory
+contains the visited phases, quotient and word length, cycle entry, and cycle
+length in words and bits. The input is an infinite repetition; all-zero
+templates have no stop. These results do not establish any camera syntax.
