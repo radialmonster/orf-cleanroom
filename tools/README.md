@@ -1230,6 +1230,21 @@ the common support nor its contrast is a calibrated or causal camera claim.
     python -I -B tools/b4_common_q_support.py AGGREGATE_REPORT.json
     python -I -B tools/test_b4_common_q_support.py
 
+**`suffix_width_synthetic_controls.py`** reproduces synthetic endpoint
+controls for #29 item 1. For a fixed polarity, later start positions cannot
+move the next stop earlier, so a larger k strictly increases each common
+word-index endpoint. Equal counts can still leave different residual tails.
+Opposite polarities can produce the same count and exact end: eight repetitions
+of `0101010` do so for stop-1/k=5 and stop-0/k=6. The two bytes `0040`
+give equal counts at stop-1 with one residual bit for k=5 and none for k=6.
+Camera framing, width and the historical per-row measure remain open.
+Default discovery runs these two fixtures. Verification repeats them and adds
+`0111010` repeated 16 times plus `0041`; in the latter the final stop bit
+starts a truncated k=5 word. These fixtures have no camera input.
+
+    python -I -B tools/suffix_width_synthetic_controls.py
+    python -I -B tools/suffix_width_synthetic_controls.py --phase verification
+
 **`suffix_width_probe.py`** supports the committed candidate k-scan requested
 in V1 G8 and relates to lead #29 item 1. For each whole payload it reports
 all k=2..8 and both stop-bit conventions: q opposite bits, one stop bit,
