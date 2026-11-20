@@ -20,6 +20,8 @@ from preview_ifd_extent_probe import validate_jpeg
 def fields(data, off, endian, forbidden=None, occupied=None):
     if off < 0 or off + 2 > len(data):
         raise ValueError('ifd_bounds')
+    if forbidden is not None and off < forbidden[1] and off + 2 > forbidden[0]:
+        raise ValueError('ifd_preview_overlap')
     count = struct.unpack_from(endian + 'H', data, off)[0]
     end = off + 2 + 12 * count
     if end + 4 > len(data):
@@ -51,6 +53,7 @@ def literal_fields(data, preview_start=None, preview_length=None):
     occupied = []
     outer = fields(data, root, endian, forbidden, occupied)
     paths = {'ifd0': outer}
+    relation = 'unknown'
     try:
         exif = outer.get(0x8769)
         if exif is None or exif[:2] != (4, 1) or exif[2] < 8:
@@ -62,37 +65,59 @@ def literal_fields(data, preview_start=None, preview_length=None):
         _, size, start = maker
         if start < 8 or start + size > len(data):
             raise ValueError('maker_envelope')
-        if (preview_start is not None and start < preview_start + preview_length
-                and start + size > preview_start):
-            raise ValueError('maker_preview_overlap')
+        if forbidden is not None:
+            if start <= forbidden[0] and start + size >= forbidden[1]:
+                relation = 'contained'
+            elif start < forbidden[1] and start + size > forbidden[0]:
+                relation = 'partly_overlaps'
+            else:
+                relation = 'disjoint'
         if any(start < b and start + size > a for a, b in occupied):
             raise ValueError('maker_directory_overlap')
         blob = data[start:start + size]
-        if blob.count(b'OLYMPUS\0') != 1:
+        inner_forbidden = None
+        ranges = [(0, len(blob))]
+        if forbidden is not None:
+            lo = max(0, min(size, forbidden[0] - start))
+            hi = max(0, min(size, forbidden[1] - start))
+            if lo < hi:
+                inner_forbidden = (lo, hi)
+                ranges = [(0, lo), (hi, size)]
+        markers = []
+        for lo, hi in ranges:
+            pos = blob.find(b'OLYMPUS\0', lo, hi)
+            while pos >= 0:
+                markers.append(pos)
+                pos = blob.find(b'OLYMPUS\0', pos + 1, hi)
+        if len(markers) != 1:
             raise ValueError('maker_header')
-        base = blob.find(b'OLYMPUS\0') + 8
+        base = markers[0] + 8
+        if (base + 4 > len(blob) or (inner_forbidden is not None
+                and base - 8 < inner_forbidden[1] and base + 4 > inner_forbidden[0])):
+            raise ValueError('maker_header_overlap')
         if blob[base:base+2] not in (b'II', b'MM'):
             raise ValueError('maker_endian')
         inner_endian = '<' if blob[base:base+2] == b'II' else '>'
         inner_occupied = [(base - 8, base + 4)]
-        top = fields(blob, base + 4, inner_endian, occupied=inner_occupied)
+        top = fields(blob, base + 4, inner_endian, forbidden=inner_forbidden, occupied=inner_occupied)
     except (ValueError, struct.error) as exc:
         reason = str(exc) if isinstance(exc, ValueError) else 'bounds'
         paths.update(camera_settings=reason, image_processing=reason)
-        return paths
+        return paths, relation
     for tag, name in ((0x2020, 'camera_settings'), (0x2040, 'image_processing')):
         try:
             ref = top.get(tag)
             if ref is None or ref[:2] != (13, 1) or ref[2] < base + 4:
                 raise ValueError('maker_path')
-            paths[name] = fields(blob, ref[2], inner_endian, occupied=inner_occupied)
+            paths[name] = fields(blob, ref[2], inner_endian, forbidden=inner_forbidden,
+                                 occupied=inner_occupied)
         except (ValueError, struct.error) as exc:
             paths[name] = str(exc) if isinstance(exc, ValueError) else 'bounds'
             if paths[name] == 'overlapping_directories':
                 paths['camera_settings'] = 'overlapping_directories'
                 paths['image_processing'] = 'overlapping_directories'
                 break
-    return paths
+    return paths, relation
 
 
 def measure(data):
@@ -108,7 +133,7 @@ def measure(data):
     marker = validate_jpeg(data, start, length)
     if marker['marker_status'] != 'exact_eoi' or (width, height) != (marker['width'], marker['height']):
         raise ValueError('preview_marker')
-    paths = literal_fields(data, start, length)
+    paths, relation = literal_fields(data, start, length)
     matches = {}
     for path, tags in paths.items():
         if isinstance(tags, str):
@@ -118,7 +143,8 @@ def measure(data):
         matches[path] = {'length': sorted(t for t, v in tags.items() if v == length),
                          'offset': sorted(t for t, v in tags.items() if v == start),
                          'scalar_count': len(tags), 'status': 'ok'}
-    return {'preview_length': length, 'preview_offset': start, 'matches': matches}
+    return {'preview_length': length, 'preview_offset': start,
+            'maker_preview_relation': relation, 'matches': matches}
 
 
 def intersection(rows):
