@@ -29,6 +29,8 @@ The original three public OM-3 controlled white/dark files' 4MB zlib, bzip2 and 
 
 A fixed six-bit literal template plus charged exceptions saves bits on all four held-out white windows and on the whole PA210010 strip. The same template costs more than literal bits on the whole capped-dark comparator. Camera syntax and the origin of the exceptions remain open (`2026-11-20--radialmonster--white-payload-literal-repeat-description`, self-verified #864, V1 S1.8).
 
+All generated nonconstant cyclic six-bit templates support one six-bit candidate word per period for both literal k=4 and k=5, at different phases. Actual starts, exceptions and endpoints still need independent evidence (`2026-11-20--radialmonster--six-bit-repeat-width-ambiguity`, self-verified #868, V1 S1.8).
+
 The remaining original public 1993 and 7804 prefix recompression ratios reproduce, with predeclared 6344 as a separate extension (`2026-10-27--mtakemoto--remaining-public-recompression`, Partial for #339). These sizes do not establish a codec or the broader efficient-coder interpretation.
 
 Literal Rice k4/k5 boundary counts reproduce on six controlled-file 3 MB cases and are separately reported on 6 MB prefixes of the same captures (`2026-10-27--radialmonster--rice-boundary-reproduction`, self-verified #574). Unmatched tails are right-censored; shared endpoints establish neither physical framing nor the correct code.
