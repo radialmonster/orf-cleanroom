@@ -159,6 +159,7 @@ jobs:
           python -I -B tools/test_token_band_profile.py
           python -I -B tools/test_token_row_stride.py
           python -I -B tools/test_stride_harmonics.py
+          python -I -B tools/test_stride_fixed_support_probe.py
       - name: Synthetic stride, width context, and tail distribution tests
         run: |
           python -I -B tools/test_token_head_stride_probe.py

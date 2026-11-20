@@ -1835,3 +1835,10 @@ discovery cohort and adds files 6346 and 3802.
 
     python -I -B tools/suffix_table_highres_probe.py --phase discovery --train TRAIN1995 --sample 3801 FILE3801 --sample 3800 FILE3800 --sample 6343 FILE6343 --sample 6344 FILE6344 --sample 3803 FILE3803
     python -I -B tools/test_suffix_table_highres_probe.py
+**`stride_fixed_support_probe.py`** compares nested 150/300/600-fold extents
+using a single full-prefix head/rest fit, synthetic realization and shuffle;
+the original per-extent refit is separately labeled. This tests a specified
+surrogate, not physical rows or a second period.
+
+    python -I -B tools/stride_fixed_support_probe.py --phase discovery --sample 7262 FILE7262
+    python -I -B tools/test_stride_fixed_support_probe.py
