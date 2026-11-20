@@ -298,6 +298,9 @@ def decode_file(path, order=None, layout=None):
         # finds different preview associations across files at nominal alignment (V1 S1.11).
         # 2026-11-20--radialmonster--frozen-suffix-table-highres-vertical-shifts
         # compares vertical specificity of the same fixed table (V1 S1.11).
+        # 2026-11-20--radialmonster--suffix-table-column-profile-and-residual
+        # separates the shared column contribution from vertically varying
+        # preview association (V1 S1.11).
         # F_B2B4 and F_SEP (Partial for #149) measure a top-band preview-luma
         # correlate from b2/b4; they specify no sensor values or decode step
         # (V1 S1.15). F_SHIFT (Partial for #351) shows the normal-mode score is
@@ -551,7 +554,7 @@ def decode_file(path, order=None, layout=None):
         # physical registration remains open (V1 S1.11/G3).
         # 2026-11-20--radialmonster--synthetic-suffix-width-closure-ambiguity (#844):
         # synthetic count and endpoint ties leave camera polarity and width open (V1 G8/G9).
-        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; unassigned #338/#561 dark offsets, independently reproduced #734 fixed-period control and #757 local suffix balance and #765 conditional ordering and #777 free-anchor constraints and #781 matched boundaries and #788 origin sensitivity and #792 common phase and independently reproduced #799 whole-strip contracts and #803 table shifts and #807 A15 candidate and independently reproduced #829 declared-strip audit and #840 horizontal shifts and #844 synthetic width controls and #848 nominal 2W gains and #852 two-suffix phrase phases and #856 bridge scale ratios and #860 common-end coalescence and #864 white literal repeat description and #868 synthetic width ambiguity and #876 cross-body table transfer and #880 High Res vertical comparison and #886 fixed-support side-peak control specify no codec or physical rows)")
+        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; unassigned #338/#561 dark offsets, independently reproduced #734 fixed-period control and #757 local suffix balance and #765 conditional ordering and #777 free-anchor constraints and #781 matched boundaries and #788 origin sensitivity and #792 common phase and independently reproduced #799 whole-strip contracts and #803 table shifts and #807 A15 candidate and independently reproduced #829 declared-strip audit and #840 horizontal shifts and #844 synthetic width controls and #848 nominal 2W gains and #852 two-suffix phrase phases and #856 bridge scale ratios and #860 common-end coalescence and #864 white literal repeat description and #868 synthetic width ambiguity and #876 cross-body table transfer and #880 High Res vertical comparison and #886 fixed-support side-peak control and #892 suffix profile comparison specify no codec or physical rows)")
         r["notes"].append("compressed payload (%s bits per pixel); no decoder or padding rule is specified yet; suffix associations do not specify values, see specs/V1.md S1.1-S1.2, S1.7-S1.21, S2.3, G2, specs/V2.md S1.1-S1.2 and ROADMAP.md" % sig["bpp"])
         return r
     packing = sc
