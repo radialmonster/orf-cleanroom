@@ -73,6 +73,8 @@ The same fixed table's horizontal test gives declared-alignment ranks 6/400 and 
 
 In six matched escape/control candidate cases on four previously studied public files, every complete pair shares a bit boundary within the declared 24-word horizons (`2026-11-17--radialmonster--matched-boundary-coalescence`, self-verified #781). Shared starts count; reused controls and unequal bit budgets limit interpretation, and physical escape syntax remains open (V1 G3).
 
+Keeping the same pairs and using a common 156-bit cutoff gives a complete shared word on both sides of every pair in all six cases. The 36-bit cutoff gives discordant pair outcomes and boundary-only cases. Physical framing and escape syntax remain open (`2026-11-20--radialmonster--paired-common-end-candidate-coalescence`, self-verified #860, V1 G3).
+
 Conditional and unconditional lag-3 information on the same candidate-token positions reproduces on two files and is reported on wider prefixes of four (`2026-10-28--radialmonster--conditional-lag-three`). These shared unassigned associations do not identify a codec state or physical structure (V1 S1.6/G3).
 
 A fixed held-out candidate-token KT comparison reproduces on two files and extends to a later test band on four (`2026-10-28--radialmonster--heldout-lag-three`); its q>0 gains are positive while the suffix-b0 control changes sign across the later cases. This shared unassigned observation does not establish a physical predictor (V1 S1.6/G3).
