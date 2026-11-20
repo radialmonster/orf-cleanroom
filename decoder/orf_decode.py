@@ -49,6 +49,7 @@ F_PACKED12 = "2026-11-20--radialmonster--packed12-independent-reproduction"
 F_PACKED128 = "2026-11-20--radialmonster--packed128-independent-reproduction"
 F_PACKED16 = "2026-11-20--radialmonster--packed16-independent-reproduction"
 F_TOY = "2026-10-26--radialmonster--packed16-toy-envelope-reproduction"
+F_TOY_SCALE = "2026-11-20--radialmonster--packed16-window-envelope-sensitivity"
 F_FIXED = "2026-10-19--radialmonster--fixed-size-payloads-exact-else-compressed"
 F_ROWLAYOUT = "2026-10-21--radialmonster--two-field-row-layout-reproduction"
 F_ENDPOINT = "2026-10-21--radialmonster--token-end-and-final-run"
@@ -64,8 +65,11 @@ F_DEP_CORR = "2026-10-22--radialmonster--token-dependence-independence-wording-c
 STATUS = {
     "packed-12": "verified (%s, independently verified by @mszyndel; pair order undecided)" % F_PACKED12,
     "packed-12.8": "verified (%s, independently verified by @mszyndel; pair order undecided)" % F_PACKED128,
-    # F_TOY is a separate synthetic-envelope stress result, not sensor truth.
-    "packed-16": "verified (%s, independently verified by @mszyndel); toy envelope: %s (construction labels only)" % (F_PACKED16, F_TOY),
+    # F_TOY and F_TOY_SCALE compare construction labels on the same three files.
+    "packed-16": (
+        "verified (%s, independently verified by @mszyndel); toy envelope: %s (construction labels only)"
+        "; larger-window toy envelope: %s (same three files)"
+    ) % (F_PACKED16, F_TOY, F_TOY_SCALE),
 }
 # the order choices per packing; the first one wins a tie
 ORDERS = {
