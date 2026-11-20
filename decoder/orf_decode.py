@@ -325,7 +325,8 @@ def decode_file(path, order=None, layout=None):
         # 2026-11-17--radialmonster--free-anchor-second-order-windows:
         # conditional free-anchor counts and escape-undefined windows do not
         # specify physical framing, a predictor or decode (V1 G2).
-        # F_DEP (Partial for #11): the cross-field/same-field token-dependence
+        # F_DEP (Partial for #11, independently reproduced by
+        # 2026-11-18--radialmonster--token-dependence-new-bodies): the cross-field/same-field token-dependence
         # structure appears on whole E-M1 Mark III and E-M5 Mark III payloads
         # at lower MI; it establishes no values, row stride, geometry or decode
         # (V1 S1.17). F_DEP_CORR (Partial correction for #11, corrects F_DEP):
