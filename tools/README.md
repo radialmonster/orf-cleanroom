@@ -1809,3 +1809,13 @@ repeats period six and adds periods five and seven. Each synthetic trajectory
 contains the visited phases, quotient and word length, cycle entry, and cycle
 length in words and bits. The input is an infinite repetition; all-zero
 templates have no stop. These results do not establish any camera syntax.
+
+**`v0_window_envelope_probe.py`** compares the original #310 32x24 limits with
+separately regenerated limits on nested packed-16 V0 windows for #301 and V0
+Gap G8. It uses all five #325 mappings and checks each of the three public
+inputs against its embedded CC0 input hash. Discovery uses scales 1, 2 and 4.
+Verification repeats them and adds scale 8. Output contains aggregate training
+bound counts, measurements and classification of the toy construction labels.
+
+    python -I -B tools/v0_window_envelope_probe.py --phase discovery --sample 1800 E1_FILE --sample 2151 E400_FILE --sample 5424 E10_FILE
+    python -I -B tools/test_v0_window_envelope_probe.py
