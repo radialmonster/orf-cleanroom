@@ -75,6 +75,47 @@ class Tests(unittest.TestCase):
         self.assertEqual(row['matches']['camera_settings']['status'], 'unknown')
         self.assertEqual(row['matches']['image_processing']['status'], 'unknown')
 
+    def test_makernote_encloses_jpeg_and_child_outside(self):
+        data = bytearray(fixture())
+        struct.pack_into('<I', data, 64 + 2 + 4, len(data) - 120)
+        row = probe.measure(bytes(data))
+        self.assertEqual(row['maker_preview_relation'], 'contained')
+        self.assertEqual(row['matches']['camera_settings']['status'], 'ok')
+        self.assertEqual(row['matches']['image_processing']['status'], 'ok')
+        self.assertEqual(row['matches']['camera_settings']['length'], [0x1001])
+
+    def test_child_directory_inside_jpeg_unknown(self):
+        data = bytearray(fixture())
+        struct.pack_into('<I', data, 64 + 2 + 4, len(data) - 120)
+        struct.pack_into('<I', data, 120 + 12 + 2 + 8, 280)
+        row = probe.measure(bytes(data))
+        self.assertEqual(row['maker_preview_relation'], 'contained')
+        self.assertEqual(row['matches']['camera_settings']['reason'], 'ifd_preview_overlap')
+        self.assertEqual(row['matches']['image_processing']['status'], 'ok')
+
+    def test_signature_inside_jpeg_is_excluded(self):
+        data = bytearray(fixture())
+        data[-2:-2] = b'OLYMPUS\0'
+        struct.pack_into('<I', data, 64 + 2 + 4, len(data) - 120)
+        row = probe.measure(bytes(data))
+        self.assertEqual(row['maker_preview_relation'], 'contained')
+        self.assertEqual(row['matches']['camera_settings']['status'], 'ok')
+
+    def test_header_split_across_preview_boundary_is_not_joined(self):
+        data = bytearray(fixture() + b'PUS\0')
+        struct.pack_into('<I', data, 64 + 2 + 4, len(data) - 120)
+        data[120:128] = b'xxxxxxxx'
+        data[396:400] = b'OLYM'
+        row = probe.measure(bytes(data))
+        self.assertEqual(row['matches']['camera_settings']['reason'], 'maker_header')
+
+    def test_partial_envelope_overlap(self):
+        data = bytearray(fixture())
+        struct.pack_into('<I', data, 64 + 2 + 4, 290)
+        row = probe.measure(bytes(data))
+        self.assertEqual(row['maker_preview_relation'], 'partly_overlaps')
+        self.assertEqual(row['matches']['camera_settings']['status'], 'ok')
+
     def test_changed_frozen_row_stops_before_extension_reads(self):
         ids = probe.DISCOVERY + probe.EXTENSION
         inputs = {sid: fixture(extra=i) for i, sid in enumerate(ids)}

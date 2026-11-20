@@ -1896,6 +1896,9 @@ Verification requires a saved discovery JSON via `--frozen`. It compares the
 original rows and candidate set before opening the extension files and evaluates
 the frozen candidates on those additions. The selector tie check makes one local
 in-memory copy of the input.
+The declared MakerNote envelope may contain the selected JPEG; signature search
+excludes that JPEG interval and inspected directory spans must be outside it.
+The reported envelope relation describes extents only, not tag semantics.
 
     python -I -B tools/preview_scalar_correspondence.py --phase discovery --sample 1994 FILE1994 --sample 1995 FILE1995 --sample 3800 FILE3800 --sample 3802 FILE3802
     python -I -B tools/test_preview_scalar_correspondence.py
