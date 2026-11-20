@@ -1871,3 +1871,19 @@ output distinguishes candidates by structure from unresolved coverage.
 Verification repeats those files and appends `--sample 1997 FILE_1997` and
 `--sample 7265 FILE_7265` with `--phase verification`. Each snapshot must match
 its fixed public hash and geometry. No value bytes or local paths are printed.
+
+**`preview_ifd_extent_probe.py`** compares the unchanged `jpeg_dc.find_preview`
+selection with scalar TIFF tags 513/514 in IFD0, next IFDs and SubIFDs. It
+reports declared offsets and lengths, marker-boundary checks and unknowns;
+private MakerNotes and JPEG-nested IFDs are outside scope. The marker check
+does not decode entropy or establish complete JPEG/TIFF conformance.
+An `other_declared_jpeg_only` result includes bounded declarations whose marker
+walk finds EOI even if their declared lengths include trailing bytes; each
+declaration reports its own marker status.
+
+    python -I -B tools/preview_ifd_extent_probe.py --phase discovery --sample 1994 FILE1994 --sample 1995 FILE1995 --sample 3800 FILE3800 --sample 3802 FILE3802
+    python -I -B tools/test_preview_ifd_extent_probe.py
+
+Verification repeats these and appends `--sample 1996 FILE1996 --sample 3804 FILE3804`.
+All files are fixed public CC0 identities checked by hash; establish retained
+licence and manifest provenance separately. No image or JPEG bytes are printed.

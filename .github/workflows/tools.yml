@@ -242,6 +242,7 @@ jobs:
           python -I -B tools/test_phrase_match_probe.py
           python -I -B tools/test_bridge_scale_probe.py
           python -I -B tools/test_same_field_2w_probe.py
+          python -I -B tools/test_preview_ifd_extent_probe.py
       - name: Synthetic packed-16 neighbour arithmetic tests
         run: |
           python -I -B tools/test_e400_high12_probe.py
