@@ -366,6 +366,8 @@ def decode_file(path, order=None, layout=None):
         # 2026-11-13--mszyndel--single-period-side-peak-control (#734): a
         # fresh reproduction of all 27 cases is recorded in
         # 2026-11-20--mszyndel--single-period-side-peak-control. The
+        # 2026-11-20--radialmonster--fixed-support-side-peak-control finding
+        # reruns the same pair comparison with a fixed fitting support. The
         # fixed-period head/rest-resampling surrogate misses the public OM-1 II
         # side-peak pairs. This scoped one-seed negative does not exclude general
         # estimator artifacts or establish physical periods or a decode step.
@@ -547,7 +549,7 @@ def decode_file(path, order=None, layout=None):
         # physical registration remains open (V1 S1.11/G3).
         # 2026-11-20--radialmonster--synthetic-suffix-width-closure-ambiguity (#844):
         # synthetic count and endpoint ties leave camera polarity and width open (V1 G8/G9).
-        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; unassigned #338/#561 dark offsets, independently reproduced #734 fixed-period control and #757 local suffix balance and #765 conditional ordering and #777 free-anchor constraints and #781 matched boundaries and #788 origin sensitivity and #792 common phase and independently reproduced #799 whole-strip contracts and #803 table shifts and #807 A15 candidate and #829 declared-strip audit and #840 horizontal shifts and #844 synthetic width controls and #848 nominal 2W gains and #852 two-suffix phrase phases and #856 bridge scale ratios and #860 common-end coalescence and #864 white literal repeat description and #868 synthetic width ambiguity and #876 cross-body table transfer and #880 High Res vertical comparison specify no codec or physical rows)")
+        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; unassigned #338/#561 dark offsets, independently reproduced #734 fixed-period control and #757 local suffix balance and #765 conditional ordering and #777 free-anchor constraints and #781 matched boundaries and #788 origin sensitivity and #792 common phase and independently reproduced #799 whole-strip contracts and #803 table shifts and #807 A15 candidate and #829 declared-strip audit and #840 horizontal shifts and #844 synthetic width controls and #848 nominal 2W gains and #852 two-suffix phrase phases and #856 bridge scale ratios and #860 common-end coalescence and #864 white literal repeat description and #868 synthetic width ambiguity and #876 cross-body table transfer and #880 High Res vertical comparison and #886 fixed-support side-peak control specify no codec or physical rows)")
         r["notes"].append("compressed payload (%s bits per pixel); no decoder or padding rule is specified yet; suffix associations do not specify values, see specs/V1.md S1.1-S1.2, S1.7-S1.21, S2.3, G2, specs/V2.md S1.1-S1.2 and ROADMAP.md" % sig["bpp"])
         return r
     packing = sc
