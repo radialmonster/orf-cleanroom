@@ -1827,3 +1827,11 @@ Verification repeats discovery and adds files 3801 and 5283.
 
     python -I -B tools/suffix_table_cross_body_probe.py --phase discovery --train TRAIN1995 --sample 1997 FILE1997 --sample 3800 FILE3800 --sample 6343 FILE6343
     python -I -B tools/test_suffix_table_cross_body_probe.py
+
+**`suffix_table_highres_probe.py`** holds the #155 table fixed for named
+normal and High Res inputs, reporting four token shuffles and all vertical
+circular-shift scores on the nominal preview grid. Verification repeats the
+discovery cohort and adds files 6346 and 3802.
+
+    python -I -B tools/suffix_table_highres_probe.py --phase discovery --train TRAIN1995 --sample 3801 FILE3801 --sample 3800 FILE3800 --sample 6343 FILE6343 --sample 6344 FILE6344 --sample 3803 FILE3803
+    python -I -B tools/test_suffix_table_highres_probe.py
