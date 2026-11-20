@@ -1538,6 +1538,13 @@ identity, not licence. Stdlib CPU only; aggregate JSON and sanitized failures.
     python -I -B tools/payload_band_lag.py FILE --sha256 HASH --sample-id ID --sample-name PUBLIC_NAME --offset OFFSET --length LENGTH --starts 0 START2 START3 --window-bytes 65536 --lag-min 32768 --lag-max 65536 --lag-step 1024
     python -I -B tools/test_payload_band_lag.py
 
+**`payload_stride_landscape_probe.py`** supports #296 by mapping candidate row stride and phase landscapes across sequential disjoint bands of complete payloads. It computes row-head q elevation z-scores across a frozen stride grid around nominal width W, tracks candidate drift across bands, detects range-boundary optima, and evaluates a held-out prediction test comparing fixed-stride and drift models against a whole-search block-permutation null. Standard library CPU only; reports aggregate JSON without logging raw pixel values.
+
+    python -I -B tools/payload_stride_landscape_probe.py FILE --stride 5240
+    python -I -B tools/payload_stride_landscape_probe.py --self-test
+    python -I -B tools/test_payload_stride_landscape_probe.py
+
+
 **`sensor_rejection_controls.py`** is a synthetic-only rejection-control
 baseline for research plan #301. It prints exact aggregate range, lag-2,
 coordinate-parity-lane and fixed-central-seam counts, with scalar features.
