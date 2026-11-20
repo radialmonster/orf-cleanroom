@@ -81,6 +81,8 @@ The same frozen table gives r=+0.41498 above all four shuffles on High Res E-M1 
 
 The stationary column profile contributes +0.60493 to the 3801 score and the residual contribution is -0.00163. After removing both column profiles, High Res 3803 and normal-mode 3804 give residual r of +0.22357 and +0.08199, each above four reprojected shuffles. OM-5 6344 and 6347 have negative residual correlations. The selected files leave physical alignment and held-out group transfer open (`2026-11-20--radialmonster--suffix-table-column-profile-and-residual`, self-verified #892, V1 S1.11/G1/G7).
 
+In the fixed normal-mode cross-preview matrix, 3800 and 3804 exceed their same-file shuffle controls, yet each scores higher against a different file's preview after adding predeclared 3802. None of the three sources has a positive diagonal above both competitors. The registered held-out comparison remains in V1 G1/G3/G4/G7 (`2026-11-20--radialmonster--suffix-cross-preview-residual-specificity`, self-verified #896, V1 S1.11).
+
 In six matched escape/control candidate cases on four previously studied public files, every complete pair shares a bit boundary within the declared 24-word horizons (`2026-11-17--radialmonster--matched-boundary-coalescence`, self-verified #781). Shared starts count; reused controls and unequal bit budgets limit interpretation, and physical escape syntax remains open (V1 G3).
 
 Keeping the same pairs and using a common 156-bit cutoff gives a complete shared word on both sides of every pair in all six cases. The 36-bit cutoff gives discordant pair outcomes and boundary-only cases. Physical framing and escape syntax remain open (`2026-11-20--radialmonster--paired-common-end-candidate-coalescence`, self-verified #860, V1 G3).
