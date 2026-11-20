@@ -425,6 +425,10 @@ def decode_file(path, order=None, layout=None):
         # 83 variable-size CC0 files and q=47/suffix 0 on four large-sensor files;
         # it specifies no value assembly, decode step or variant assignment
         # (V1 S1.13, V2 S1.2).
+        # 2026-11-20--mszyndel--declared-strip-starts (#829): independent
+        # TIFF extraction agrees on all twelve tested declared strips; the
+        # four 47-zero prefixes are not introduced by this locator. In-strip
+        # header/padding and coded-sample boundaries remain open (V2 S1.6/G4).
         # F_FLAT_PRED31 (Partial for #31): bounded controlled-flat grids have
         # zero passes under assumed raster/value/anchor, with range stops
         # reported separately; this is not a physical predictor (V1 G2).
@@ -499,7 +503,7 @@ def decode_file(path, order=None, layout=None):
         # or establish framing or a codec (V1 G11).
         # 2026-11-17--radialmonster--learned-suffix-table-vertical-shifts (#803):
         # finite circular-shift results do not establish physical registration.
-        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; unassigned #338/#561 dark offsets, #734 fixed-period control and #757 local suffix balance and #765 conditional ordering and #777 free-anchor constraints and #781 matched boundaries and #788 origin sensitivity and #792 common phase and #799 whole-strip contracts and #803 table shifts and #807 A15 candidate specify no codec or physical rows)")
+        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; unassigned #338/#561 dark offsets, #734 fixed-period control and #757 local suffix balance and #765 conditional ordering and #777 free-anchor constraints and #781 matched boundaries and #788 origin sensitivity and #792 common phase and #799 whole-strip contracts and #803 table shifts and #807 A15 candidate and #829 declared-strip audit specify no codec or physical rows)")
         r["notes"].append("compressed payload (%s bits per pixel); no decoder or padding rule is specified yet; suffix associations do not specify values, see specs/V1.md S1.1-S1.2, S1.7-S1.21, S2.3, G2, specs/V2.md S1.1-S1.2 and ROADMAP.md" % sig["bpp"])
         return r
     packing = sc
