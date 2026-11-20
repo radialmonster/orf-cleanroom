@@ -1,5 +1,15 @@
 # tools
 
+**`same_field_2w_probe.py`** compares local five-lag binary models against
+their fixed nominal 2W and 2W±128 same-field donors on disjoint candidate-token
+bands. Common support omits an escape at any declared endpoint; KT half-count
+losses and signed gains are descriptive, not significance or physical framing.
+The two phase cohorts and input hashes are fixed in the tool. Empty support and
+short or incompatible inputs are unknown. Outputs contain aggregate tables only.
+
+    python -I -B tools/same_field_2w_probe.py --phase discovery --sample 1993 PATH1993 --sample 5283 PATH5283
+    python -I -B tools/test_same_field_2w_probe.py
+
 **`capped15_contract_probe.py`** tests one post-hoc JP4468858B2-inspired
 D12/k5/A15 whole-strip candidate at fixed startup, site count and strict end.
 It reports completed-word endpoint separately from the rejected word start
