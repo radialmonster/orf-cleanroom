@@ -242,7 +242,7 @@ def main():
     rows = []
     for sid, path in args.sample:
         if sid == EXTENSION[0] and rows != previous.get('samples'):
-            raise ValueError('discovery_mismatch')
+            raise SystemExit('discovery_mismatch')
         name, digest = SAMPLES[sid]
         row = {'id': sid, 'name': name, 'sha256': digest}
         try:

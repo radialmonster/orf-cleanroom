@@ -101,7 +101,7 @@ class Tests(unittest.TestCase):
             frozen[0] = json.dumps(previous)
             opened.clear()
             with mock.patch.object(sys, 'argv', argv('verification')):
-                with self.assertRaisesRegex(ValueError, 'discovery_mismatch'):
+                with self.assertRaisesRegex(SystemExit, 'discovery_mismatch'):
                     probe.main()
             self.assertNotIn('2431', opened)
 
