@@ -1905,3 +1905,18 @@ The reported envelope relation describes extents only, not tag semantics.
 
 For verification, use `--phase verification --frozen DISCOVERY_JSON` and append
 `--sample 1998 FILE1998 --sample 3801 FILE3801` to the same sample list.
+
+**`preview_relative_locator.py`** searches only the observed 0x2020 directory
+for scalar LONG values equal to the scanner-selected preview start relative to
+the declared MakerNote value start. Absolute-start matches are a separate
+control; tag 0x0102 is the fixed length candidate from #912. Derived extents
+are checked against the envelope and marker structure before comparison with
+the scanner. Matches do not establish tag semantics or physical registration.
+Verification requires saved discovery JSON and freezes its candidates before
+opening the predeclared OM-5 and OM-1 extensions.
+
+    python -I -B tools/preview_relative_locator.py --phase discovery --sample 1994 FILE1994 --sample 1995 FILE1995 --sample 3800 FILE3800 --sample 3802 FILE3802
+    python -I -B tools/test_preview_relative_locator.py
+
+For verification, supply `--phase verification --frozen DISCOVERY_JSON` and
+append `--sample 6343 FILE6343 --sample 5283 FILE5283` to that sample list.
