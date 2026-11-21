@@ -1933,3 +1933,21 @@ saved original records before reading its two additional public inputs.
 
 Verification uses `--phase verification --frozen DISCOVERY_JSON` and appends
 `--sample 1051 FILE1051 --sample 3588 FILE3588`.
+
+**`preview_locator_cohort.py`** applies the unchanged metadata-first locator to
+the fixed 104-file #438 public CC0 roster. Discovery excludes seven predeclared
+TG/XZ files; verification repeats its 97 records before reading those seven.
+The caller supplies previously verified CC0 inventory and local corpus paths;
+each available file is read once and checked against its public hash. Missing
+or unsupported files remain unknown. Counts retain candidate and scanner status
+separately; a valid candidate with an unknown scanner is not a mismatch.
+Retained standard `pixls_samples.py check --json` records need only ID, public
+name, hash and licence; when `local_name` is absent the downloader's filename
+sanitization is used. An explicitly supplied `local_name` is also validated.
+Already verified content needs no repeat catalogue check.
+
+    python -I -B tools/preview_locator_cohort.py --phase discovery --inventory RECORDS_JSON --corpus CORPUS_DIR --manifest samples/manifest.csv --roster findings/container/2026-10-27--radialmonster--capture-metadata-104-cohort.md
+    python -I -B tools/test_preview_locator_cohort.py
+
+Verification adds `--phase verification --frozen DISCOVERY_JSON` in place of
+the discovery phase. No local paths or image bytes are printed.
