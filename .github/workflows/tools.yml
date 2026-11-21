@@ -247,6 +247,7 @@ jobs:
           python -I -B tools/test_preview_relative_locator.py
           python -I -B tools/test_preview_metadata_locator.py
           python -I -B tools/test_preview_locator_cohort.py
+          python -I -B tools/test_preview_external_boundary.py
       - name: Synthetic packed-16 neighbour arithmetic tests
         run: |
           python -I -B tools/test_e400_high12_probe.py

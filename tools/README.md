@@ -1906,6 +1906,19 @@ The reported envelope relation describes extents only, not tag semantics.
 For verification, use `--phase verification --frozen DISCOVERY_JSON` and append
 `--sample 1998 FILE1998 --sample 3801 FILE3801` to the same sample list.
 
+**`preview_external_boundary.py`** derives the fixed MakerNote scalar interval
+and compares it with independently declared TIFF 513/514 extents and selected
+raw-strip boundaries. The graph walk is capped at 128 IFDs and each strip table
+at 65536 elements. Missing declarations, aliases, conflicts and unknowns are
+reported separately. Strip boundary comparisons are context, not proof of a
+preview declaration. No scanner or JPEG marker/entropy parsing is used.
+
+    python -I -B tools/preview_external_boundary.py --phase discovery --sample 792 FILE792 --sample 1432 FILE1432 --sample 1759 FILE1759
+    python -I -B tools/test_preview_external_boundary.py
+
+Verification uses `--phase verification --frozen DISCOVERY_JSON` and appends
+`--sample 2431 FILE2431`. Local paths and image bytes are not reported.
+
 **`preview_relative_locator.py`** searches only the observed 0x2020 directory
 for scalar LONG values equal to the scanner-selected preview start relative to
 the declared MakerNote value start. Absolute-start matches are a separate
