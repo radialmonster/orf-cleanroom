@@ -1920,3 +1920,16 @@ opening the predeclared OM-5 and OM-1 extensions.
 
 For verification, supply `--phase verification --frozen DISCOVERY_JSON` and
 append `--sample 6343 FILE6343 --sample 5283 FILE5283` to that sample list.
+
+**`preview_metadata_locator.py`** applies the fixed leading-header MakerNote
+locator before invoking the separately reported JPEG scanner. Only the bounded
+0x2020/0x0101/0x0102 path is tested, without signature search or alternate
+offset bases. Unknown layouts stay unknown; matching extents do not establish
+tag semantics or preview-to-raw registration. Verification compares the four
+saved original records before reading its two additional public inputs.
+
+    python -I -B tools/preview_metadata_locator.py --phase discovery --sample 1994 FILE1994 --sample 1995 FILE1995 --sample 3800 FILE3800 --sample 3802 FILE3802
+    python -I -B tools/test_preview_metadata_locator.py
+
+Verification uses `--phase verification --frozen DISCOVERY_JSON` and appends
+`--sample 1051 FILE1051 --sample 3588 FILE3588`.
