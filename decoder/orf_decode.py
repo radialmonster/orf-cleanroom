@@ -315,7 +315,7 @@ def decode_file(path, order=None, layout=None):
         # convention and physical registration remain open (V1 G3/G4).
         # 2026-11-21--radialmonster--maker-note-relative-jpeg-locator
         # derives four exact scanner extents from 0x0101 and 0x0102. OM System
-        # header lookup and physical registration remain open (V1 G3/G4).
+        # inputs are unresolved under that historical header lookup (V1 G3/G4).
         # 2026-11-21--radialmonster--metadata-first-jpeg-locator
         # derives six bounded preview extents before the scanner comparison.
         # Applicability across layouts and physical registration remain open.
@@ -326,6 +326,10 @@ def decode_file(path, order=None, layout=None):
         # scalar intervals beyond their MakerNote envelopes and one contained
         # control. The visited outer graph has zero positive 513/514 pairs.
         # The selected strips are disjoint. Physical geometry remains open.
+        # 2026-11-21--mszyndel--om-system-maker-note-jpeg-locator (#938)
+        # derives exact contained previews on five public OM System inputs
+        # using a separate fixed leading-header rule. Full-cohort coverage
+        # and physical registration remain open; this adds no decode step.
         # 2026-11-21--radialmonster--v0-declared-geometry reports Orientation
         # 1 on 16 V0 inputs and 6 on 2431. Their explicit DNG crop fields are
         # absent. Physical raw-to-preview geometry remains open (V0 S1.5/G1).
@@ -585,7 +589,7 @@ def decode_file(path, order=None, layout=None):
         # physical registration remains open (V1 S1.11/G3).
         # 2026-11-20--radialmonster--synthetic-suffix-width-closure-ambiguity (#844):
         # synthetic count and endpoint ties leave camera polarity and width open (V1 G8/G9).
-        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; unassigned #338/#561 dark offsets, independently reproduced #734 fixed-period control and #757 local suffix balance and #765 conditional ordering and #777 free-anchor constraints and #781 matched boundaries and #788 origin sensitivity and #792 common phase and independently reproduced #799 whole-strip contracts and #803 table shifts and #807 A15 candidate and independently reproduced #829 declared-strip audit and #840 horizontal shifts and #844 synthetic width controls and #848 nominal 2W gains and #852 two-suffix phrase phases and #856 bridge scale ratios and #860 common-end coalescence and #864 white literal repeat description and #868 synthetic width ambiguity and #876 cross-body table transfer and #880 High Res vertical comparison and #886 fixed-support side-peak control and #892 suffix profile comparison and #896 cross-preview specificity and #900 direct BYTE tag inventory and #903 literal MakerNote values and #907 outer preview declaration audit and #912 MakerNote preview length correspondence and #916 MakerNote JPEG locator and #920 metadata-first JPEG locator and #924 locator cohort and #928 external boundary audit and #933 V0 geometry inventory specify no codec or physical rows)")
+        r.update(variant="compressed", status="not yet specified (framing and value assembly remain open; unassigned #338/#561 dark offsets, independently reproduced #734 fixed-period control and #757 local suffix balance and #765 conditional ordering and #777 free-anchor constraints and #781 matched boundaries and #788 origin sensitivity and #792 common phase and independently reproduced #799 whole-strip contracts and #803 table shifts and #807 A15 candidate and independently reproduced #829 declared-strip audit and #840 horizontal shifts and #844 synthetic width controls and #848 nominal 2W gains and #852 two-suffix phrase phases and #856 bridge scale ratios and #860 common-end coalescence and #864 white literal repeat description and #868 synthetic width ambiguity and #876 cross-body table transfer and #880 High Res vertical comparison and #886 fixed-support side-peak control and #892 suffix profile comparison and #896 cross-preview specificity and #900 direct BYTE tag inventory and #903 literal MakerNote values and #907 outer preview declaration audit and #912 MakerNote preview length correspondence and #916 MakerNote JPEG locator and #920 metadata-first JPEG locator and #924 locator cohort and #928 external boundary audit and #938 leading OM SYSTEM preview locator and #933 V0 geometry inventory specify no codec or physical rows)")
         r["notes"].append("compressed payload (%s bits per pixel); no decoder or padding rule is specified yet; suffix associations do not specify values, see specs/V1.md S1.1-S1.2, S1.7-S1.21, S2.3, G2, specs/V2.md S1.1-S1.2 and ROADMAP.md" % sig["bpp"])
         return r
     packing = sc
