@@ -166,6 +166,8 @@ On two q47 OM-1 Mark II files, a fixed token-index parity mean decomposition con
 
 Exact numbers: run `python -I tools/conformance.py <files>`; the committed result is `samples/conformance-V0.csv`. A blind second implementation written from `specs/V0.md` alone (`tools/v0_spec_check.py`, #93) matches all 17 hashes with exact payload ends: finding `2026-10-19--radialmonster--independent-v0-hash-agreement` (findings/V0, partial verification of lead #75). So V0 decoding is reproducible from the spec on these files. Still open: pixel order inside a unit (G4) and the layout selectors in general (G6).
 
+On the same 17 files, the selected raw IFD is IFD0. Its Orientation is 1 on 16 files and 6 on XZ-10 2431. DNGVersion is absent from IFD0, and the four tested explicit DNG crop, scale and active-area tags are absent from the selected raw IFD. Independently supported crop declarations and physical controls remain needed for preview registration (`2026-11-21--radialmonster--v0-declared-geometry`, self-verified #933; V0 S1.5/G1).
+
 ## How to move things forward
 
 - **Fill a spec gap.** Each gap in `specs/` is a lead. Pick one at random among unclaimed leads (see README "Start here"), measure it, publish it. When it is verified, a PR replaces "lead #n (unverified)" in the spec with the finding ID, and the decoder comment is updated in the same PR.
