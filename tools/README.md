@@ -1964,3 +1964,20 @@ Already verified content needs no repeat catalogue check.
 
 Verification adds `--phase verification --frozen DISCOVERY_JSON` in place of
 the discovery phase. No local paths or image bytes are printed.
+
+### V0 declared geometry inventory
+
+`v0_declared_geometry.py` inventories literal TIFF and DNG-shaped geometry
+fields on the 17 public V0 conformance inputs. The fixed discovery phase uses
+14 files. Verification repeats those rows before opening reserved 2431, 2856
+and 5424. The inventory records explicit tag values and their structural
+status. ORF crop geometry and the relation to the camera preview remain open.
+The numeric-ID-ordered UTF-8 LF roster `id|name|sha256|packing|width|height`
+has SHA-256 `27bba849e69a0a73502448cdbbe550a2432c56cb80ee7792a4027703b25e0484`.
+Pass `--sample ID PATH` in this discovery order: 1800, 8609, 2151, 1799,
+3438, 1432, 2878, 792, 780, 3624, 5491, 2420, 2977 and 3540. Verification
+appends 2431, 2856 and 5424 and takes `--frozen DISCOVERY_JSON`. The DNG
+field types and ordering are documented on pages 28, 29 and 42. [Adobe DNG
+1.6 specification](https://paulbourke.net/dataformats/dng/dng_spec_1_6_0_0.pdf)
+
+    python -I -B tools/test_v0_declared_geometry.py
