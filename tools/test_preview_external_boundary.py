@@ -97,6 +97,11 @@ class Tests(unittest.TestCase):
             with mock.patch.object(sys, 'argv', argv('discovery')), contextlib.redirect_stdout(out):
                 self.assertEqual(probe.main(), 0)
             previous = json.loads(out.getvalue())
+            frozen[0] = json.dumps(previous)
+            opened.clear()
+            with mock.patch.object(sys, 'argv', argv('verification')), contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(probe.main(), 0)
+            self.assertIn('2431', opened)
             previous['samples'][0]['interval']['maker_end'] += 1
             frozen[0] = json.dumps(previous)
             opened.clear()

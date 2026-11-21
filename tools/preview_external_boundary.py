@@ -209,7 +209,7 @@ def measure(data):
         dec = {'status': 'unknown', 'reason': str(exc) if isinstance(exc, ValueError) else type(exc).__name__}
     try:
         selected, spans = strip_spans(data, endian, dirs, forbidden)
-        strips = {'status': 'ok', 'ifd_offset': selected, 'spans': spans}
+        strips = {'status': 'ok', 'ifd_offset': selected, 'spans': [list(span) for span in spans]}
         if interval['status'] == 'ok':
             p, q = interval['candidate_start'], interval['candidate_end']
             strips.update(exact_count=sum((a, b) == (p, q) for a, b in spans),
