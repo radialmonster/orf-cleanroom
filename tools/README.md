@@ -1981,3 +1981,21 @@ field types and ordering are documented on pages 28, 29 and 42. [Adobe DNG
 1.6 specification](https://paulbourke.net/dataformats/dng/dng_spec_1_6_0_0.pdf)
 
     python -I -B tools/test_v0_declared_geometry.py
+
+**`row_frame_probe.py`** locates row starts from the six-field head pattern
+(`100xxxxx` six times) alone, with no token parse, and tests two readings of the
+row from each located start: plain k=5, and six k=7 tokens then k=5. Per file it
+prints the payload width x height, the start-marker length, the whole-payload
+k=5 token count minus W*H, the rows whose W tokens end exactly on the next
+located start under each reading, and the bit offset, token column and six field
+values of the head group under both readings. Both readings give the same row
+end and the same token count, so row framing cannot choose between them: one and
+the same 8-bit group reads as six k=7 fields at bit b and as six k=5 tokens at
+bit b+6. The column is constant per file while the field values are nearly
+constant in the calm white and data-dependent in the ISO 200 darks. Rows are
+tested only where the head pattern was found (the first `--rows` rows); a file
+without the pattern, or on which the row grid drifts, is reported by its counts.
+Nothing here establishes a codec, an escape meaning, physical alignment or a
+decode.
+
+    python -I -B tools/row_frame_probe.py PATH_WHITE PATH_DARK
