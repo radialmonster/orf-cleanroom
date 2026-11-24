@@ -1965,6 +1965,21 @@ Already verified content needs no repeat catalogue check.
 Verification adds `--phase verification --frozen DISCOVERY_JSON` in place of
 the discovery phase. No local paths or image bytes are printed.
 
+### Literal MakerNote/prefix cross-check
+
+`makernote_prefix_audit.py` independently checks lead #949's literal metadata
+and initial payload zeros. It follows only declared TIFF/Exif directories and
+leading OLYMPUS or OM SYSTEM MakerNotes. Numeric values retain TIFF type/count;
+unsupported layouts stay unknown, distinct from a missing tag. Declared raw
+strips and scalar preview intervals are excluded from metadata reads. This
+does not infer tag meanings, codec parameters, image rows or a patent implementation.
+The retained public CC0 roster is `samples/makernote-prefix-949-records.json`;
+`original` distinguishes the 41 lead inputs from seven predeclared extensions.
+Every supplied file is checked against its full retained SHA-256.
+
+    python -I -B tools/makernote_prefix_audit.py --records samples/makernote-prefix-949-records.json --sample 7264 FILE7264 --sample 7798 FILE7798
+    python -I -B tools/test_makernote_prefix_audit.py
+
 ### V0 declared geometry inventory
 
 `v0_declared_geometry.py` inventories literal TIFF and DNG-shaped geometry
