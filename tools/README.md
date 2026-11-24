@@ -1970,15 +1970,35 @@ the discovery phase. No local paths or image bytes are printed.
 `makernote_prefix_audit.py` independently checks lead #949's literal metadata
 and initial payload zeros. It follows only declared TIFF/Exif directories and
 leading OLYMPUS or OM SYSTEM MakerNotes. Numeric values retain TIFF type/count;
-unsupported layouts stay unknown, distinct from a missing tag. Declared raw
-strips and scalar preview intervals are excluded from metadata reads. This
-does not infer tag meanings, codec parameters, image rows or a patent implementation.
+unsupported layouts stay unknown, distinct from a missing tag. The reader
+first copies the declared MakerNote envelope, which must not overlap raw
+strips, then excludes the identified scalar preview interval from subsequent
+scoped metadata field parsing. This does not infer tag meanings, codec
+parameters, image rows or a patent implementation.
 The retained public CC0 roster is `samples/makernote-prefix-949-records.json`;
 `original` distinguishes the 41 lead inputs from seven predeclared extensions.
 Every supplied file is checked against its full retained SHA-256.
 
     python -I -B tools/makernote_prefix_audit.py --records samples/makernote-prefix-949-records.json --sample 7264 FILE7264 --sample 7798 FILE7798
     python -I -B tools/test_makernote_prefix_audit.py
+
+### Fixed capped-prefix count scope
+
+`capped_prefix_counts.py` supports #951 verification with a separate bounded
+candidate-word count. It reads the independently located declared strips and
+checks public CC0 input hashes against retained records. It reports #950's
+24-bit-remaining guard separately from the count of all complete candidate
+words, plus non-six-bit words, escapes, escape values below 384, a length
+histogram and the residual bit count. The grammar is fixed: q<12 plus five
+suffix bits, otherwise 12 zeros and 12 arbitrary raw bits. These counts do
+not establish the camera's grammar or physical rows. Generated controls show
+that a six-field group in otherwise six-bit data makes both proposed readings
+land exactly at the assumed pitch without any camera input.
+
+    python -I -B tools/capped_prefix_counts.py --controls
+    python -I -B tools/capped_prefix_counts.py --records samples/om3-flat-338-provenance.json --sample PA200012.ORF FILE
+    python -I -B tools/capped_prefix_counts.py --records samples/e-m5-mk-ii-dark-338-provenance.json --sample P1010017.ORF FILE
+    python -I -B tools/test_capped_prefix_counts.py
 
 ### V0 declared geometry inventory
 
