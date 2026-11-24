@@ -27,7 +27,7 @@ Shared unassigned Rice stop-1 k=5 counts reproduce on public ids 1993 and 7804, 
 
 The original three public OM-3 controlled white/dark files' 4MB zlib, bzip2 and LZMA real/shuffled ratios reproduce, with a separate E-M5 Mark II dark extension (`2026-10-27--mtakemoto--controlled-flat-recompression`, Partial for #339). The sizes do not establish a codec or the broader efficient-coder interpretation.
 
-A fixed six-bit literal template plus charged exceptions saves bits on all four held-out white windows and on the whole PA210010 strip. The same template costs more than literal bits on the whole capped-dark comparator. Camera syntax and the origin of the exceptions remain open (`2026-11-20--radialmonster--white-payload-literal-repeat-description`, self-verified #864, V1 S1.8).
+A fixed six-bit literal template plus charged exceptions saves bits on all four held-out white windows and on the whole PA210010 strip. The same template costs more than literal bits on the whole capped-dark comparator. Independent reproduction by @mszyndel matches every original fit/record and adds two larger white windows plus a new dark comparator, which also exceeds literal size overall. Camera syntax and the origin of the exceptions remain open (`2026-11-20--radialmonster--white-payload-literal-repeat-description`, independently reproduced in `2026-11-24--radialmonster--white-repeat-independent-reproduction`; #864, V1 S1.8).
 
 All generated nonconstant cyclic six-bit templates support one six-bit candidate word per period for both literal k=4 and k=5, at different phases. Actual starts, exceptions and endpoints still need independent evidence (`2026-11-20--radialmonster--six-bit-repeat-width-ambiguity`, self-verified #868, V1 S1.8).
 
