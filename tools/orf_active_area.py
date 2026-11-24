@@ -72,10 +72,14 @@ def maker_note(data):
 
 
 def olympus_tags(blob):
-    idx = blob.find(b"OLYMPUS\0")
-    if idx < 0:
+    # Leading "OLYMPUS\0" header (8 bytes) or "OM SYSTEM\0\0\0" (12 bytes, OM SYSTEM bodies).
+    for magic in (b"OLYMPUS\0", b"OM SYSTEM\0\0\0"):
+        idx = blob.find(magic)
+        if idx >= 0:
+            break
+    else:
         return {}
-    base = idx + 8
+    base = idx + len(magic)
     if blob[base:base + 2] not in (b"II", b"MM"):
         return {}
     e = "<" if blob[base:base + 2] == b"II" else ">"
@@ -147,6 +151,10 @@ def self_test():
     assert tags[0x0614][3] == 5184, tags
     assert tags[0x0614][1] == 1, tags
     print("self-test ok: synthetic Olympus IFD tag 0x0614 reads 5184")
+    top = struct.pack(e + "H", 1) + struct.pack(e + "HHII", 0x2040, 13, 1, 34) + struct.pack(e + "I", 0)
+    om = b"OM SYSTEM\0\0\0II\x04\x00" + top + ifd
+    assert olympus_tags(om)["image_processing"][0x0614][3] == 5184
+    print("self-test ok: synthetic OM SYSTEM header reaches 0x2040/0x0614")
 
 
 def main_cli():

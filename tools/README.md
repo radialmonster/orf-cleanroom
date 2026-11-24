@@ -1981,3 +1981,12 @@ field types and ordering are documented on pages 28, 29 and 42. [Adobe DNG
 1.6 specification](https://paulbourke.net/dataformats/dng/dng_spec_1_6_0_0.pdf)
 
     python -I -B tools/test_v0_declared_geometry.py
+
+**`makernote_codec_tags.py`** prints, by hex ID only, MakerNote 0x2040 tags
+0x0611, 0x0620 and 0x0640..0x0654 and 0x2050 tag 0x1800 beside each payload's
+dimensions and leading zero-bit count, one JSON line per input with its
+SHA-256. It reads the leading `OLYMPUS` or 12-byte `OM SYSTEM` MakerNote header
+through `orf_active_area.olympus_tags`. Equal values do not establish tag
+meaning, a codec parameter or a cause.
+
+    python -I -B tools/makernote_codec_tags.py FILE [FILE ...]
