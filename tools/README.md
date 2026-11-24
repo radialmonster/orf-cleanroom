@@ -1982,6 +1982,20 @@ Every supplied file is checked against its full retained SHA-256.
     python -I -B tools/makernote_prefix_audit.py --records samples/makernote-prefix-949-records.json --sample 7264 FILE7264 --sample 7798 FILE7798
     python -I -B tools/test_makernote_prefix_audit.py
 
+### Six-field group versus literal border metadata
+
+`row_group_border_inventory.py` supports the remaining #951 comparison with
+IP 0x0612. It reuses #950's first-400-row pattern/longest-chain selection and
+nominal-width candidate columns, and inventories literal IP 0x0611..0x0615
+with the bounded MakerNote reader. Compare scalar 0x0612 directly, retaining
+unaligned heads, absent/vector/unsupported fields and all mismatches. No
+coordinate convention, physical border or tag meaning is inferred; no offset
+or scale is fitted. The reader's optional requested-path argument leaves the
+original #949 default unchanged.
+
+    python -I -B tools/row_group_border_inventory.py --records samples/om3-flat-338-provenance.json --sample PA200010.ORF FILE
+    python -I -B tools/test_row_group_border_inventory.py
+
 ### Fixed capped-prefix count scope
 
 `capped_prefix_counts.py` supports #951 verification with a separate bounded
