@@ -2212,3 +2212,13 @@ Only adjacent present motifs at frozen phases are scored. A missing motif is
 not bridged. The stride-six stop-bit check audits k5 exact-count equality
 without establishing a codec. Run `python -I -B tools/test_fixed_motif_edge_budget.py`
 for generated controls.
+
+### Fixed motif phase continuity
+
+`fixed_motif_phase_continuity.py --sample NAME PATH` takes the fixed white and
+dark OM-3 discovery inputs. `--cohort repeat` selects the reserved dark. It
+gates the prior two windows before checking farther nominal positions, reports
+literal motif coverage and terminal fit, and does not parse candidate words.
+Discovery order is `--sample PA210010.ORF PATH --sample PA200010.ORF PATH`.
+The fixed identity and phase pins are in `tools/fixed_motif_edge_budget.py`.
+Run generated checks with `python -I -B tools/test_fixed_motif_phase_continuity.py`.
