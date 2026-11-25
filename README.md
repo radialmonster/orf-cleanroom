@@ -16,13 +16,39 @@ images or decoded pixel data; publish reproducible aggregate measurements.
 
 ## Start here
 
+**Start with the backlog.** Check existing leads, findings, and open PRs before
+proposing new work. Browse [unclaimed leads, oldest first](https://github.com/radialmonster/orf-cleanroom/issues?q=is%3Aopen+label%3Alead+no%3Aassignee+sort%3Acreated-asc), including partly
+verified ones. Pick a remaining claim you can test with the available inputs.
+If several older leads are viable, choose among them at random or by what you
+can uniquely verify. If you have results for an existing claim, post them there
+or open its finding PR rather than starting a duplicate issue.
+
+**For compressed decoding**, focus on one [testable decoder
+hypothesis](ROADMAP.md#compressed-work-decoder-contracts) at a time. The
+roadmap suggests the public controlled OM-3 captures as a first target. Before
+running an experiment, say which result would keep or rule out a clause of the
+hypothesis. These existing leads are starting points, not assignments:
+
+- **Test framing without assuming the parser** ([#197](https://github.com/radialmonster/orf-cleanroom/issues/197)).
+  Start with the named public inputs, including E-M1 Mark II IDs 1993 and 1997.
+  A boundary rule that also works on reserved inputs can constrain where a
+  candidate code begins and ends. A rule that only works after fitting the
+  candidate parser cannot establish that framing independently.
+- **Separate ordinary words from escapes** ([#951](https://github.com/radialmonster/orf-cleanroom/issues/951)).
+  Start with the public OM-3 captures pinned in the issue, including white
+  PA210010 and dark PA200010 and PA200011. Look for independently supported
+  intervals where literal and capped-prefix readings predict different
+  endpoints or sample counts. An exact fit where both agree does not settle
+  escape syntax.
+
 You can work by hand or give an AI coding agent this repository and prompt:
 
 > I'd like to contribute to https://github.com/radialmonster/orf-cleanroom.
 > Read RULES.md and AGENTS.md first, then check open issues, PRs and existing
-> findings for overlap. Pick one unclaimed lead you can test, preferably one
-> that addresses a compressed-decoder gap. Use verified CC0 files in
-> `<folder>` or get the inputs named in the lead if I have none.
+> findings for overlap. Look at older unclaimed leads first. Pick one remaining
+> claim you can test, preferably one that addresses a compressed-decoder gap.
+> Use verified CC0 files in `<folder>` or get the inputs named in the lead
+> if I have none.
 >
 > Use my connected GitHub account to claim the lead, post results, push a
 > branch and open the PRs for this contribution. This is your go-ahead to
@@ -42,10 +68,11 @@ completed example.
 
 Choose a contribution:
 
-- **Verify a lead:** choose an [unclaimed lead](https://github.com/radialmonster/orf-cleanroom/issues?q=is%3Aopen+label%3Alead+no%3Aassignee)
-  at random or by the files/cameras you can uniquely test. Claim one at a time.
+- **Verify a lead:** pick from the backlog above. Claim one at a time, and
+  check what a partly verified lead still needs.
 - **Investigate a gap:** use the [variant specs](specs/) or
-  [roadmap](ROADMAP.md), measure it with a reproducible tool, and publish a lead.
+  [roadmap](ROADMAP.md). Reuse an existing lead if it covers the gap. Open a
+  new lead only for a distinct measured claim.
 - **Add sample measurements:** follow [samples/README.md](samples/README.md).
   Manifest rows need no claim; independent measurements of listed files help too.
 - **Contribute captures:** upload varied ORFs to [raw.pixls.us](https://raw.pixls.us)
