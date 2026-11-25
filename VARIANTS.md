@@ -31,7 +31,7 @@ Leads are labelled `variant:Vn` ([V0](https://github.com/radialmonster/orf-clean
 - Status: uncompressed, so not the main target here; listed for classification. Whether a given decoder covers every packing listed here is tracked in [specs/V0.md](specs/V0.md) and `samples/conformance-V0.csv` (reference decoder: exact payload end on all 17 CC0 files; packed-12.8 is specified by finding `2026-10-20--radialmonster--packed-12-8-groups-of-ten-values` and packed-16 is verified whole-frame in finding `2026-10-21--radialmonster--packed16-whole-frame-word-layout`, self-verified).
 
 ## V1: calm-parse compressed
-- Signature: compressed; the calm parse from the F1 lead (#11) works (q zeros, stop bit, 5-bit suffix, escape at q ≥ 17); per-row stride equals the payload width on at least one body (5240 wide).
+- Candidate, not a confirmed signature: the F1 lead (#11) describes a literal read of q zeros, a stop bit, and a 5-bit suffix. Long runs (q ≥ 17) are candidate escape markers, not established escape syntax. A token-index period equal to payload width was reported on one 5240-wide body, but it has not been identified as a physical row boundary. Leave samples `unassigned` if only these candidate features match.
 - Models seen: none recorded yet. The PR that assigns a manifest row to this variant also adds its model here.
 - Findings: [findings/V1/](findings/V1/) (the F1 lead, #11, is the first candidate).
 - Status: `unknown` as a camera codec. The candidate parse above has reproducible statistics, but its framing and escape semantics are not verified (see [specs/V1.md](specs/V1.md) S2.1, G11). Value assembly, predictor and physical row mapping are open (same list). Candidate period profiles vary by file and band (G3); that does not yet define a variant split.
