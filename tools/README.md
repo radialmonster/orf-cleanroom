@@ -2029,3 +2029,19 @@ field types and ordering are documented on pages 28, 29 and 42. [Adobe DNG
 1.6 specification](https://paulbourke.net/dataformats/dng/dng_spec_1_6_0_0.pdf)
 
     python -I -B tools/test_v0_declared_geometry.py
+
+**`value_field_probe.py`** parses the compressed payload as capped-prefix k=5 tokens
+(a marker of leading zeros, then q zeros, a stop bit and 5 suffix bits; q >= 12 is an
+escape). For each token n with a neighbour n+1 in the same row it computes
+`L + (1 - 2X) * (8Y - 4N) - 12X`, with L = 2*b1(n) + b0(n), X = b2(n), Y = b4(n+1),
+N = 1 - b3(n+1). Escapes are skipped and q is ignored. The region is rows 20 to
+`--rows`-1 (default 600) and columns 20 to W-21. Per file it prints the payload
+width x height, the region size, the skipped count, the valued count, mean, sd, skew,
+the mean of each checkerboard class (r+c) mod 2, the histogram from -20 to 11, and the
+Pearson correlation of the value field at lags 1, 2, 3, 4, W, 2W, 2W-2 and 2W+2.
+`--null` takes n+W+1 (the cell one row below n+1) as the neighbour, as a control.
+It does not establish a decode. The formula was read off histograms, the placement of
+tokens with q > 0 has no neighbour oracle yet, and matching statistics do not show that
+the values are sensor levels.
+
+    python -I -B tools/value_field_probe.py [--rows N] [--null] PATH [PATH ...]
