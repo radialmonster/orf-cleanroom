@@ -71,7 +71,7 @@ class Reader:
         return dict(result,status='ok',values=[self.uint(at+i*unit,unit) for i in range(n)])
 
 
-def metadata(data, strips):
+def metadata(data, strips, wanted_paths=None):
     if data[:2] not in (b'II',b'MM'):
         raise ValueError('tiff_order')
     outer=Reader(data,'little' if data[:2]==b'II' else 'big',strips)
@@ -109,7 +109,7 @@ def metadata(data, strips):
         raise ValueError('preview_directory_overlap')
     maker.forbidden.append((start,start+length))
     paths={}
-    for parent,wanted in WANTED.items():
+    for parent,wanted in (WANTED if wanted_paths is None else wanted_paths).items():
         path='%04x'%parent
         ref=top.get(parent)
         if ref is None:
