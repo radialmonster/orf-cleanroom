@@ -2176,3 +2176,11 @@ and partner-value marginals. The reported pairing remainder is the observed
 partner contribution minus that expectation. Results are descriptive, not
 physical predictions. Run the generated controls with
 `python -I -B tools/test_value_field_partner_null.py`.
+
+### Candidate residual free-seed range test
+
+`value_field_predictor_range.py --sample NAME PATH` repeated for the six frozen
+OM-3 darks tests exact unwrapped H lag-2 and V lag-2W chain spans in the fixed
+#972 candidate rectangle. `--cohort repeat` selects the separately reserved
+E-M5 II files. Two fixed row-and-parity shuffles preserve omissions. Passing
+this range necessity does not establish a physical predictor or coordinates.
