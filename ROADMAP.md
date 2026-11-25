@@ -59,6 +59,8 @@ The white-file all-edge comparison reproduces 397/1568 k=5 endpoint-and-count su
 
 The fixed motif escape-support gate reproduces 443 motifs and 147 edges on E-M1 Mark II 1993. Reserved 1997 has 459 motifs and 33 edges. Neither window has a qualifying flanked zero run, so no escape-rule comparison is available (`2026-11-25--radialmonster--motif-escape-support-reproduction`, #990; V1 S1.23/G11). Independently anchored completed-escape intervals remain open.
 
+The fixed E-M5 Mark II motif escape comparison reproduces six supported P1010019 interiors. Six capped escapes complete but none starts at a qualifying maximal run, and one interior reaches both the endpoint and W−6 words only under literal k=5. Reserved P1010017 has no supported interior among 1406 edges (`2026-11-25--radialmonster--em5-motif-escape-reproduction`, #1007; V1 S1.23/G11). This same-account test does not establish physical framing.
+
 The nine candidate-family counts and k=5 endpoints also reproduce on the original three public OM-3 controlled white/dark files; predeclared 7797 is a separate busy High Res extension (`2026-10-27--mtakemoto--controlled-flat-family-counts`, Partial for #339). Real Elias delta completes no words; flat-file recompression and container claims remain outside this result.
 
 Six previously exposed public OM-3 dark files give differing 1.5-million-token null projections across their recorded sensitivity groups (`2026-10-28--radialmonster--om3-dark-prefix-projections`); these are prefix estimates, not evidence that sensitivity causes the difference (V1 S1.11a, G12).
