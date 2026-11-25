@@ -2230,3 +2230,11 @@ uses the frozen dark/white order. `--cohort repeat --sample PA200011.ORF PATH`
 uses the reserved file. A fit-window phase is held fixed for both score windows;
 all six fields must fit the declared strip, including across a tile boundary.
 Run generated checks with `python -I -B tools/test_alternate_motif_phase.py`.
+
+### Candidate byte-phase tables
+
+`candidate_byte_phase.py --sample 1993 PATH --sample 1997 PATH` computes the
+fixed continuous candidate-token start phases and deterministic rotations.
+`--cohort repeat --sample 1998 PATH` selects the reserved file. The test does
+not establish physical byte alignment or escape syntax.
+Run generated checks with `python -I -B tools/test_candidate_byte_phase.py`.
