@@ -63,6 +63,8 @@ The fixed E-M5 Mark II motif escape comparison reproduces six supported P1010019
 
 The parser-free fixed motif lattice gives 398/400 first-window and 400/400 adjacent-window matches at pitch 31332 on each discovery file, at distinct phases. Reserved PA200011 gives 242/400 then 142/400 at pitch 31332; PA200012 gives 11/400 then 7/400 at pitch 31349. Neither reserved file has a full tested lattice (`2026-11-25--radialmonster--fixed-motif-lattice-reproduction`, #1023; V1 S1.23/G3/G11). This does not establish physical framing.
 
+On two fixed OM-3 motif lattices both k5 readings reach endpoint and 5214 words on 399/399 adjacent interiors each. Reserved PA200011 has 142 contiguous anchors and 141/399 available edges, all matching, with 258 unavailable. Neither k4 reading reaches an endpoint and no capped escape completes. A separate stride-six predicate agrees as required by the exact bit budget (`2026-11-25--radialmonster--fixed-motif-edge-reproduction`, #1027; V1 S1.23/G3/G11). This does not establish physical rows.
+
 The nine candidate-family counts and k=5 endpoints also reproduce on the original three public OM-3 controlled white/dark files; predeclared 7797 is a separate busy High Res extension (`2026-10-27--mtakemoto--controlled-flat-family-counts`, Partial for #339). Real Elias delta completes no words; flat-file recompression and container claims remain outside this result.
 
 Six previously exposed public OM-3 dark files give differing 1.5-million-token null projections across their recorded sensitivity groups (`2026-10-28--radialmonster--om3-dark-prefix-projections`); these are prefix estimates, not evidence that sensitivity causes the difference (V1 S1.11a, G12).
