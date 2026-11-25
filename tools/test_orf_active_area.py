@@ -111,5 +111,13 @@ class MainTests(unittest.TestCase):
                 self.assertEqual(a.main_cli(), 1)
 
 
+class HeaderTests(unittest.TestCase):
+    def test_leading_header_and_competing_signature(self):
+        # orf_active_area.self_test builds OLYMPUS, OM SYSTEM and an OM SYSTEM note
+        # carrying an embedded OLYMPUS header; it asserts the leading header wins.
+        with contextlib.redirect_stdout(io.StringIO()):
+            a.self_test()
+
+
 if __name__ == "__main__":
     unittest.main()
