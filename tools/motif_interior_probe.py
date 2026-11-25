@@ -67,7 +67,7 @@ def unique_edges(positions, pitch, tolerance):
             if b-a == 1 and incoming[a] == (i, i+1)]
 
 
-def interior(payload, start, end, k, capped):
+def interior(payload, start, end, k, capped, escape_starts=None):
     """Parse complete words exactly up to the fixed end, no read past it."""
     pos = start
     words = escapes = 0
@@ -85,6 +85,8 @@ def interior(payload, start, end, k, capped):
                         'escapes': escapes, 'word_start': word}
             pos += 12
             escapes += 1
+            if escape_starts is not None:
+                escape_starts.append(word)
         else:
             if pos == end:
                 return {'endpoint': False, 'reason': 'stop_overrun', 'words': words,

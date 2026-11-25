@@ -2142,3 +2142,13 @@ without a discovery-count expectation. Each grammar scores every edge between
 literal motifs. Degree and gap strata report edge counts by paired success mask;
 source all/some/none counts include only motifs with at least one outgoing edge.
 Edges share motifs and do not establish independent physical rows or a codec.
+
+### Literal zero-run support for fixed motif edges
+
+`python -I -B tools/motif_escape_support.py --sample PATH` uses the pinned
+public E-M1 Mark II 1993 file. The same literal all-edge selector is applied
+before either candidate grammar, and only intervals enclosing a raw run of at
+least 12 zero bits and both flanking ones are tested. Support, paired endpoints
+and required word-count successes, overrun reasons and completed escapes are
+aggregates. A raw run is not an escape and sparse support does not adjudicate
+the grammar. `--repeat` accepts only the separately pinned 1997 file.
