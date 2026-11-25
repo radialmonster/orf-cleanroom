@@ -2165,3 +2165,14 @@ count requires a completed capped escape at a supported run on the same edge.
 The `escape_support` status alone only means a capped escape completed on a
 run-bearing edge, even if it did not coincide with any qualifying run.
 Neither the nominal interval nor the literal motif establishes physical rows.
+
+### Candidate-field partner permutation accounting
+
+`value_field_partner_null.py --sample NAME PATH` accepts each of the six fixed
+OM-3 dark files in frozen order. `--cohort repeat` selects the six separately
+reserved E-M5 Mark II darks. The fixed original token band is unchanged from
+#972. Exact row-by-partner-q permutation expectations preserve both current-sign
+and partner-value marginals. The reported pairing remainder is the observed
+partner contribution minus that expectation. Results are descriptive, not
+physical predictions. Run the generated controls with
+`python -I -B tools/test_value_field_partner_null.py`.
