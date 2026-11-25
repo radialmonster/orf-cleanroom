@@ -2184,3 +2184,12 @@ OM-3 darks tests exact unwrapped H lag-2 and V lag-2W chain spans in the fixed
 #972 candidate rectangle. `--cohort repeat` selects the separately reserved
 E-M5 II files. Two fixed row-and-parity shuffles preserve omissions. Passing
 this range necessity does not establish a physical predictor or coordinates.
+
+### Candidate-field order-sensitive H bridge
+
+`value_field_order_bridge.py --sample NAME PATH` takes the six fixed OM-3 darks
+in frozen order. `--cohort repeat` selects the reserved E-M5 II cohort. It pools
+centered H bridges at nominal row-plus-two, matching the same column parity.
+Two fixed shuffles preserve full blocks of 32 residuals and the terminal tail.
+Run `python -I -B tools/test_value_field_order_bridge.py` for generated controls.
+These candidate coordinates and null comparisons do not establish a predictor.
