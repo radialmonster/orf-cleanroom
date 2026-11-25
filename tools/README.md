@@ -2222,3 +2222,11 @@ literal motif coverage and terminal fit, and does not parse candidate words.
 Discovery order is `--sample PA210010.ORF PATH --sample PA200010.ORF PATH`.
 The fixed identity and phase pins are in `tools/fixed_motif_edge_budget.py`.
 Run generated checks with `python -I -B tools/test_fixed_motif_phase_continuity.py`.
+
+### Alternate literal motif phase
+
+`alternate_motif_phase.py --sample PA200010.ORF PATH --sample PA210010.ORF PATH`
+uses the frozen dark/white order. `--cohort repeat --sample PA200011.ORF PATH`
+uses the reserved file. A fit-window phase is held fixed for both score windows;
+all six fields must fit the declared strip, including across a tile boundary.
+Run generated checks with `python -I -B tools/test_alternate_motif_phase.py`.
