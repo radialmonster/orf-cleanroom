@@ -66,6 +66,10 @@ jobs:
         run: python -I -B tools/test_exif_sensitivity_probe.py
       - name: preview pair screen tests
         run: python -I -B tools/test_preview_pair_screen.py
+      - name: Preview pair payload contrast tests
+        run: |
+          python -I -B tools/preview_pair_payload_contrast.py --self-test
+          python -I -B tools/test_preview_pair_payload_contrast.py
       - name: Synthetic preview sensitivity and Figure 8 tests
         run: |
           mkdir -p work/ci-tmp
