@@ -2051,3 +2051,17 @@ field types and ordering are documented on pages 28, 29 and 42. [Adobe DNG
 1.6 specification](https://paulbourke.net/dataformats/dng/dng_spec_1_6_0_0.pdf)
 
     python -I -B tools/test_v0_declared_geometry.py
+
+**`value_field_independent_audit.py`** independently checks the fixed #961
+candidate-word statistics. It reads a hash-verified snapshot and the declared
+strip sequence, starts after the first one bit, and retains the historical
+24-bit guard. Rows 20–599 and columns 20–W-21 are nominal token coordinates,
+not physical rows. It reports the full histogram, moments, class counts and
+lag pair denominators. `--null` uses the n+W+1 partner. Missing input, short
+parses and zero-variance results are unknown. Compare means, class means and
+correlations at the issue's three decimal places and SD and skew at two.
+No candidate value is asserted to be a sensor value.
+
+    python -I -B tools/value_field_independent_audit.py --sample PUBLIC_NAME SHA256 FILE
+    python -I -B tools/value_field_independent_audit.py --null --sample PUBLIC_NAME SHA256 FILE
+    python -I -B tools/test_value_field_independent_audit.py
