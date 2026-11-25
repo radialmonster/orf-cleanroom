@@ -61,6 +61,8 @@ The fixed motif escape-support gate reproduces 443 motifs and 147 edges on E-M1 
 
 The fixed E-M5 Mark II motif escape comparison reproduces six supported P1010019 interiors. Six capped escapes complete but none starts at a qualifying maximal run, and one interior reaches both the endpoint and W−6 words only under literal k=5. Reserved P1010017 has no supported interior among 1406 edges (`2026-11-25--radialmonster--em5-motif-escape-reproduction`, #1007; V1 S1.23/G11). This same-account test does not establish physical framing.
 
+On three public E-M1 Mark II files, only one of nine candidate word-start byte-phase comparisons exceeds all three fixed rotation controls in both disjoint windows. On the reserved file none do. These conditional associations do not settle physical starts or byte alignment (`2026-11-25--radialmonster--candidate-byte-phase-reproduction`, #1039; V1 S1.2).
+
 The parser-free fixed motif lattice gives 398/400 first-window and 400/400 adjacent-window matches at pitch 31332 on each discovery file, at distinct phases. Reserved PA200011 gives 242/400 then 142/400 at pitch 31332; PA200012 gives 11/400 then 7/400 at pitch 31349. Neither reserved file has a full tested lattice (`2026-11-25--radialmonster--fixed-motif-lattice-reproduction`, #1023; V1 S1.23/G3/G11). This does not establish physical framing.
 
 Whole-strip fixed-phase coverage gives 3910/3912 predicted matches on one public white OM-3 and 800/3912 and 384/3912 on two public darks. Neither dark matches after its sole run, although all nominal starts fit. Physical rows and the reason for missing anchors remain open (`2026-11-25--radialmonster--fixed-motif-phase-reproduction`, #1031; V1 S1.23/G3).
