@@ -2119,3 +2119,16 @@ physical row boundaries. Hashes are checked before parsing.
 
     python -I -B tools/stride_head_sensitivity.py --sample ID PUBLIC_NAME SHA256 FILE
     python -I -B tools/test_stride_head_sensitivity.py
+
+### Legacy exterior declaration audit
+
+`legacy_exterior_declarations.py --sample 1800 PATH --sample 2878 PATH` checks
+only the two frozen exterior intervals from #982. It checks each complete input
+against the retained public SHA-256, then follows bounded IFD0, next, SubIFD and
+standard Exif links. It reports intersecting directory, typed out-of-line value,
+JPEG interchange and strip declarations and the union of their intersections.
+The MakerNote value itself is excluded. It does not interpret the target bytes,
+follow private directories, or establish ownership of an otherwise undeclared
+interval. An inaccessible or malformed branch makes coverage unknown while
+preserving earlier intersections. The limits are 128 directories and 65,536
+values per consulted pointer array. Output contains no local paths or image data.
