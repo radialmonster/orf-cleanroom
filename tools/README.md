@@ -2193,3 +2193,13 @@ centered H bridges at nominal row-plus-two, matching the same column parity.
 Two fixed shuffles preserve full blocks of 32 residuals and the terminal tail.
 Run `python -I -B tools/test_value_field_order_bridge.py` for generated controls.
 These candidate coordinates and null comparisons do not establish a predictor.
+
+### Literal fixed-pitch motif lattice
+
+`literal_motif_lattice.py --sample NAME PATH` takes the fixed white and dark
+OM-3 discovery files in order; `--cohort repeat` selects the reserved two darks.
+All complete literal motifs are counted in two fixed windows. Pitch and phase
+are tested as exact bit-position lattices, without parsing candidate tokens.
+The best first-window pair is carried into the next window without refitting.
+Run `python -I -B tools/test_literal_motif_lattice.py` for the generated controls.
+A missing lattice does not rule out variable-length rows or another marker.
