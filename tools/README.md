@@ -2020,8 +2020,18 @@ field types and ordering are documented on pages 28, 29 and 42. [Adobe DNG
 **`makernote_codec_tags.py`** prints, by hex ID only, MakerNote 0x2040 tags
 0x0611, 0x0620 and 0x0640..0x0654 and 0x2050 tag 0x1800 beside each payload's
 dimensions and leading zero-bit count, one JSON line per input with its
-SHA-256. It reads the leading `OLYMPUS` or 12-byte `OM SYSTEM` MakerNote header
-through `orf_active_area.olympus_tags`. Equal values do not establish tag
-meaning, a codec parameter or a cause.
+SHA-256. The payload is the declared strip sequence read by
+`strip_start_audit.independent_strips` (separated strips joined in table order,
+no gap bytes; tied, overlapping or mismatched strip tables rejected). The
+MakerNote is read through `orf_active_area.olympus_top`: a leading `OM SYSTEM`
+(12 bytes) or `OLYMPUS` (8 bytes) header decides the layout, so an `OLYMPUS`
+sequence inside an OM SYSTEM note is never used; only without a leading header
+is the first embedded `OLYMPUS` header used, as before (`OLYMPUS embedded`).
+Unsupported and absent stay distinct: `makernote` is the layout or
+`none`/`unsupported`; each directory is `ok`, `absent` or `unsupported` (entry
+present but not an IFD pointer); a tag is null only when its directory was
+read, and `"unknown"` otherwise. Equal values do not establish tag meaning, a
+codec parameter or a cause.
 
     python -I -B tools/makernote_codec_tags.py FILE [FILE ...]
+    python -I -B tools/test_makernote_codec_tags.py

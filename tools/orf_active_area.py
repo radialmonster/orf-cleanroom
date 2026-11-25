@@ -71,23 +71,42 @@ def maker_note(data):
     return None
 
 
-def olympus_tags(blob):
-    # Leading "OLYMPUS\0" header (8 bytes) or "OM SYSTEM\0\0\0" (12 bytes, OM SYSTEM bodies).
-    for magic in (b"OLYMPUS\0", b"OM SYSTEM\0\0\0"):
-        idx = blob.find(magic)
-        if idx >= 0:
+# Leading MakerNote headers, checked in this order at byte 0 only.
+LEADING_HEADERS = ((b"OM SYSTEM\0\0\0", "OM SYSTEM"), (b"OLYMPUS\0", "OLYMPUS"))
+SUB_IFDS = ((0x2010, "equipment"), (0x2020, "settings"), (0x2030, "raw_development"),
+            (0x2040, "image_processing"), (0x2050, "focus_info"))
+
+
+def olympus_top(blob):
+    """Return (layout, byte order, top IFD) of the MakerNote, or None if unsupported.
+
+    A leading OM SYSTEM or OLYMPUS header decides the layout, so an OLYMPUS byte
+    sequence inside an OM SYSTEM note is never taken as its header. Without a
+    leading header, the first OLYMPUS header anywhere in the note is used: this
+    keeps the reader's behaviour from before OM SYSTEM support (layout
+    "OLYMPUS embedded")."""
+    for magic, layout in LEADING_HEADERS:
+        if blob.startswith(magic):
+            base = len(magic)
             break
     else:
-        return {}
-    base = idx + len(magic)
+        idx = blob.find(b"OLYMPUS\0")
+        if idx < 0:
+            return None
+        base, layout = idx + 8, "OLYMPUS embedded"
     if blob[base:base + 2] not in (b"II", b"MM"):
-        return {}
+        return None
     e = "<" if blob[base:base + 2] == b"II" else ">"
-    top = read_ifd(blob, e, base + 4)
+    return layout, e, read_ifd(blob, e, base + 4)
+
+
+def olympus_tags(blob):
+    found = olympus_top(blob)
+    if found is None:
+        return {}
+    _, e, top = found
     out = {}
-    for tag, label in ((0x2010, "equipment"), (0x2020, "settings"),
-                       (0x2030, "raw_development"), (0x2040, "image_processing"),
-                       (0x2050, "focus_info")):
+    for tag, label in SUB_IFDS:
         entry = top.get(tag)
         if not entry or entry[0] != 13 or entry[3] is None:
             continue
@@ -155,6 +174,16 @@ def self_test():
     om = b"OM SYSTEM\0\0\0II\x04\x00" + top + ifd
     assert olympus_tags(om)["image_processing"][0x0614][3] == 5184
     print("self-test ok: synthetic OM SYSTEM header reaches 0x2040/0x0614")
+    # A leading OM SYSTEM note that also contains a valid-looking OLYMPUS header
+    # (pointing at a 0x2040 IFD with 0x0614 = 1) must keep the OM SYSTEM path.
+    decoy_ifd = ifd.replace(struct.pack(e + "I", 5184), struct.pack(e + "I", 1))
+    decoy = b"OLYMPUS\0II\x03\x00" + top + decoy_ifd
+    competing = om + decoy
+    assert olympus_top(competing)[0] == "OM SYSTEM"
+    assert olympus_tags(competing)["image_processing"][0x0614][3] == 5184
+    assert olympus_top(b"xx" + decoy)[0] == "OLYMPUS embedded"
+    assert olympus_top(b"OM SYSTEM\0\0\0??") is None
+    print("self-test ok: leading OM SYSTEM wins over an embedded OLYMPUS header")
 
 
 def main_cli():
