@@ -2097,6 +2097,16 @@ provenance records pin each full filename and hash.
     python -I -B tools/motif_interior_probe.py --sample PA210010.ORF FILE --sample PA200010.ORF FILE --sample PA200012.ORF FILE
     python -I -B tools/test_motif_interior_probe.py
 
+**`legacy_block_shape.py`** tests file-absolute and MakerNote-relative extent
+bases for the two declared type-7 legacy blocks. Only a uniquely bounded common
+base is tested for a nonempty TIFF-shaped directory at block byte zero, with
+block-relative value offsets. Shape match is not tag semantics or a codec.
+Discovery accepts 1800, 2878, 1799 and 780. `--cohort reserved` permits 3540.
+Hashes are pinned and unsupported, ambiguous and absent scopes remain distinct.
+
+    python -I -B tools/legacy_block_shape.py --sample 1800 FILE --sample 2878 FILE --sample 1799 FILE --sample 780 FILE
+    python -I -B tools/test_legacy_block_shape.py
+
 **`stride_head_sensitivity.py`** compares the fixed heads 8, 16, 32, 64 and
 128 on the nine historical #144 public samples. One q-capped-at-40 candidate
 parse supplies the original 300-row W..W+1200 stride scan and fixed scores at
