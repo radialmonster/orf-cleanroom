@@ -2000,6 +2000,19 @@ land exactly at the assumed pitch without any camera input.
     python -I -B tools/capped_prefix_counts.py --records samples/e-m5-mk-ii-dark-338-provenance.json --sample P1010017.ORF FILE
     python -I -B tools/test_capped_prefix_counts.py
 
+### Legacy MakerNote top-directory inventory
+
+`legacy_maker_directory.py` supports #949's two older V0 inputs. It accepts
+only leading `OLYMP` plus NUL/version 1 or 2 headers and reads the complete
+bounded directory at relative byte 8 in the outer TIFF order. It reports
+numeric tag IDs/type/count, directory extent, next pointer and whether top
+entries 0x2040/0x2050 exist. It does not scan for signatures, traverse other
+numeric paths, parse metadata value blocks or infer global tag absence.
+Unknown headers remain unknown. Public identities are full-hash gated.
+
+    python -I -B tools/legacy_maker_directory.py --records RETAINED_CC0_JSON --sample 1800 FILE1800 --sample 1799 FILE1799
+    python -I -B tools/test_legacy_maker_directory.py
+
 ### V0 declared geometry inventory
 
 `v0_declared_geometry.py` inventories literal TIFF and DNG-shaped geometry
