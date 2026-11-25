@@ -2132,3 +2132,13 @@ follow private directories, or establish ownership of an otherwise undeclared
 interval. An inaccessible or malformed branch makes coverage unknown while
 preserving earlier intersections. The limits are 128 directories and 65,536
 values per consulted pointer array. Output contains no local paths or image data.
+
+### White-file all-edge motif comparison
+
+`python -I -B tools/white_motif_all_edges.py --sample PATH` uses only the pinned
+PA210010 white file and requires the historical 791 motifs and 1,568 directed
+edges before parsing. `--repeat` selects the adjacent disjoint 400-pitch window,
+without a discovery-count expectation. Each grammar scores every edge between
+literal motifs. Degree and gap strata report edge counts by paired success mask;
+source all/some/none counts include only motifs with at least one outgoing edge.
+Edges share motifs and do not establish independent physical rows or a codec.
