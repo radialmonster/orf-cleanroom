@@ -2203,3 +2203,12 @@ are tested as exact bit-position lattices, without parsing candidate tokens.
 The best first-window pair is carried into the next window without refitting.
 Run `python -I -B tools/test_literal_motif_lattice.py` for the generated controls.
 A missing lattice does not rule out variable-length rows or another marker.
+
+### Fixed motif edge bit budget
+
+`fixed_motif_edge_budget.py --sample NAME PATH` takes the frozen white/dark
+OM-3 discovery files. `--cohort repeat` selects the separately reserved dark.
+Only adjacent present motifs at frozen phases are scored. A missing motif is
+not bridged. The stride-six stop-bit check audits k5 exact-count equality
+without establishing a codec. Run `python -I -B tools/test_fixed_motif_edge_budget.py`
+for generated controls.
