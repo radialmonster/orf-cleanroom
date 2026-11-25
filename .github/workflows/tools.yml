@@ -218,6 +218,10 @@ jobs:
           python -I -B tools/test_escape_context_match_probe.py
       - name: Synthetic exact phase null tests
         run: python -I -B tools/test_synthetic_phase_exact_null.py
+      - name: Synthetic perturbation resync tests
+        run: |
+          python -I -B tools/payload_perturbation_resync.py --self-test
+          python -I -B tools/test_payload_perturbation_resync.py
       - name: Synthetic payload-band and donor-lag tests
         run: |
           python -I -B tools/test_payload_band_lag.py
