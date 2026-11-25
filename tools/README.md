@@ -1,5 +1,13 @@
 # tools
 
+**`literal_repeat_heldout.py`** extends independent #864 reproduction with the
+same frozen white-derived template on public PA200011 and two 128-KiB white
+windows starting at 1/2 MiB. The comparator is never fitted; original literal
+cost functions and absolute phase are reused. These are description costs,
+not camera syntax. Both public inputs are hash-gated against pinned identities.
+
+    python -I -B tools/literal_repeat_heldout.py --white PATH_WHITE --dark PATH_PA200011
+
 **`literal_repeat_probe.py`** fits 1..256-bit periodic majority templates on a
 fixed white-file window and charges the self-contained gamma-gap exception
 description on fixed disjoint windows, the whole strip and a dark comparator.
