@@ -2017,20 +2017,36 @@ field types and ordering are documented on pages 28, 29 and 42. [Adobe DNG
 
     python -I -B tools/test_v0_declared_geometry.py
 
-**`row_frame_probe.py`** locates row starts from the six-field head pattern
-(`100xxxxx` six times) alone, with no token parse, and tests two readings of the
-row from each located start: plain k=5, and six k=7 tokens then k=5. Per file it
-prints the payload width x height, the start-marker length, the whole-payload
-k=5 token count minus W*H, the rows whose W tokens end exactly on the next
-located start under each reading, and the bit offset, token column and six field
-values of the head group under both readings. Both readings give the same row
-end and the same token count, so row framing cannot choose between them: one and
-the same 8-bit group reads as six k=7 fields at bit b and as six k=5 tokens at
-bit b+6. The column is constant per file while the field values are nearly
-constant in the calm white and data-dependent in the ISO 200 darks. Rows are
-tested only where the head pattern was found (the first `--rows` rows); a file
-without the pattern, or on which the row grid drifts, is reported by its counts.
+**`row_frame_probe.py`** selects candidate row starts from the six-field
+pattern alone, with no word parse, and tests two readings from each selected
+start: plain k=5, and six k=7 words then k=5. The payload is the declared strip
+sequence read by `strip_start_audit.independent_strips` (separated strips joined
+in table order; tied, overlapping or mismatched tables reported as unknown).
+
+Selected positions: every match of `(?:100[01]{5}){6}` (six 8-bit fields
+`100xxxxx`) from the end of the literal leading-zeros marker to
+marker + `--rows` x pitch bits, pitch = 6W+12 (assumed). Matches are chained
+when the next lies pitch +/- tolerance bits after the previous kept one,
+tolerance = max(64, pitch // 100) (313 bits at W = 5220); a match closer than
+the tolerance is dropped, and only the longest chain is kept. `pitch` and
+`tolerance` are printed. `selected_starts` and `selected_intervals` count that
+chain; `intervals_exact_k5` / `intervals_exact_head` count intervals whose W
+words, parsed from one selected start, end exactly on the next. This agreement
+is measured only at the selected positions: it is not a measured row pitch and
+does not show physical row starts. Both readings give the same end and the same
+word count, so this framing cannot choose between them: one and the same group
+reads as six k=7 fields at bit b and as six k=5 words at bit b+6. `group_bit`
+and `group_col` are the bit offset and word column of the selected starts
+within W-word blocks of a plain k=5 parse from the marker.
+
+Word ends are bounded by the payload (`capped_prefix_counts.word_end`): an
+incomplete word ends a parse and is never counted. Whole-payload counts:
+`guard24_k5_minus_wh` is the historical loop that starts a word only while 24
+bits remain (the number earlier reported as the whole-payload count);
+`complete_k5_minus_wh` counts every complete word, with `residual_bits` left
+over, as in #955. An empty or all-zero payload prints `status=no_marker`.
 Nothing here establishes a codec, an escape meaning, physical alignment or a
 decode.
 
-    python -I -B tools/row_frame_probe.py PATH_WHITE PATH_DARK
+    python -I -B tools/row_frame_probe.py [--rows N] FILE [FILE ...]
+    python -I -B tools/test_row_frame_probe.py
