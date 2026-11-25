@@ -2065,3 +2065,20 @@ No candidate value is asserted to be a sensor value.
     python -I -B tools/value_field_independent_audit.py --sample PUBLIC_NAME SHA256 FILE
     python -I -B tools/value_field_independent_audit.py --null --sample PUBLIC_NAME SHA256 FILE
     python -I -B tools/test_value_field_independent_audit.py
+
+**`value_field_q_accounting.py`** accounts for the fixed #961 candidate-word
+field by partner q=0 versus q=1..11. It retains the historical first-one start,
+24-bit guard and omission of pairs containing a q>=12 escape. The `original`
+window uses nominal rows 20..599 and `later` uses 620..1199, both with columns
+20..W-21. The output includes exact 32-bin histograms, six additive term sums,
+current/partner q cross-counts, and pooled rational moments. The pooled third
+central moment is split into within-stratum, variance-offset interaction and
+cubic mean-offset terms. Empty strata and zero-variance skew are explicit.
+The symmetric 800-minus-200 mean decomposition reports within-stratum
+and composition terms, or unknown if a stratum is empty. Each input is hash
+checked and all selected files must succeed before a pooled comparison. Group
+labels and nominal coordinates are accounting choices, not physical ISO causes,
+physical rows or a predictor. Freeze the file list before measurement.
+
+    python -I -B tools/value_field_q_accounting.py --window original --sample 200 PUBLIC_NAME SHA256 FILE --sample 800 PUBLIC_NAME SHA256 FILE
+    python -I -B tools/test_value_field_q_accounting.py
