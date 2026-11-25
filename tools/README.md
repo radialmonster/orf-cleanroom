@@ -2238,3 +2238,10 @@ fixed continuous candidate-token start phases and deterministic rotations.
 `--cohort repeat --sample 1998 PATH` selects the reserved file. The test does
 not establish physical byte alignment or escape syntax.
 Run generated checks with `python -I -B tools/test_candidate_byte_phase.py`.
+
+### Common-support donor signs
+
+`common_support_donor.py --sample 1993 PATH --sample 5283 PATH` compares fixed
+candidate b2 donor lags on a common target mask. `--cohort repeat --sample 6343
+PATH` selects the reserved file. The nominal parity and signs are not physical
+rows, CFA interpretation or a predictor.
