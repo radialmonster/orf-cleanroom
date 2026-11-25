@@ -2082,3 +2082,16 @@ physical rows or a predictor. Freeze the file list before measurement.
 
     python -I -B tools/value_field_q_accounting.py --window original --sample 200 PUBLIC_NAME SHA256 FILE --sample 800 PUBLIC_NAME SHA256 FILE
     python -I -B tools/test_value_field_q_accounting.py
+
+**`stride_head_sensitivity.py`** compares the fixed heads 8, 16, 32, 64 and
+128 on the nine historical #144 public samples. One q-capped-at-40 candidate
+parse supplies the original 300-row W..W+1200 stride scan and fixed scores at
+candidate rows 1000..1299. Each head's prefix winner and the head-32 winner
+are evaluated later without a new search. Prefix ties use the original tuple
+ordering and exact z ties are listed. Nonfinite prefix scores, incomplete
+bands and zero-variance later scores have explicit statuses. Z scores and
+selection margins are descriptive, not calibrated significance or evidence of
+physical row boundaries. Hashes are checked before parsing.
+
+    python -I -B tools/stride_head_sensitivity.py --sample ID PUBLIC_NAME SHA256 FILE
+    python -I -B tools/test_stride_head_sensitivity.py
