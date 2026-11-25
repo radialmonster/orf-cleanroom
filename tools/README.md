@@ -2083,6 +2083,20 @@ physical rows or a predictor. Freeze the file list before measurement.
     python -I -B tools/value_field_q_accounting.py --window original --sample 200 PUBLIC_NAME SHA256 FILE --sample 800 PUBLIC_NAME SHA256 FILE
     python -I -B tools/test_value_field_q_accounting.py
 
+**`motif_interior_probe.py`** selects all complete six-field `100xxxxx` motifs
+in the fixed first 400 assumed pitches and retains only mutually unique edges.
+For their interiors it compares literal and capped k=4/5 candidate parses,
+including exact endpoint, target count, overrun reasons, escapes and paired
+four-grammar success masks. A zero-edge result is sparse, not a rejection.
+These are candidate indices and do not establish physical rows or a codec.
+The discovery CLI accepts the three hash-pinned #339 public OM-3 inputs.
+The optional `--cohort om3-repeat` accepts PA200011 and PA200015, and
+`--cohort em5-repeat` accepts P1010009/11/13/17/18/19. The retained CC0
+provenance records pin each full filename and hash.
+
+    python -I -B tools/motif_interior_probe.py --sample PA210010.ORF FILE --sample PA200010.ORF FILE --sample PA200012.ORF FILE
+    python -I -B tools/test_motif_interior_probe.py
+
 **`stride_head_sensitivity.py`** compares the fixed heads 8, 16, 32, 64 and
 128 on the nine historical #144 public samples. One q-capped-at-40 candidate
 parse supplies the original 300-row W..W+1200 stride scan and fixed scores at
