@@ -11,6 +11,9 @@ SAMPLES = {
     '1800': ('Olympus - E-1 - 16bit (4:3).ORF', '042286653fbae5b085bef4a4e626145385ea6e82e817f166b4904abcef64457c', (3826, 3862)),
     '2878': ('Olympus - E-300 - 16bit (4:3).ORF', '6d818dbff78b3e2efa4835f568d04733052b9211e6bc65b0a3748a841170e95b', (4078, 4114)),
 }
+EXTENSION = {'3540': ('Olympus - E-500 - 16bit (4:3).ORF',
+                      'fa5a4759b2de2b573f59629ad1baf64ad04a85fb8fe1fb3cbf68e08a42fff4f0',
+                      (3982, 4018))}
 SIZES = {1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 6: 1, 7: 1, 8: 2, 9: 4, 10: 8, 11: 4, 12: 8, 13: 4}
 
 
@@ -156,14 +159,16 @@ def audit(data, target):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--extension', action='store_true')
     parser.add_argument('--sample', nargs=2, action='append', required=True, metavar=('ID', 'PATH'))
     args = parser.parse_args()
     ids = [x[0] for x in args.sample]
-    if len(ids) != len(set(ids)) or any(x not in SAMPLES for x in ids):
-        parser.error('IDs must be distinct and drawn from 1800, 2878')
+    cohort = EXTENSION if args.extension else SAMPLES
+    if len(ids) != len(set(ids)) or any(x not in cohort for x in ids):
+        parser.error('IDs must be distinct and drawn from the selected cohort')
     rows = []
     for ident, path in args.sample:
-        name, expected, target = SAMPLES[ident]
+        name, expected, target = cohort[ident]
         row = {'id': ident, 'name': name, 'sha256': expected}
         try:
             with open(path, 'rb') as f:

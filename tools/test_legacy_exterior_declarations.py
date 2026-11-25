@@ -1,4 +1,9 @@
+import contextlib
+import hashlib
+import io
+import json
 import os
+from unittest.mock import patch
 import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import struct
@@ -16,6 +21,26 @@ def fixture(entries, target=(300, 336)):
 
 
 class TestExterior(unittest.TestCase):
+    def test_extension_cli_gate_and_fixed_interval(self):
+        data = bytearray(4100)
+        data[:8] = b'II\x2a\x00\x08\x00\x00\x00'
+        digest = hashlib.sha256(data).hexdigest()
+        name, _, target = probe.EXTENSION['3540']
+        with patch.dict(probe.EXTENSION, {'3540': (name, digest, target)}), \
+             patch('builtins.open', return_value=io.BytesIO(data)), \
+             patch.object(sys, 'argv', ['tool', '--extension', '--sample', '3540', 'private']), \
+             contextlib.redirect_stdout(io.StringIO()) as out:
+            self.assertEqual(probe.main(), 0)
+        row = json.loads(out.getvalue())['samples'][0]
+        self.assertEqual(row['target'], [3982, 4018])
+        self.assertNotIn('private', out.getvalue())
+        for argv in (['tool', '--sample', '3540', 'private'],
+                     ['tool', '--extension', '--sample', '1800', 'private']):
+            with patch.object(sys, 'argv', argv), contextlib.redirect_stderr(io.StringIO()), \
+                 patch('builtins.open') as opened, self.assertRaises(SystemExit):
+                probe.main()
+            opened.assert_not_called()
+
     def test_header_intersection_is_counted_without_parsing_it(self):
         data, target = fixture([], (4, 10))
         r = probe.audit(data, target)

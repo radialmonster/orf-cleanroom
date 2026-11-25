@@ -2133,6 +2133,11 @@ interval. An inaccessible or malformed branch makes coverage unknown while
 preserving earlier intersections. The limits are 128 directories and 65,536
 values per consulted pointer array. Output contains no local paths or image data.
 
+For the separately frozen E-500 3540 extension, use
+`python -I -B tools/legacy_exterior_declarations.py --extension --sample 3540 PATH`.
+The fixed exterior is [3982,4018), from #993. The extension flag permits only
+3540; the default remains the original 1800 and 2878 cohort.
+
 ### White-file all-edge motif comparison
 
 `python -I -B tools/white_motif_all_edges.py --sample PATH` uses only the pinned
