@@ -1,4 +1,4 @@
-﻿"""Generated zero-run and capped candidate boundary checks."""
+"""Generated zero-run and capped candidate boundary checks."""
 from bisect import bisect_left
 from unittest import TestCase,main,mock
 import os,sys
@@ -53,6 +53,28 @@ class Tests(TestCase):
         result=p.interior(pack(x),0,len(x),5,True,marks)
         self.assertEqual(result['reason'],'escape_overrun');self.assertEqual(marks,[])
 
+    def test_em5_cap_only_same_edge(self):
+        pitch = 6*4640+12
+        start, end = 40+620*pitch, 40+1200*pitch
+        a = start+100
+        motif = '10000000'*6
+        body = '111111' + '0'*12 + '100000100000' + '111111'*4632
+        b = a+48+len(body)
+        data = bytearray((end+7)//8)
+        for base, bits in ((a,motif), (a+48,body), (b,motif)):
+            for i, bit in enumerate(bits):
+                if bit == '1':
+                    pos = base+i
+                    data[pos//8] |= 128 >> (pos%8)
+        result = p.measure(bytes(data), 4640, em5=True)
+        self.assertEqual(result['motifs'], 2)
+        self.assertEqual(result['eligible_edges'], 1)
+        self.assertEqual(result['window'], [start,end])
+        self.assertEqual(result['run_bearing_edges'], 1)
+        self.assertEqual(result['joint_success'], {'01': 1})
+        self.assertEqual(result['cap_only_success_with_coincident_escape'], 1)
+        self.assertEqual(result['escapes_at_supported_run_start'], 1)
+        self.assertEqual(result['capped']['completed_escapes'], 1)
     def test_no_support_skips_both_parsers(self):
         pitch=6*5240+12;end=40+400*pitch
         payload=bytes((end+7)//8);motifs=[100,100+pitch]

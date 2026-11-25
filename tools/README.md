@@ -2157,3 +2157,11 @@ least 12 zero bits and both flanking ones are tested. Support, paired endpoints
 and required word-count successes, overrun reasons and completed escapes are
 aggregates. A raw run is not an escape and sparse support does not adjudicate
 the grammar. `--repeat` accepts only the separately pinned 1997 file.
+
+For the fixed E-M5 Mark II support comparison, `--em5 --sample FILE0019`
+uses [40+620P,40+1200P), P=6W+12 at W=4640. `--em5 --repeat --sample
+FILE0017` selects the separately reserved public file. The cap-only success
+count requires a completed capped escape at a supported run on the same edge.
+The `escape_support` status alone only means a capped escape completed on a
+run-bearing edge, even if it did not coincide with any qualifying run.
+Neither the nominal interval nor the literal motif establishes physical rows.
