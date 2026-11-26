@@ -2166,6 +2166,12 @@ The `escape_support` status alone only means a capped escape completed on a
 run-bearing edge, even if it did not coincide with any qualifying run.
 Neither the nominal interval nor the literal motif establishes physical rows.
 
+For independent #1007 extension, `--em5 --em5-file P1010018.ORF --sample
+FILE0018` applies the identical window, selection and scoring to a third
+hash-pinned public ISO-800 capture. The explicit identity option also accepts
+P1010017/P1010019; it requires `--em5` and cannot be combined with `--repeat`.
+Existing default discovery and repeat invocations are unchanged.
+
 ### Candidate-field partner permutation accounting
 
 `value_field_partner_null.py --sample NAME PATH` accepts each of the six fixed

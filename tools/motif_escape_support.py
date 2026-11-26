@@ -15,6 +15,7 @@ PINS = {
     '1997': '89138ccc958509ca1beb7028452400ab7f42061c0fc56e35c8a7d7a4a808dd0a',
     'P1010019.ORF': '5d8234f321aa9d89fe539c1e4ead24e09696c9bff7ecfcef45a7f1571426ec75',
     'P1010017.ORF': '431b03c21b743f13006be4ed9eb18f17e04d4a7ad50281eec3d2f7668d02a2c5',
+    'P1010018.ORF': 'e39afef52d22200798ea4367da3b6b1178dc44fdababc5dfb9e816ea5b931e3f',
 }
 
 
@@ -92,8 +93,12 @@ def main():
     p.add_argument('--sample', required=True, metavar='PATH')
     p.add_argument('--repeat', action='store_true')
     p.add_argument('--em5', action='store_true')
+    p.add_argument('--em5-file', choices=('P1010017.ORF', 'P1010018.ORF', 'P1010019.ORF'),
+                   help='explicit public ISO-800 capture; requires --em5 without --repeat')
     a = p.parse_args()
-    ident = ('P1010017.ORF' if a.repeat else 'P1010019.ORF') if a.em5 else ('1997' if a.repeat else '1993')
+    if a.em5_file and (not a.em5 or a.repeat):
+        p.error('explicit E-M5 identity requires --em5 without --repeat')
+    ident = a.em5_file or (('P1010017.ORF' if a.repeat else 'P1010019.ORF') if a.em5 else ('1997' if a.repeat else '1993'))
     pin = PINS[ident]
     try:
         with open(a.sample, 'rb') as f:
