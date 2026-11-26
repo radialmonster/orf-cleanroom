@@ -52,6 +52,7 @@ def evaluate(words, width, rows=600, null=False, top=20, edge=20):
     counts = Counter()
     total = total2 = total3 = skipped = 0
     class_sum, class_n = [0, 0], [0, 0]
+    class_hist = [Counter(), Counter()]
     for r in range(top, rows):
         for c in range(edge, width - edge):
             i = r * width + c
@@ -68,6 +69,7 @@ def evaluate(words, width, rows=600, null=False, top=20, edge=20):
             parity = (r + c) % 2
             class_sum[parity] += v
             class_n[parity] += 1
+            class_hist[parity][v] += 1
     n = sum(counts.values())
     mean = total / n if n else None
     variance = (total2 / n - mean * mean) if n else None
@@ -88,7 +90,8 @@ def evaluate(words, width, rows=600, null=False, top=20, edge=20):
                                   'ok' if vx > 0 and vy > 0 else 'zero_variance')}
     return {'status': 'ok' if n and sd else 'unknown', 'reason': None if n and sd else ('empty' if not n else 'zero_variance'),
             'valued': n, 'skipped': skipped, 'mean': mean, 'sd': sd, 'skew': skew,
-            'classes': [{'count': class_n[i], 'mean': class_sum[i]/class_n[i] if class_n[i] else None} for i in range(2)],
+            'classes': [{'count': class_n[i], 'mean': class_sum[i]/class_n[i] if class_n[i] else None,
+                         'histogram': {str(v): class_hist[i][v] for v in range(-20, 12)}} for i in range(2)],
             'histogram': {str(i): counts[i] for i in range(-20, 12)}, 'lags': lags}
 
 
@@ -99,7 +102,11 @@ def main():
     p = SafeParser(description=__doc__)
     p.add_argument('--sample', nargs=3, required=True, metavar=('NAME', 'SHA256', 'PATH'))
     p.add_argument('--null', action='store_true')
+    p.add_argument('--rows', type=int, default=600,
+                   help='exclusive stop row; starts at row 20 (default 600)')
     a = p.parse_args()
+    if a.rows <= 20:
+        p.error('rows must exceed 20')
     name, expected, path = a.sample
     if (not name or not name.isprintable() or '/' in name or '\\' in name or
             len(expected) != 64 or any(c not in '0123456789abcdef' for c in expected)):
@@ -111,10 +118,13 @@ def main():
             raise ValueError('size_or_hash')
         geometry, payload = independent_strips(data)
         width, height = geometry['width'], geometry['height']
-        words, reason = parse(payload, 601 * width)
-        result = evaluate(words, width, null=a.null) if words is not None else {'status': 'unknown', 'reason': reason}
+        if a.rows >= height:
+            raise ValueError('rows_need_partner_row')
+        words, reason = parse(payload, (a.rows + 1) * width)
+        result = evaluate(words, width, rows=a.rows, null=a.null) if words is not None else {'status': 'unknown', 'reason': reason}
         print(json.dumps({'name': name, 'sha256': expected, 'width': width, 'height': height,
-                          'payload_bytes': len(payload), 'null': a.null, 'result': result}, allow_nan=False))
+                          'payload_bytes': len(payload), 'null': a.null, 'rows': [20, a.rows],
+                          'result': result}, allow_nan=False))
         return int(result['status'] != 'ok')
     except (OSError, ValueError, IndexError, KeyError, TypeError) as exc:
         print(json.dumps({'name': name, 'sha256': expected, 'status': 'unknown', 'reason': type(exc).__name__}))
