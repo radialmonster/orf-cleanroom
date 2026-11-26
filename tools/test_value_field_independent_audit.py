@@ -22,7 +22,7 @@ class Tests(unittest.TestCase):
         digest = hashlib.sha256(data).hexdigest()
         result = {'status': 'ok', 'sentinel': 4}
         with mock.patch.object(reference, 'open', return_value=io.BytesIO(data), create=True), \
-             mock.patch.object(reference, 'independent_strips', return_value=({'width': 6, 'height': 9}, b'payload')), \
+             mock.patch.object(reference, 'independent_strips', return_value=({'width': 6, 'height': 1000}, b'payload')), \
              mock.patch.object(reference, 'parse', return_value=([1], None)), \
              mock.patch.object(reference, 'evaluate', return_value=result):
             out = io.StringIO()
@@ -83,6 +83,26 @@ class Tests(unittest.TestCase):
         one = reference.evaluate(masked, width, rows, top=1, edge=1)
         self.assertEqual(one['lags']['1']['pairs'], 1)
         self.assertEqual(one['lags']['1']['status'], 'insufficient_pairs')
+
+    def test_constant_class_and_same_mean_nonconstant_control(self):
+        width, rows = 8, 6
+        # Even candidate sites read 0; odd sites read -4.
+        words = [8 if (r+c) % 2 else 0
+                 for r in range(rows+1) for c in range(width)]
+        result = reference.evaluate(words, width, rows, top=1, edge=1)
+        self.assertEqual(result['classes'][1]['histogram']['-4'], 15)
+        self.assertEqual(sum(n != 0 for n in result['classes'][1]['histogram'].values()), 1)
+        shorter = reference.evaluate(words, width, rows=3, top=1, edge=1)
+        self.assertEqual(shorter['classes'][1]['histogram']['-4'], 6)
+        # The two odd sites now read -5 and -3. Their mean stays -4,
+        # while the exact class histogram must reject constancy.
+        words[10] = 7
+        words[12] = 9
+        control = reference.evaluate(words, width, rows, top=1, edge=1)
+        self.assertEqual(control['classes'][1]['mean'], -4)
+        self.assertEqual(control['classes'][1]['histogram']['-5'], 1)
+        self.assertEqual(control['classes'][1]['histogram']['-3'], 1)
+        self.assertEqual(control['classes'][1]['histogram']['-4'], 13)
 
 
 if __name__ == '__main__':
